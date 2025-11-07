@@ -1,6 +1,6 @@
 import { DataSourceOptions } from 'typeorm';
 
-import { SnakeCaseNamingStrategy } from './naming-strategies/snake-case.naming-strategy.js';
+import { SnakeCaseNamingStrategy } from './naming-strategies/snake-case.naming-strategy';
 
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
@@ -9,8 +9,8 @@ export const dataSourceOptions: DataSourceOptions = {
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_DATABASE || 'postgres',
-  entities: ['../**/*.entity{.ts,.js}'],
-  migrations: ['migrations/**/*{.ts,.js}'],
+  entities: [__dirname + '/../**/*.entity{.ts,.js}'],
+  migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
   subscribers: [],
   synchronize: false,
   logging: false,

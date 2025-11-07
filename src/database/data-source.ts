@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { dataSourceOptions } from './database.config.js';
+import { dataSourceOptions } from './database.config';
 
 const dataSource = new DataSource(dataSourceOptions);
 
