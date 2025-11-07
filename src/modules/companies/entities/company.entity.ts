@@ -7,8 +7,6 @@ import {
   DeleteDateColumn,
   OneToMany,
 } from 'typeorm';
-import { Contact } from '../../contacts/entities/contact.entity';
-import { UserCompany } from './user-company.entity';
 
 @Entity('companies')
 export class Company {
@@ -21,11 +19,11 @@ export class Company {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @OneToMany(() => UserCompany, (userCompany) => userCompany.company)
-  userCompanies: UserCompany[];
+  @OneToMany('UserCompany', 'company')
+  userCompanies: any[];
 
-  @OneToMany(() => Contact, (contact) => contact.company)
-  contacts: Contact[];
+  @OneToMany('Contact', 'company')
+  contacts: any[];
 
   @CreateDateColumn()
   createdAt: Date;

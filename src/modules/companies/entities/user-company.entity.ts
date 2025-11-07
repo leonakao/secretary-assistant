@@ -8,8 +8,6 @@ import {
   DeleteDateColumn,
   Column,
 } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
-import { Company } from './company.entity';
 
 @Entity('user_companies')
 export class UserCompany {
@@ -22,13 +20,13 @@ export class UserCompany {
   @Column({ type: 'uuid' })
   companyId: string;
 
-  @ManyToOne(() => User, (user) => user.userCompanies)
+  @ManyToOne('User', 'userCompanies')
   @JoinColumn({ name: 'user_id' })
-  user: User;
+  user: any;
 
-  @ManyToOne(() => Company, (company) => company.userCompanies)
+  @ManyToOne('Company', 'userCompanies')
   @JoinColumn({ name: 'company_id' })
-  company: Company;
+  company: any;
 
   @CreateDateColumn()
   createdAt: Date;

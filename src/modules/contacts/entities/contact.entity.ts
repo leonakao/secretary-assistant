@@ -9,7 +9,6 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { Company } from '../../companies/entities/company.entity';
 
 @Entity('contacts')
 @Index(['companyId', 'email'], { unique: true, where: 'email IS NOT NULL' })
@@ -37,9 +36,9 @@ export class Contact {
   @Column({ type: 'varchar', length: 255, nullable: true })
   instagram: string;
 
-  @ManyToOne(() => Company, (company) => company.contacts)
+  @ManyToOne('Company', 'contacts')
   @JoinColumn({ name: 'company_id' })
-  company: Company;
+  company: any;
 
   @CreateDateColumn()
   createdAt: Date;

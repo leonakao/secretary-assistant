@@ -29,8 +29,6 @@ FROM node:22.11-alpine AS production
 
 WORKDIR /usr/src/app
 
-RUN mkdir -p .adminjs && chown -R node:node .adminjs
-
 COPY --from=deps-prod --chown=node:node /usr/src/app/node_modules ./node_modules
 COPY --from=build --chown=node:node /usr/src/app/package.json .
 COPY --from=build --chown=node:node /usr/src/app/pnpm-lock.yaml .

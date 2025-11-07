@@ -7,7 +7,6 @@ import {
   DeleteDateColumn,
   OneToMany,
 } from 'typeorm';
-import { UserCompany } from '../../companies/entities/user-company.entity';
 
 @Entity('users')
 export class User {
@@ -23,8 +22,8 @@ export class User {
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
 
-  @OneToMany(() => UserCompany, (userCompany) => userCompany.user)
-  userCompanies: UserCompany[];
+  @OneToMany('UserCompany', 'user')
+  userCompanies: any[];
 
   @CreateDateColumn()
   createdAt: Date;
