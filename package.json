@@ -15,7 +15,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",    
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli",
+    "migration:generate": "pnpm typeorm migration:generate -d src/database/data-source.ts",
+    "migration:create": "pnpm typeorm migration:create src/database/migrations",
+    "migration:run": "pnpm build && node ./node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js",
+    "migration:revert": "pnpm build && node ./node_modules/typeorm/cli.js migration:revert -d dist/database/data-source.js",
+    "schema:drop": "pnpm build && node ./node_modules/typeorm/cli.js schema:drop -d dist/database/data-source.js",
+    "migration:show": "pnpm build && node ./node_modules/typeorm/cli.js migration:show -d dist/database/data-source.js"
   },
   "engines": {
     "npm": ">=10.0.0",
@@ -23,10 +30,14 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.0.17",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/typeorm": "^11.0.0",
+    "dotenv": "^17.2.3",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.27"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
