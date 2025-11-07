@@ -1,0 +1,29 @@
+services:
+  app:
+    build:
+      context: .
+      target: build
+    container_name: app
+    user: 1000:1000
+    command: 'pnpm run start:dev'
+    volumes:
+      - .:/usr/src/app
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
+  db:
+    image: postgres:18.0
+    container_name: db
+    shm_size: 128mb
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - 5432:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+volumes:
+  db-data:
