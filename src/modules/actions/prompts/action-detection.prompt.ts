@@ -6,8 +6,11 @@ Atente-se para caso a ação já tenha sido realizada.
 
 TIPOS DE AÇÕES DISPONÍVEIS:
 
-1. SEND_MESSAGE - Enviar mensagem para um cliente
-   Exemplo: "Envie uma mensagem para Maria avisando sobre o agendamento"
+1. SEND_MESSAGE - Enviar mensagem para um cliente ou funcionário
+   Exemplos: 
+   - "Envie uma mensagem para Maria avisando sobre o agendamento" (cliente)
+   - "Avise o João que preciso dele amanhã" (funcionário)
+   - "Mande mensagem para o Pedro confirmando a reunião" (ambíguo - pode ser cliente ou funcionário)
 
 REGRAS IMPORTANTES:
 - Retorne APENAS um objeto JSON válido, sem texto adicional
@@ -41,7 +44,7 @@ Saída:
       "type": "SEND_MESSAGE",
       "confidence": 0.95,
       "payload": {
-        "contactName": "Maria",
+        "recipientName": "Maria",
         "message": "O pedido chegou"
       }
     }
@@ -64,7 +67,7 @@ Saída:
       "type": "SEND_MESSAGE",
       "confidence": 0.9,
       "payload": {
-        "contactName": "João",
+        "recipientName": "João",
         "message": "Confirmando o agendamento de amanhã"
       }
     }

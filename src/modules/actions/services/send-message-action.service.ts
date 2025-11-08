@@ -8,6 +8,7 @@ import type { MessageProvider } from '../../chat/interfaces/message-provider.int
 import { User } from 'src/modules/users/entities/user.entity';
 import { ChatService } from '../../chat/services/chat.service';
 import { assistantClientPromptWithInstructions } from '../../ai/agent-prompts/assistant-client';
+import { assistantOwnerPromptWithInstructions } from '../../ai/agent-prompts/assistant-owner';
 
 @Injectable()
 export class SendMessageActionService {
@@ -31,25 +32,29 @@ export class SendMessageActionService {
       userId: string;
     },
   ): Promise<ActionExecutionResult> {
-    const { contactName, contactPhone, message } = action.payload;
+    const { recipientName, recipientPhone, message } = action.payload;
 
     try {
-      const result = await this.findContact(
+      const result = await this.findRecipient(
         context.companyId,
-        contactName,
-        contactPhone,
+        recipientName,
+        recipientPhone,
+        context.userId,
       );
 
-      if (!result.contact) {
-        if (result.multipleContacts && result.multipleContacts.length > 0) {
-          const contactList = result.multipleContacts
+      if (!result.recipient) {
+        if (result.multipleRecipients && result.multipleRecipients.length > 0) {
+          const recipientList = result.multipleRecipients
             .map(
-              (c, index) =>
-                `${index + 1}. ${c.name}${c.phone ? ` - ${c.phone}` : ''}`,
+              (r, index) =>
+                `${index + 1}. ${r.name}${r.phone ? ` - ${r.phone}` : ''} (${r.type === 'user' ? 'Funcionário' : 'Cliente'})`,
             )
             .join('\n');
 
-          const errorMsg = `Encontrei ${result.multipleContacts.length} contatos com o nome "${contactName}":\n\n${contactList}\n\nPor favor, especifique qual contato você deseja enviar a mensagem.`;
+          const errorMsg = await this.buildErrorMessage(
+            context.userId,
+            `Encontrei ${result.multipleRecipients.length} pessoas com o nome "${recipientName}":\n\n${recipientList}\n\nInforme qual pessoa você deseja enviar a mensagem.`,
+          );
 
           await this.notifyOwner(
             context.companyId,
@@ -61,12 +66,15 @@ export class SendMessageActionService {
           return {
             success: false,
             action,
-            error: 'Multiple contacts found',
-            data: { multipleContacts: result.multipleContacts },
+            error: 'Multiple recipients found',
+            data: { multipleRecipients: result.multipleRecipients },
           };
         }
 
-        const errorMsg = `Não consegui encontrar o contato "${contactName}". O nome está correto?`;
+        const errorMsg = await this.buildErrorMessage(
+          context.userId,
+          `Não consegui encontrar "${recipientName}" nos contatos ou funcionários. Verifique o nome.`,
+        );
 
         await this.notifyOwner(
           context.companyId,
@@ -82,10 +90,13 @@ export class SendMessageActionService {
         };
       }
 
-      const contact = result.contact;
+      const { recipient, type } = result;
 
-      if (!contact.phone) {
-        const errorMsg = `O contato "${contact.name}" não possui telefone cadastrado.`;
+      if (!recipient.phone) {
+        const errorMsg = await this.buildErrorMessage(
+          context.userId,
+          `${type === 'user' ? 'O funcionário' : 'O contato'} "${recipient.name}" não possui telefone cadastrado.`,
+        );
 
         await this.notifyOwner(
           context.companyId,
@@ -101,15 +112,16 @@ export class SendMessageActionService {
         };
       }
 
-      const remoteJid = this.buildRemoteJid(contact.phone);
+      const remoteJid = this.buildRemoteJid(recipient.phone);
 
       const contextualMessage = await this.buildContextualMessage(
-        contact,
+        recipient,
+        type,
         message,
       );
 
       await this.chatService.sendMessageAndSaveToMemory({
-        sessionId: contact.id,
+        sessionId: recipient.id,
         companyId: context.companyId,
         instanceName: context.instanceName,
         remoteJid,
@@ -120,17 +132,24 @@ export class SendMessageActionService {
         context.companyId,
         context.instanceName,
         context.userId,
-        `✓ Mensagem enviada para ${contact.name}`,
+        `✓ Mensagem enviada para ${recipient.name}${type === 'user' ? ' (Funcionário)' : ''}`,
       );
 
       return {
         success: true,
         action,
-        message: `Message sent to ${contact.name}`,
-        data: { contactId: contact.id, contactName: contact.name },
+        message: `Message sent to ${recipient.name}`,
+        data: {
+          recipientId: recipient.id,
+          recipientName: recipient.name,
+          recipientType: type,
+        },
       };
     } catch (error) {
-      const errorMsg = `Erro ao enviar mensagem: ${error.message}`;
+      const errorMsg = await this.buildErrorMessage(
+        context.userId,
+        `Erro ao enviar mensagem: ${error.message}`,
+      );
 
       await this.notifyOwner(
         context.companyId,
@@ -147,71 +166,138 @@ export class SendMessageActionService {
     }
   }
 
-  private async findContact(
+  private async findRecipient(
     companyId: string,
-    contactName: string,
-    contactPhone?: string,
-  ): Promise<{ contact: Contact | null; multipleContacts?: Contact[] }> {
-    if (contactPhone) {
+    recipientName: string,
+    recipientPhone: string | undefined,
+    excludeUserId: string,
+  ): Promise<{
+    recipient: Contact | User | null;
+    type?: 'contact' | 'user';
+    multipleRecipients?: Array<{
+      name: string;
+      phone: string;
+      type: 'contact' | 'user';
+    }>;
+  }> {
+    if (recipientPhone) {
       const contact = await this.contactRepository.findOne({
-        where: {
-          companyId,
-          phone: contactPhone,
-        },
+        where: { companyId, phone: recipientPhone },
       });
-      if (contact) return { contact };
+      if (contact) return { recipient: contact, type: 'contact' };
+
+      const user = await this.userRepository.findOne({
+        where: { phone: recipientPhone },
+        relations: ['userCompanies'],
+      });
+      if (
+        user &&
+        user.id !== excludeUserId &&
+        user.userCompanies?.some((uc) => uc.companyId === companyId)
+      ) {
+        return { recipient: user, type: 'user' };
+      }
     }
 
     const contacts = await this.contactRepository.find({
-      where: {
-        companyId,
-        name: ILike(`%${contactName}%`),
-      },
+      where: { companyId, name: ILike(`%${recipientName}%`) },
       take: 10,
     });
 
-    if (contacts.length === 0) {
-      return { contact: null };
+    const users = await this.userRepository
+      .createQueryBuilder('user')
+      .innerJoin('user.userCompanies', 'uc')
+      .where('uc.companyId = :companyId', { companyId })
+      .andWhere('user.id != :excludeUserId', { excludeUserId })
+      .andWhere('user.name ILIKE :name', { name: `%${recipientName}%` })
+      .take(10)
+      .getMany();
+
+    const allRecipients = [
+      ...contacts.map((c) => ({ ...c, type: 'contact' as const })),
+      ...users.map((u) => ({ ...u, type: 'user' as const })),
+    ];
+
+    if (allRecipients.length === 0) {
+      return { recipient: null };
     }
 
-    if (contacts.length === 1) {
-      return { contact: contacts[0] };
+    if (allRecipients.length === 1) {
+      const { type, ...recipient } = allRecipients[0];
+      return { recipient: recipient as Contact | User, type };
     }
 
-    const exactMatch = contacts.find(
-      (c) => c.name.toLowerCase() === contactName.toLowerCase(),
+    const exactMatch = allRecipients.find(
+      (r) => r.name.toLowerCase() === recipientName.toLowerCase(),
     );
     if (exactMatch) {
-      return { contact: exactMatch };
+      const { type, ...recipient } = exactMatch;
+      return { recipient: recipient as Contact | User, type };
     }
 
-    return { contact: null, multipleContacts: contacts };
+    return {
+      recipient: null,
+      multipleRecipients: allRecipients.map((r) => ({
+        name: r.name,
+        phone: r.phone,
+        type: r.type,
+      })),
+    };
   }
 
   private async buildContextualMessage(
-    contact: Contact,
+    recipient: Contact | User,
+    recipientType: 'contact' | 'user',
     ownerMessage: string,
   ): Promise<string> {
-    const customInstructions = `O proprietário da empresa pediu para você enviar a seguinte mensagem ao cliente:
+    const recipientLabel = recipientType === 'user' ? 'funcionário' : 'cliente';
+
+    const customInstructions = `O proprietário da empresa pediu para você enviar a seguinte mensagem ao ${recipientLabel}:
 "${ownerMessage}"
 
-Reescreva esta mensagem de forma natural e contextual, considerando o histórico da conversa com o cliente.
+Reescreva esta mensagem de forma natural e contextual, considerando o histórico da conversa com ${recipientType === 'user' ? 'esse funcionário' : 'o cliente'}.
 Se não houver histórico, envie a mensagem de forma direta mas cordial. Não precisa informar que alguém pediu para enviar essa mensagem.
 
-Importante: Se você já tiver enviado uma mensagem para esse cliente, não diga nada.`;
+Importante: Se você já tiver enviado uma mensagem para essa pessoa, não diga nada.`;
 
     const systemPrompt = assistantClientPromptWithInstructions(
-      contact,
+      recipient as Contact,
       customInstructions,
     );
 
     const contextualMessage = await this.chatService.buildAIResponse({
-      sessionId: contact.id,
+      sessionId: recipient.id,
       message: ownerMessage,
       systemPrompt,
     });
 
     return contextualMessage;
+  }
+
+  private async buildErrorMessage(
+    userId: string,
+    errorContext: string,
+  ): Promise<string> {
+    const owner = await this.userRepository.findOneByOrFail({ id: userId });
+
+    const instructions = `Houve um problema ao tentar executar a ação solicitada:
+
+${errorContext}
+
+Comunique isso ao proprietário de forma natural e profissional, mantendo seu tom de secretaria eficiente.`;
+
+    const systemPrompt = assistantOwnerPromptWithInstructions(
+      owner,
+      instructions,
+    );
+
+    const errorMessage = await this.chatService.buildAIResponse({
+      sessionId: userId,
+      message: errorContext,
+      systemPrompt,
+    });
+
+    return errorMessage;
   }
 
   private buildRemoteJid(phone: string): string {

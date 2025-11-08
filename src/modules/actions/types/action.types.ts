@@ -17,8 +17,8 @@ export interface BaseAction {
 export interface SendMessageAction extends BaseAction {
   type: ActionType.SEND_MESSAGE;
   payload: {
-    contactName: string;
-    contactPhone?: string;
+    recipientName: string;
+    recipientPhone?: string;
     message: string;
   };
 }
