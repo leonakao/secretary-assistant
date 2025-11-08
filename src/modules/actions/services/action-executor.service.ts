@@ -4,6 +4,7 @@ import { SendMessageActionService } from './send-message-action.service';
 import { RequestHumanContactActionService } from './request-human-contact-action.service';
 import { NotifyUserActionService } from './notify-user-action.service';
 import { SearchConversationActionService } from './search-conversation-action.service';
+import { FinishOnboardingActionService } from './finish-onboarding-action.service';
 
 export interface ActionExecutionResult {
   success: boolean;
@@ -22,6 +23,7 @@ export class ActionExecutorService {
     private requestHumanContactActionService: RequestHumanContactActionService,
     private notifyUserActionService: NotifyUserActionService,
     private searchConversationActionService: SearchConversationActionService,
+    private finishOnboardingActionService: FinishOnboardingActionService,
   ) {}
 
   async executeActions(
@@ -93,6 +95,16 @@ export class ActionExecutorService {
               companyId: context.companyId,
               instanceName: context.instanceName,
               contactId: context.contactId,
+            });
+            break;
+
+          case ActionType.FINISH_ONBOARDING:
+            if (!context.userId) {
+              throw new Error('userId required for FINISH_ONBOARDING action');
+            }
+            result = await this.finishOnboardingActionService.execute(action, {
+              companyId: context.companyId,
+              userId: context.userId,
             });
             break;
 

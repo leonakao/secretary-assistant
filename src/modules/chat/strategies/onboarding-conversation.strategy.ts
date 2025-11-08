@@ -5,6 +5,8 @@ import { ConversationStrategy } from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
 import { User } from '../../users/entities/user.entity';
 import { assistantOnboardingPrompt } from '../../ai/agent-prompts/assistant-onboarding';
+import { ActionDetectionService } from '../../actions/services/action-detection.service';
+import { ActionExecutorService } from '../../actions/services/action-executor.service';
 
 @Injectable()
 export class OnboardingConversationStrategy implements ConversationStrategy {
@@ -14,6 +16,8 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private chatService: ChatService,
+    private actionDetectionService: ActionDetectionService,
+    private actionExecutorService: ActionExecutorService,
   ) {}
 
   async handleConversation(params: {
@@ -45,10 +49,55 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
       systemPrompt,
     });
 
-    // TODO: Add onboarding-specific logic here
-    // - Collect company information
-    // - Guide user through setup process
-    // - Validate required fields
-    // - Transition to 'running' when complete
+    // Detect and execute onboarding actions (e.g., FINISH_ONBOARDING)
+    await this.detectAndExecuteOnboardingActions({
+      sessionId: params.sessionId,
+      companyId: params.companyId,
+      instanceName: params.instanceName,
+      userId: params.userId,
+    });
+  }
+
+  private async detectAndExecuteOnboardingActions(params: {
+    sessionId: string;
+    companyId: string;
+    instanceName: string;
+    userId: string;
+  }): Promise<void> {
+    try {
+      const detectionResult =
+        await this.actionDetectionService.detectActionsFromSession(
+          params.sessionId,
+          'onboarding',
+        );
+
+      this.logger.debug('Onboarding action detection result:', detectionResult);
+
+      if (
+        detectionResult.requiresAction &&
+        detectionResult.actions.length > 0
+      ) {
+        const results = await this.actionExecutorService.executeActions(
+          detectionResult.actions,
+          {
+            companyId: params.companyId,
+            instanceName: params.instanceName,
+            userId: params.userId,
+          },
+        );
+
+        results.forEach((result) => {
+          if (result.success) {
+            this.logger.log(`✓ Onboarding action executed: ${result.action.type}`);
+          } else {
+            this.logger.log(
+              `✗ Onboarding action failed: ${result.action.type} - ${result.error || result.message}`,
+            );
+          }
+        });
+      }
+    } catch (error) {
+      this.logger.error('Error in detectAndExecuteOnboardingActions:', error);
+    }
   }
 }

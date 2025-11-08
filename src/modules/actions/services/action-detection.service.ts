@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { LangchainService } from '../../ai/services/langchain.service';
 import { actionDetectionPrompt } from '../prompts/action-detection.prompt';
 import { clientActionDetectionPrompt } from '../prompts/client-action-detection.prompt';
+import { onboardingActionDetectionPrompt } from '../prompts/onboarding-action-detection.prompt';
 import { Memory } from '../../chat/entities/memory.entity';
 import {
   ActionDetectionResult,
@@ -29,7 +30,7 @@ export class ActionDetectionService {
 
   async detectActionsFromSession(
     sessionId: string,
-    context: 'owner' | 'client' = 'owner',
+    context: 'owner' | 'client' | 'onboarding' = 'owner',
     maxMessages: number = 10,
   ): Promise<ActionDetectionResult> {
     const memories = await this.memoryRepository.find({
@@ -48,7 +49,7 @@ export class ActionDetectionService {
 
   async detectActions(
     messages: ConversationMessage[],
-    context: 'owner' | 'client' = 'owner',
+    context: 'owner' | 'client' | 'onboarding' = 'owner',
   ): Promise<ActionDetectionResult> {
     try {
       if (messages.length === 0) {
@@ -57,10 +58,14 @@ export class ActionDetectionService {
 
       const conversationContext = this.buildConversationContext(messages);
 
-      const prompt =
-        context === 'owner'
-          ? actionDetectionPrompt()
-          : clientActionDetectionPrompt();
+      let prompt: string;
+      if (context === 'owner') {
+        prompt = actionDetectionPrompt();
+      } else if (context === 'client') {
+        prompt = clientActionDetectionPrompt();
+      } else {
+        prompt = onboardingActionDetectionPrompt();
+      }
       const fullPrompt = `${prompt}\n\nCONVERSA:\n${conversationContext}\n\nRESPOSTA JSON:`;
 
       const response = await this.langchainService.chat(fullPrompt);

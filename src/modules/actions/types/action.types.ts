@@ -13,6 +13,9 @@ export enum ActionType {
   REQUEST_HUMAN_CONTACT = 'REQUEST_HUMAN_CONTACT',
   NOTIFY_USER = 'NOTIFY_USER',
 
+  // Onboarding actions
+  FINISH_ONBOARDING = 'FINISH_ONBOARDING',
+
   NONE = 'NONE',
 }
 
@@ -116,6 +119,25 @@ export interface NotifyUserAction extends BaseAction {
   };
 }
 
+export interface FinishOnboardingAction extends BaseAction {
+  type: ActionType.FINISH_ONBOARDING;
+  payload: {
+    companyName: string;
+    description: string;
+    businessHours: string;
+    phone: string;
+    address?: string;
+    email?: string;
+    pricing?: string;
+    deliveryTime?: string;
+    serviceArea?: string;
+    schedulingInfo?: string;
+    cancellationPolicy?: string;
+    faq?: string;
+    differentiators?: string;
+  };
+}
+
 export interface NoAction extends BaseAction {
   type: ActionType.NONE;
   payload: null;
@@ -132,6 +154,7 @@ export type Action =
   | CancelAppointmentAction
   | RequestHumanContactAction
   | NotifyUserAction
+  | FinishOnboardingAction
   | NoAction;
 
 export interface ActionDetectionResult {
