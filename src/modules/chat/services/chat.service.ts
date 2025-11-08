@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Memory } from '../entities/memory.entity';
 import { LangchainService } from '../../ai/services/langchain.service';
+import type { MessageProvider } from '../interfaces/message-provider.interface';
 
 @Injectable()
 export class ChatService {
@@ -10,6 +11,8 @@ export class ChatService {
     @InjectRepository(Memory)
     private memoryRepository: Repository<Memory>,
     private langchainService: LangchainService,
+    @Inject('MESSAGE_PROVIDER')
+    private messageProvider: MessageProvider,
   ) {}
 
   async sendMessage(params: {
@@ -105,5 +108,48 @@ export class ChatService {
       .getMany();
 
     return memories.map((m) => m.sessionId);
+  }
+
+  async processAndReply(params: {
+    provider: string;
+    instanceName: string;
+    remoteJid: string;
+    message: string;
+    systemPrompt?: string;
+  }): Promise<void> {
+    const { provider, instanceName, remoteJid, message, systemPrompt } = params;
+
+    const sessionId = `${provider}_${instanceName}_${remoteJid}`;
+
+    // Process message with AI
+    const aiResponse = await this.sendMessage({
+      sessionId,
+      message,
+      userId: remoteJid,
+      companyId: instanceName,
+      systemPrompt,
+    });
+
+    // Send response back via provider
+    await this.messageProvider.sendTextMessage({
+      instanceName,
+      remoteJid,
+      text: aiResponse.response,
+    });
+  }
+
+  async sendReply(params: {
+    provider: string;
+    instanceName: string;
+    remoteJid: string;
+    text: string;
+  }): Promise<void> {
+    const { instanceName, remoteJid, text } = params;
+
+    await this.messageProvider.sendTextMessage({
+      instanceName,
+      remoteJid,
+      text,
+    });
   }
 }
