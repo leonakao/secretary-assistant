@@ -4,6 +4,7 @@ import { ActionDetectionService } from './services/action-detection.service';
 import { ActionExecutorService } from './services/action-executor.service';
 import { SendMessageActionService } from './services/send-message-action.service';
 import { RequestHumanContactActionService } from './services/request-human-contact-action.service';
+import { NotifyUserActionService } from './services/notify-user-action.service';
 import { Contact } from '../contacts/entities/contact.entity';
 import { User } from '../users/entities/user.entity';
 import { Memory } from '../chat/entities/memory.entity';
@@ -22,6 +23,7 @@ import { EvolutionMessageProvider } from '../chat/providers/evolution-message.pr
     ActionExecutorService,
     SendMessageActionService,
     RequestHumanContactActionService,
+    NotifyUserActionService,
     {
       provide: 'MESSAGE_PROVIDER',
       useExisting: EvolutionMessageProvider,

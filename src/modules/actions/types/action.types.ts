@@ -10,6 +10,7 @@ export enum ActionType {
 
   // Client actions
   REQUEST_HUMAN_CONTACT = 'REQUEST_HUMAN_CONTACT',
+  NOTIFY_USER = 'NOTIFY_USER',
 
   NONE = 'NONE',
 }
@@ -96,6 +97,14 @@ export interface RequestHumanContactAction extends BaseAction {
   };
 }
 
+export interface NotifyUserAction extends BaseAction {
+  type: ActionType.NOTIFY_USER;
+  payload: {
+    message: string;
+    context?: string;
+  };
+}
+
 export interface NoAction extends BaseAction {
   type: ActionType.NONE;
   payload: null;
@@ -110,6 +119,7 @@ export type Action =
   | ListAppointmentsAction
   | CancelAppointmentAction
   | RequestHumanContactAction
+  | NotifyUserAction
   | NoAction;
 
 export interface ActionDetectionResult {

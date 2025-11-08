@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Action, ActionType } from '../types/action.types';
 import { SendMessageActionService } from './send-message-action.service';
 import { RequestHumanContactActionService } from './request-human-contact-action.service';
+import { NotifyUserActionService } from './notify-user-action.service';
 
 export interface ActionExecutionResult {
   success: boolean;
@@ -18,6 +19,7 @@ export class ActionExecutorService {
   constructor(
     private sendMessageActionService: SendMessageActionService,
     private requestHumanContactActionService: RequestHumanContactActionService,
+    private notifyUserActionService: NotifyUserActionService,
   ) {}
 
   async executeActions(
@@ -65,6 +67,17 @@ export class ActionExecutorService {
                 contactId: context.contactId,
               },
             );
+            break;
+
+          case ActionType.NOTIFY_USER:
+            if (!context.contactId) {
+              throw new Error('contactId required for NOTIFY_USER action');
+            }
+            result = await this.notifyUserActionService.execute(action, {
+              companyId: context.companyId,
+              instanceName: context.instanceName,
+              contactId: context.contactId,
+            });
             break;
 
           default:
