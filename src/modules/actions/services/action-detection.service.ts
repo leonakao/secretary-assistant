@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Injectable, Logger } from '@nestjs/common';
 import { LangchainService } from '../../ai/services/langchain.service';
 import { actionDetectionPrompt } from '../prompts/action-detection.prompt';
@@ -18,33 +19,24 @@ export class ActionDetectionService {
 
   constructor(private langchainService: LangchainService) {}
 
-  /**
-   * Analyzes the last N messages from a conversation to detect required actions
-   * @param messages - Array of conversation messages (last N messages)
-   * @param maxMessages - Maximum number of messages to analyze (default: 5)
-   */
   async detectActions(
     messages: ConversationMessage[],
     maxMessages: number = 5,
   ): Promise<ActionDetectionResult> {
     try {
-      // Get last N messages
       const recentMessages = messages.slice(-maxMessages);
 
       if (recentMessages.length === 0) {
         return this.noActionResult();
       }
 
-      // Build conversation context
       const conversationContext = this.buildConversationContext(recentMessages);
 
-      // Call LLM with action detection prompt
       const prompt = actionDetectionPrompt();
       const fullPrompt = `${prompt}\n\nCONVERSA:\n${conversationContext}\n\nRESPOSTA JSON:`;
 
       const response = await this.langchainService.chat(fullPrompt);
 
-      // Parse JSON response
       const result = this.parseActionResponse(response);
 
       this.logger.log(
@@ -58,12 +50,7 @@ export class ActionDetectionService {
     }
   }
 
-  /**
-   * Builds a formatted conversation context string
-   */
-  private buildConversationContext(
-    messages: ConversationMessage[],
-  ): string {
+  private buildConversationContext(messages: ConversationMessage[]): string {
     return messages
       .map((msg) => {
         const role = msg.role === 'user' ? 'Proprietário' : 'Julia';
@@ -72,9 +59,6 @@ export class ActionDetectionService {
       .join('\n');
   }
 
-  /**
-   * Parses the LLM response and validates the action structure
-   */
   private parseActionResponse(response: string): ActionDetectionResult {
     try {
       // Clean response (remove markdown code blocks if present)
@@ -115,11 +99,7 @@ export class ActionDetectionService {
       );
 
       return {
-        requiresAction:
-          highConfidenceActions.length > 0 &&
-          highConfidenceActions.some(
-            (action: Action) => action.type !== ActionType.NONE,
-          ),
+        requiresAction: highConfidenceActions.length > 0,
         actions: highConfidenceActions,
       };
     } catch (error) {
@@ -129,25 +109,13 @@ export class ActionDetectionService {
     }
   }
 
-  /**
-   * Returns a default "no action" result
-   */
   private noActionResult(): ActionDetectionResult {
     return {
       requiresAction: false,
-      actions: [
-        {
-          type: ActionType.NONE,
-          confidence: 1.0,
-          payload: null,
-        },
-      ],
+      actions: [],
     };
   }
 
-  /**
-   * Filters actions by minimum confidence threshold
-   */
   filterByConfidence(
     result: ActionDetectionResult,
     minConfidence: number = 0.7,
@@ -157,9 +125,7 @@ export class ActionDetectionService {
     );
 
     return {
-      requiresAction:
-        filteredActions.length > 0 &&
-        filteredActions.some((action) => action.type !== ActionType.NONE),
+      requiresAction: filteredActions.length > 0,
       actions: filteredActions,
     };
   }

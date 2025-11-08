@@ -98,7 +98,6 @@ export class OwnerConversationStrategy implements ConversationStrategy {
       }
     } catch (error) {
       this.logger.error('Error in detectAndExecuteActions:', error);
-      // Don't throw - we don't want action detection to break the main flow
     }
   }
 }
