@@ -3,14 +3,14 @@ import {
   buildPrompt,
   getOwnerPersona,
   getCompanyContext,
-  getOwnerRules,
-  getOwnerVariables,
+  getBaseRules,
+  getBaseVariables,
 } from './prompt-builder';
 
 /**
  * Standard prompt for owner interactions
  */
-export const assistantOwnerPrompt = (user: User, context?: string): string => {
+export const assistantOwnerPrompt = (user: User): string => {
   const instructions = `Você vai auxiliar o proprietário da empresa com informações sobre agendamentos, clientes, status de tarefas e outras operações do negócio.
 Você também é capaz de realizar ações que estão descritas no bloco de ações. Caso o usuário peça alguma dessas ações, confirme que vai realizar em seguida.
 
@@ -28,8 +28,8 @@ Você também é capaz de realizar ações que estão descritas no bloco de aç�
     persona: getOwnerPersona(),
     context: getCompanyContext(),
     instructions,
-    rules: getOwnerRules(),
-    variables: getOwnerVariables(user, context),
+    rules: getBaseRules(),
+    variables: getBaseVariables({ name: user.name }),
   });
 };
 
@@ -39,13 +39,12 @@ Você também é capaz de realizar ações que estão descritas no bloco de aç�
 export const assistantOwnerPromptWithInstructions = (
   user: User,
   customInstructions: string,
-  context?: string,
 ): string => {
   return buildPrompt({
     persona: getOwnerPersona(),
     context: getCompanyContext(),
     instructions: customInstructions,
-    rules: getOwnerRules(),
-    variables: getOwnerVariables(user, context),
+    rules: getBaseRules(),
+    variables: getBaseVariables({ name: user.name }),
   });
 };

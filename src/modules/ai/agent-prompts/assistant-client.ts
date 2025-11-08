@@ -3,8 +3,8 @@ import {
   buildPrompt,
   getClientPersona,
   getCompanyContext,
-  getClientRules,
-  getClientVariables,
+  getBaseRules,
+  getBaseVariables,
 } from './prompt-builder';
 
 /**
@@ -18,8 +18,8 @@ export const assistantClientPrompt = (contact: Contact): string => {
     persona: getClientPersona(),
     context: getCompanyContext(),
     instructions,
-    rules: getClientRules(),
-    variables: getClientVariables(contact),
+    rules: getBaseRules(),
+    variables: getBaseVariables({ name: contact.name }),
   });
 };
 
@@ -34,7 +34,7 @@ export const assistantClientPromptWithInstructions = (
     persona: getClientPersona(),
     context: getCompanyContext(),
     instructions: customInstructions,
-    rules: getClientRules(),
-    variables: getClientVariables(contact),
+    rules: getBaseRules(),
+    variables: getBaseVariables({ name: contact.name }),
   });
 };
