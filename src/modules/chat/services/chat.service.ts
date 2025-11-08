@@ -110,6 +110,43 @@ export class ChatService {
     return memories.map((m) => m.sessionId);
   }
 
+  async addMessageToMemory(params: {
+    sessionId: string;
+    userId?: string;
+    companyId?: string;
+    role: 'user' | 'assistant';
+    content: string;
+  }): Promise<Memory> {
+    return this.memoryRepository.save({
+      sessionId: params.sessionId,
+      userId: params.userId,
+      companyId: params.companyId,
+      role: params.role,
+      content: params.content,
+    });
+  }
+
+  async buildAIResponse(params: {
+    sessionId: string;
+    message: string;
+    systemPrompt?: string;
+  }): Promise<string> {
+    const history = await this.getSessionHistory(params.sessionId);
+
+    const messages: Array<{
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+    }> = [];
+
+    if (params.systemPrompt) {
+      messages.push({ role: 'system', content: params.systemPrompt });
+    }
+    messages.push(...history);
+    messages.push({ role: 'user', content: params.message });
+
+    return this.langchainService.chatWithHistory(messages);
+  }
+
   async processAndReply(params: {
     provider: string;
     instanceName: string;
@@ -121,20 +158,32 @@ export class ChatService {
 
     const sessionId = `${provider}_${instanceName}_${remoteJid}`;
 
-    // Process message with AI
-    const aiResponse = await this.sendMessage({
+    await this.addMessageToMemory({
       sessionId,
-      message,
       userId: remoteJid,
       companyId: instanceName,
+      role: 'user',
+      content: message,
+    });
+
+    const aiResponse = await this.buildAIResponse({
+      sessionId,
+      message,
       systemPrompt,
     });
 
-    // Send response back via provider
     await this.messageProvider.sendTextMessage({
       instanceName,
       remoteJid,
-      text: aiResponse.response,
+      text: aiResponse,
+    });
+
+    await this.addMessageToMemory({
+      sessionId,
+      userId: remoteJid,
+      companyId: instanceName,
+      role: 'assistant',
+      content: aiResponse,
     });
   }
 
