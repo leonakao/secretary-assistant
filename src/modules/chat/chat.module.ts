@@ -33,6 +33,6 @@ import { OwnerConversationStrategy } from './strategies/owner-conversation.strat
       useExisting: EvolutionMessageProvider,
     },
   ],
-  exports: [TypeOrmModule, ChatService],
+  exports: [TypeOrmModule, ChatService, EvolutionMessageProvider],
 })
 export class ChatModule {}

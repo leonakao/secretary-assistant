@@ -1,10 +1,21 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, ILike } from 'typeorm';
 import { SendMessageAction } from '../types/action.types';
 import { ActionExecutionResult } from './action-executor.service';
+import { Contact } from '../../contacts/entities/contact.entity';
+import type { MessageProvider } from '../../chat/interfaces/message-provider.interface';
 
 @Injectable()
 export class SendMessageActionService {
   private readonly logger = new Logger(SendMessageActionService.name);
+
+  constructor(
+    @InjectRepository(Contact)
+    private contactRepository: Repository<Contact>,
+    @Inject('MESSAGE_PROVIDER')
+    private messageProvider: MessageProvider,
+  ) {}
 
   async execute(
     action: SendMessageAction,
@@ -14,20 +25,165 @@ export class SendMessageActionService {
       userId: string;
     },
   ): Promise<ActionExecutionResult> {
-    this.logger.log(
-      `[TODO] Send message to ${action.payload.contactName}: "${action.payload.message}"`,
+    const { contactName, contactPhone, message } = action.payload;
+
+    try {
+      const result = await this.findContact(
+        context.companyId,
+        contactName,
+        contactPhone,
+      );
+
+      if (!result.contact) {
+        if (result.multipleContacts && result.multipleContacts.length > 0) {
+          const contactList = result.multipleContacts
+            .map(
+              (c, index) =>
+                `${index + 1}. ${c.name}${c.phone ? ` - ${c.phone}` : ''}`,
+            )
+            .join('\n');
+
+          const errorMsg = `Encontrei ${result.multipleContacts.length} contatos com o nome "${contactName}":\n\n${contactList}\n\nPor favor, especifique qual contato você deseja enviar a mensagem.`;
+
+          await this.notifyOwner(
+            context.instanceName,
+            context.userId,
+            errorMsg,
+          );
+
+          return {
+            success: false,
+            action,
+            error: 'Multiple contacts found',
+            data: { multipleContacts: result.multipleContacts },
+          };
+        }
+
+        const errorMsg = `Não consegui encontrar o contato "${contactName}". O nome está correto?`;
+
+        await this.notifyOwner(context.instanceName, context.userId, errorMsg);
+
+        return {
+          success: false,
+          action,
+          error: errorMsg,
+        };
+      }
+
+      const contact = result.contact;
+
+      if (!contact.phone) {
+        const errorMsg = `O contato "${contact.name}" não possui telefone cadastrado.`;
+
+        await this.notifyOwner(context.instanceName, context.userId, errorMsg);
+
+        return {
+          success: false,
+          action,
+          error: errorMsg,
+        };
+      }
+
+      const remoteJid = this.buildRemoteJid(contact.phone);
+
+      await this.messageProvider.sendTextMessage({
+        instanceName: context.instanceName,
+        remoteJid,
+        text: message,
+      });
+
+      await this.notifyOwner(
+        context.instanceName,
+        context.userId,
+        `✓ Mensagem enviada para ${contact.name}`,
+      );
+
+      return {
+        success: true,
+        action,
+        message: `Message sent to ${contact.name}`,
+        data: { contactId: contact.id, contactName: contact.name },
+      };
+    } catch (error) {
+      const errorMsg = `Erro ao enviar mensagem: ${error.message}`;
+
+      await this.notifyOwner(
+        context.instanceName,
+        context.userId,
+        `✗ ${errorMsg}`,
+      );
+
+      return {
+        success: false,
+        action,
+        error: errorMsg,
+      };
+    }
+  }
+
+  private async findContact(
+    companyId: string,
+    contactName: string,
+    contactPhone?: string,
+  ): Promise<{ contact: Contact | null; multipleContacts?: Contact[] }> {
+    if (contactPhone) {
+      const contact = await this.contactRepository.findOne({
+        where: {
+          companyId,
+          phone: contactPhone,
+        },
+      });
+      if (contact) return { contact };
+    }
+
+    const contacts = await this.contactRepository.find({
+      where: {
+        companyId,
+        name: ILike(`%${contactName}%`),
+      },
+      take: 10,
+    });
+
+    if (contacts.length === 0) {
+      return { contact: null };
+    }
+
+    if (contacts.length === 1) {
+      return { contact: contacts[0] };
+    }
+
+    const exactMatch = contacts.find(
+      (c) => c.name.toLowerCase() === contactName.toLowerCase(),
     );
+    if (exactMatch) {
+      return { contact: exactMatch };
+    }
 
-    // TODO: Implement
-    // 1. Find contact by name/phone in database
-    // 2. Get contact's remoteJid
-    // 3. Send message via messageProvider
-    // 4. Log the action
+    return { contact: null, multipleContacts: contacts };
+  }
 
-    return {
-      success: false,
-      action,
-      message: 'Send message action not yet implemented',
-    };
+  private buildRemoteJid(phone: string): string {
+    const cleanPhone = phone.replace(/[^0-9+]/g, '');
+    const phoneWithoutPlus = cleanPhone.startsWith('+')
+      ? cleanPhone.substring(1)
+      : cleanPhone;
+    return `${phoneWithoutPlus}@s.whatsapp.net`;
+  }
+
+  private async notifyOwner(
+    instanceName: string,
+    userId: string,
+    message: string,
+  ): Promise<void> {
+    try {
+      const ownerRemoteJid = this.buildRemoteJid(userId);
+      await this.messageProvider.sendTextMessage({
+        instanceName,
+        remoteJid: ownerRemoteJid,
+        text: message,
+      });
+    } catch (error) {
+      this.logger.error('Failed to notify owner:', error);
+    }
   }
 }
