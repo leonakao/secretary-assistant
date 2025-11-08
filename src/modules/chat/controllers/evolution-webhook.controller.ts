@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Logger } from '@nestjs/common';
+import { Controller, Post, Body, Logger, Param } from '@nestjs/common';
 import { IncomingMessageUseCase } from '../use-cases/incoming-message.use-case';
 import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dto';
 
@@ -7,20 +7,21 @@ interface WebhookPayload<T> {
   data: T;
 }
 
-@Controller('webhooks/evolution')
+@Controller('webhooks/evolution/:companyId')
 export class EvolutionWebhookController {
   private readonly logger = new Logger(EvolutionWebhookController.name);
 
   constructor(private incomingMessageUseCase: IncomingMessageUseCase) {}
 
-  @Post('messages-upsert')
+  @Post('/messages-upsert')
   async handleMessages(
+    @Param('companyId') companyId: string,
     @Body() payload: WebhookPayload<EvolutionMessagesUpsertPayload>,
   ) {
     this.logger.log('Received messages from Evolution API');
     const { instance, data } = payload;
 
-    await this.incomingMessageUseCase.execute(instance, data);
+    await this.incomingMessageUseCase.execute(companyId, instance, data);
 
     return { success: true };
   }

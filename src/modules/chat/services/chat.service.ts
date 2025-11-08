@@ -148,20 +148,28 @@ export class ChatService {
   }
 
   async processAndReply(params: {
-    provider: string;
+    sessionId: string;
+    userId: string;
+    companyId: string;
     instanceName: string;
     remoteJid: string;
     message: string;
     systemPrompt?: string;
   }): Promise<void> {
-    const { provider, instanceName, remoteJid, message, systemPrompt } = params;
-
-    const sessionId = `${provider}_${instanceName}_${remoteJid}`;
+    const {
+      sessionId,
+      userId,
+      companyId,
+      instanceName,
+      remoteJid,
+      message,
+      systemPrompt,
+    } = params;
 
     await this.addMessageToMemory({
       sessionId,
-      userId: remoteJid,
-      companyId: instanceName,
+      userId,
+      companyId,
       role: 'user',
       content: message,
     });
@@ -180,8 +188,8 @@ export class ChatService {
 
     await this.addMessageToMemory({
       sessionId,
-      userId: remoteJid,
-      companyId: instanceName,
+      userId,
+      companyId,
       role: 'assistant',
       content: aiResponse,
     });
