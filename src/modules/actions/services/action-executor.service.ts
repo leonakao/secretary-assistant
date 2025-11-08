@@ -3,6 +3,7 @@ import { Action, ActionType } from '../types/action.types';
 import { SendMessageActionService } from './send-message-action.service';
 import { RequestHumanContactActionService } from './request-human-contact-action.service';
 import { NotifyUserActionService } from './notify-user-action.service';
+import { SearchConversationActionService } from './search-conversation-action.service';
 
 export interface ActionExecutionResult {
   success: boolean;
@@ -20,6 +21,7 @@ export class ActionExecutorService {
     private sendMessageActionService: SendMessageActionService,
     private requestHumanContactActionService: RequestHumanContactActionService,
     private notifyUserActionService: NotifyUserActionService,
+    private searchConversationActionService: SearchConversationActionService,
   ) {}
 
   async executeActions(
@@ -51,6 +53,20 @@ export class ActionExecutorService {
               instanceName: context.instanceName,
               userId: context.userId,
             });
+            break;
+
+          case ActionType.SEARCH_CONVERSATION:
+            if (!context.userId) {
+              throw new Error('userId required for SEARCH_CONVERSATION action');
+            }
+            result = await this.searchConversationActionService.execute(
+              action,
+              {
+                companyId: context.companyId,
+                instanceName: context.instanceName,
+                userId: context.userId,
+              },
+            );
             break;
 
           case ActionType.REQUEST_HUMAN_CONTACT:

@@ -5,6 +5,7 @@ export enum ActionType {
   UPDATE_CONTACT = 'UPDATE_CONTACT',
   CREATE_CONTACT = 'CREATE_CONTACT',
   SEARCH_CONTACT = 'SEARCH_CONTACT',
+  SEARCH_CONVERSATION = 'SEARCH_CONVERSATION',
   LIST_APPOINTMENTS = 'LIST_APPOINTMENTS',
   CANCEL_APPOINTMENT = 'CANCEL_APPOINTMENT',
 
@@ -71,6 +72,16 @@ export interface SearchContactAction extends BaseAction {
   };
 }
 
+export interface SearchConversationAction extends BaseAction {
+  type: ActionType.SEARCH_CONVERSATION;
+  payload: {
+    contactName?: string;
+    contactPhone?: string;
+    query: string;
+    days?: number;
+  };
+}
+
 export interface ListAppointmentsAction extends BaseAction {
   type: ActionType.LIST_APPOINTMENTS;
   payload: {
@@ -116,6 +127,7 @@ export type Action =
   | UpdateContactAction
   | CreateContactAction
   | SearchContactAction
+  | SearchConversationAction
   | ListAppointmentsAction
   | CancelAppointmentAction
   | RequestHumanContactAction

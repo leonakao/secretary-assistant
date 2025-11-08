@@ -12,6 +12,14 @@ TIPOS DE AÇÕES DISPONÍVEIS:
    - "Avise o João que preciso dele amanhã" (funcionário)
    - "Mande mensagem para o Pedro confirmando a reunião" (ambíguo - pode ser cliente ou funcionário)
 
+2. SEARCH_CONVERSATION - Buscar informação em conversas com clientes
+   Exemplos:
+   - "O que o João falou sobre o pedido?"
+   - "A Maria confirmou a reunião?"
+   - "Quando o Pedro disse que ia passar aqui?"
+   - "O cliente mencionou alguma reclamação?"
+   - "Busque na conversa com a Ana se ela falou sobre pagamento"
+
 REGRAS IMPORTANTES:
 - Retorne APENAS um objeto JSON válido, sem texto adicional
 - Identifique TODAS as ações solicitadas na conversa
@@ -69,6 +77,23 @@ Saída:
       "payload": {
         "recipientName": "João",
         "message": "Confirmando o agendamento de amanhã"
+      }
+    }
+  ]
+}
+
+Entrada: "O que a Maria falou sobre o pagamento?"
+Saída:
+{
+  "requiresAction": true,
+  "actions": [
+    {
+      "type": "SEARCH_CONVERSATION",
+      "confidence": 0.95,
+      "payload": {
+        "contactName": "Maria",
+        "query": "O que a Maria falou sobre o pagamento",
+        "days": 3
       }
     }
   ]

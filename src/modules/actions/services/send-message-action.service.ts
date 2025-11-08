@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository } from 'typeorm';
 import { SendMessageAction } from '../types/action.types';
 import { ActionExecutionResult } from './action-executor.service';
 import { Contact } from '../../contacts/entities/contact.entity';
@@ -9,6 +9,7 @@ import { User } from 'src/modules/users/entities/user.entity';
 import { ChatService } from '../../chat/services/chat.service';
 import { assistantClientPromptWithInstructions } from '../../ai/agent-prompts/assistant-client';
 import { assistantOwnerPromptWithInstructions } from '../../ai/agent-prompts/assistant-owner';
+import { RecipientFinderService } from './recipient-finder.service';
 
 @Injectable()
 export class SendMessageActionService {
@@ -22,6 +23,7 @@ export class SendMessageActionService {
     @Inject('MESSAGE_PROVIDER')
     private messageProvider: MessageProvider,
     private chatService: ChatService,
+    private recipientFinderService: RecipientFinderService,
   ) {}
 
   async execute(
@@ -35,7 +37,7 @@ export class SendMessageActionService {
     const { recipientName, recipientPhone, message } = action.payload;
 
     try {
-      const result = await this.findRecipient(
+      const result = await this.recipientFinderService.findRecipient(
         context.companyId,
         recipientName,
         recipientPhone,
@@ -164,85 +166,6 @@ export class SendMessageActionService {
         error: errorMsg,
       };
     }
-  }
-
-  private async findRecipient(
-    companyId: string,
-    recipientName: string,
-    recipientPhone: string | undefined,
-    excludeUserId: string,
-  ): Promise<{
-    recipient: Contact | User | null;
-    type?: 'contact' | 'user';
-    multipleRecipients?: Array<{
-      name: string;
-      phone: string;
-      type: 'contact' | 'user';
-    }>;
-  }> {
-    if (recipientPhone) {
-      const contact = await this.contactRepository.findOne({
-        where: { companyId, phone: recipientPhone },
-      });
-      if (contact) return { recipient: contact, type: 'contact' };
-
-      const user = await this.userRepository.findOne({
-        where: { phone: recipientPhone },
-        relations: ['userCompanies'],
-      });
-      if (
-        user &&
-        user.id !== excludeUserId &&
-        user.userCompanies?.some((uc) => uc.companyId === companyId)
-      ) {
-        return { recipient: user, type: 'user' };
-      }
-    }
-
-    const contacts = await this.contactRepository.find({
-      where: { companyId, name: ILike(`%${recipientName}%`) },
-      take: 10,
-    });
-
-    const users = await this.userRepository
-      .createQueryBuilder('user')
-      .innerJoin('user.userCompanies', 'uc')
-      .where('uc.companyId = :companyId', { companyId })
-      .andWhere('user.id != :excludeUserId', { excludeUserId })
-      .andWhere('user.name ILIKE :name', { name: `%${recipientName}%` })
-      .take(10)
-      .getMany();
-
-    const allRecipients = [
-      ...contacts.map((c) => ({ ...c, type: 'contact' as const })),
-      ...users.map((u) => ({ ...u, type: 'user' as const })),
-    ];
-
-    if (allRecipients.length === 0) {
-      return { recipient: null };
-    }
-
-    if (allRecipients.length === 1) {
-      const { type, ...recipient } = allRecipients[0];
-      return { recipient: recipient as Contact | User, type };
-    }
-
-    const exactMatch = allRecipients.find(
-      (r) => r.name.toLowerCase() === recipientName.toLowerCase(),
-    );
-    if (exactMatch) {
-      const { type, ...recipient } = exactMatch;
-      return { recipient: recipient as Contact | User, type };
-    }
-
-    return {
-      recipient: null,
-      multipleRecipients: allRecipients.map((r) => ({
-        name: r.name,
-        phone: r.phone,
-        type: r.type,
-      })),
-    };
   }
 
   private async buildContextualMessage(
