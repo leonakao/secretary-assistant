@@ -5,6 +5,7 @@ import { SendMessageAction } from '../types/action.types';
 import { ActionExecutionResult } from './action-executor.service';
 import { Contact } from '../../contacts/entities/contact.entity';
 import type { MessageProvider } from '../../chat/interfaces/message-provider.interface';
+import { User } from 'src/modules/users/entities/user.entity';
 
 @Injectable()
 export class SendMessageActionService {
@@ -13,6 +14,8 @@ export class SendMessageActionService {
   constructor(
     @InjectRepository(Contact)
     private contactRepository: Repository<Contact>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     @Inject('MESSAGE_PROVIDER')
     private messageProvider: MessageProvider,
   ) {}
@@ -175,15 +178,15 @@ export class SendMessageActionService {
     userId: string,
     message: string,
   ): Promise<void> {
-    try {
-      const ownerRemoteJid = this.buildRemoteJid(userId);
-      await this.messageProvider.sendTextMessage({
-        instanceName,
-        remoteJid: ownerRemoteJid,
-        text: message,
-      });
-    } catch (error) {
-      this.logger.error('Failed to notify owner:', error);
-    }
+    const owner = await this.userRepository.findOneByOrFail({
+      id: userId,
+    });
+
+    const ownerRemoteJid = this.buildRemoteJid(owner.phone);
+    await this.messageProvider.sendTextMessage({
+      instanceName,
+      remoteJid: ownerRemoteJid,
+      text: message,
+    });
   }
 }

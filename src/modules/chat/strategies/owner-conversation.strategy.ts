@@ -26,9 +26,8 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     remoteJid: string;
     message: string;
     systemPrompt: string;
-    userId?: string;
+    userId: string;
   }): Promise<void> {
-    // 1. Process and reply to the owner
     await this.chatService.processAndReply({
       sessionId: params.sessionId,
       companyId: params.companyId,
@@ -38,20 +37,14 @@ export class OwnerConversationStrategy implements ConversationStrategy {
       systemPrompt: params.systemPrompt,
     });
 
-    // 2. Detect and execute actions
-    if (params.userId) {
-      await this.detectAndExecuteActions({
-        sessionId: params.sessionId,
-        companyId: params.companyId,
-        instanceName: params.instanceName,
-        userId: params.userId,
-      });
-    }
+    await this.detectAndExecuteActions({
+      sessionId: params.sessionId,
+      companyId: params.companyId,
+      instanceName: params.instanceName,
+      userId: params.userId,
+    });
   }
 
-  /**
-   * Detects and executes actions from recent conversation messages
-   */
   private async detectAndExecuteActions(params: {
     sessionId: string;
     companyId: string;
@@ -72,6 +65,8 @@ export class OwnerConversationStrategy implements ConversationStrategy {
 
       const detectionResult =
         await this.actionDetectionService.detectActions(recentMessages);
+
+      this.logger.debug('Detection result:', detectionResult);
 
       if (
         detectionResult.requiresAction &&

@@ -44,13 +44,11 @@ export class IncomingMessageUseCase {
       return;
     }
 
-    // Check if the sender is a User (owner) of the company
     const user = await this.userRepository.findOne({
       where: { phone },
     });
 
     if (user) {
-      // Check if this user belongs to the company
       const userCompany = await this.userCompanyRepository.findOne({
         where: {
           userId: user.id,
@@ -59,7 +57,6 @@ export class IncomingMessageUseCase {
       });
 
       if (userCompany) {
-        // User is an owner/member of the company - use owner strategy
         await this.ownerStrategy.handleConversation({
           sessionId: user.id,
           companyId,
@@ -69,11 +66,11 @@ export class IncomingMessageUseCase {
           systemPrompt: assistantOwnerPrompt(user),
           userId: user.id,
         });
+
         return;
       }
     }
 
-    // If not a user, check if it's a contact (client)
     const contact = await this.contactRepository.findOne({
       where: {
         companyId,
@@ -88,15 +85,14 @@ export class IncomingMessageUseCase {
       return;
     }
 
-    // Contact is a client - use client strategy
-    await this.clientStrategy.handleConversation({
-      sessionId: contact.id,
-      companyId,
-      instanceName,
-      remoteJid,
-      message: messageText,
-      systemPrompt: assistantClientPrompt(contact),
-    });
+    // await this.clientStrategy.handleConversation({
+    //   sessionId: contact.id,
+    //   companyId,
+    //   instanceName,
+    //   remoteJid,
+    //   message: messageText,
+    //   systemPrompt: assistantClientPrompt(contact),
+    // });
   }
 
   private extractPhoneFromJid(remoteJid: string): string {
