@@ -19,6 +19,9 @@ export class Company {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Column({ type: 'boolean', default: false })
+  isClientsSupportEnabled: boolean;
+
   @OneToMany('UserCompany', 'company')
   userCompanies: any[];
 

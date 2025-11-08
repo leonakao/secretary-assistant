@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Contact } from '../../contacts/entities/contact.entity';
 import { User } from '../../users/entities/user.entity';
 import { UserCompany } from '../../companies/entities/user-company.entity';
+import { Company } from '../../companies/entities/company.entity';
 import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dto';
 import { assistantClientPrompt } from 'src/modules/ai/agent-prompts/assistant-client';
 import { assistantOwnerPrompt } from 'src/modules/ai/agent-prompts/assistant-owner';
@@ -21,6 +22,8 @@ export class IncomingMessageUseCase {
     private userRepository: Repository<User>,
     @InjectRepository(UserCompany)
     private userCompanyRepository: Repository<UserCompany>,
+    @InjectRepository(Company)
+    private companyRepository: Repository<Company>,
     private clientStrategy: ClientConversationStrategy,
     private ownerStrategy: OwnerConversationStrategy,
   ) {}
@@ -81,6 +84,17 @@ export class IncomingMessageUseCase {
     if (!contact) {
       this.logger.warn(
         `No user or contact found for phone ${phone} in company ${companyId}`,
+      );
+      return;
+    }
+
+    const company = await this.companyRepository.findOne({
+      where: { id: companyId },
+    });
+
+    if (!company?.isClientsSupportEnabled) {
+      this.logger.log(
+        `Clients support is disabled for company ${companyId}. Ignoring message from contact ${contact.id}`,
       );
       return;
     }
