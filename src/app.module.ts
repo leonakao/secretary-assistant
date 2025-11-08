@@ -7,6 +7,7 @@ import { ContactsModule } from './modules/contacts/contacts.module';
 import { AiModule } from './modules/ai/ai.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { EvolutionModule } from './modules/evolution/evolution.module';
+import { MonitorModule } from './modules/monitor/monitor.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { EvolutionModule } from './modules/evolution/evolution.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    MonitorModule,
     DatabaseModule,
     UsersModule,
     CompaniesModule,
