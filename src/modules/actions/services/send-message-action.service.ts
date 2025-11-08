@@ -52,6 +52,7 @@ export class SendMessageActionService {
           const errorMsg = `Encontrei ${result.multipleContacts.length} contatos com o nome "${contactName}":\n\n${contactList}\n\nPor favor, especifique qual contato você deseja enviar a mensagem.`;
 
           await this.notifyOwner(
+            context.companyId,
             context.instanceName,
             context.userId,
             errorMsg,
@@ -67,7 +68,12 @@ export class SendMessageActionService {
 
         const errorMsg = `Não consegui encontrar o contato "${contactName}". O nome está correto?`;
 
-        await this.notifyOwner(context.instanceName, context.userId, errorMsg);
+        await this.notifyOwner(
+          context.companyId,
+          context.instanceName,
+          context.userId,
+          errorMsg,
+        );
 
         return {
           success: false,
@@ -81,7 +87,12 @@ export class SendMessageActionService {
       if (!contact.phone) {
         const errorMsg = `O contato "${contact.name}" não possui telefone cadastrado.`;
 
-        await this.notifyOwner(context.instanceName, context.userId, errorMsg);
+        await this.notifyOwner(
+          context.companyId,
+          context.instanceName,
+          context.userId,
+          errorMsg,
+        );
 
         return {
           success: false,
@@ -106,6 +117,7 @@ export class SendMessageActionService {
       });
 
       await this.notifyOwner(
+        context.companyId,
         context.instanceName,
         context.userId,
         `✓ Mensagem enviada para ${contact.name}`,
@@ -121,6 +133,7 @@ export class SendMessageActionService {
       const errorMsg = `Erro ao enviar mensagem: ${error.message}`;
 
       await this.notifyOwner(
+        context.companyId,
         context.instanceName,
         context.userId,
         `✗ ${errorMsg}`,
@@ -210,6 +223,7 @@ Importante: Se você já tiver enviado uma mensagem para esse cliente, não diga
   }
 
   private async notifyOwner(
+    companyId: string,
     instanceName: string,
     userId: string,
     message: string,
@@ -219,10 +233,13 @@ Importante: Se você já tiver enviado uma mensagem para esse cliente, não diga
     });
 
     const ownerRemoteJid = this.buildRemoteJid(owner.phone);
-    await this.messageProvider.sendTextMessage({
+
+    await this.chatService.sendMessageAndSaveToMemory({
+      sessionId: userId,
+      companyId,
       instanceName,
       remoteJid: ownerRemoteJid,
-      text: message,
+      message,
     });
   }
 }

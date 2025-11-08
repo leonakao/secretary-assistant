@@ -2,6 +2,7 @@ export const actionDetectionPrompt = () => `
 Você é um analisador de intenções que identifica ações que precisam ser executadas com base em conversas.
 
 Analise as últimas mensagens da conversa e identifique se o proprietário da empresa solicitou alguma ação que o sistema deve executar.
+Atente-se para caso a ação já tenha sido realizada.
 
 TIPOS DE AÇÕES DISPONÍVEIS:
 

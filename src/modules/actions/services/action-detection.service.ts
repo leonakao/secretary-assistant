@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { LangchainService } from '../../ai/services/langchain.service';
 import { actionDetectionPrompt } from '../prompts/action-detection.prompt';
+import { Memory } from '../../chat/entities/memory.entity';
 import {
   ActionDetectionResult,
   ActionType,
@@ -17,20 +20,38 @@ interface ConversationMessage {
 export class ActionDetectionService {
   private readonly logger = new Logger(ActionDetectionService.name);
 
-  constructor(private langchainService: LangchainService) {}
+  constructor(
+    @InjectRepository(Memory)
+    private memoryRepository: Repository<Memory>,
+    private langchainService: LangchainService,
+  ) {}
+
+  async detectActionsFromSession(
+    sessionId: string,
+  ): Promise<ActionDetectionResult> {
+    const memories = await this.memoryRepository.find({
+      where: { sessionId },
+      order: { createdAt: 'DESC' },
+      take: 4,
+    });
+
+    const messages: ConversationMessage[] = memories.reverse().map((m) => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    }));
+
+    return this.detectActions(messages);
+  }
 
   async detectActions(
     messages: ConversationMessage[],
-    maxMessages: number = 5,
   ): Promise<ActionDetectionResult> {
     try {
-      const recentMessages = messages.slice(-maxMessages);
-
-      if (recentMessages.length === 0) {
+      if (messages.length === 0) {
         return this.noActionResult();
       }
 
-      const conversationContext = this.buildConversationContext(recentMessages);
+      const conversationContext = this.buildConversationContext(messages);
 
       const prompt = actionDetectionPrompt();
       const fullPrompt = `${prompt}\n\nCONVERSA:\n${conversationContext}\n\nRESPOSTA JSON:`;

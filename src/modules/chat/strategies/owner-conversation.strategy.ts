@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { ConversationStrategy } from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
-import { Memory } from '../entities/memory.entity';
 import { ActionDetectionService } from '../../actions/services/action-detection.service';
 import { ActionExecutorService } from '../../actions/services/action-executor.service';
 
@@ -13,8 +10,6 @@ export class OwnerConversationStrategy implements ConversationStrategy {
 
   constructor(
     private chatService: ChatService,
-    @InjectRepository(Memory)
-    private memoryRepository: Repository<Memory>,
     private actionDetectionService: ActionDetectionService,
     private actionExecutorService: ActionExecutorService,
   ) {}
@@ -52,19 +47,10 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     userId: string;
   }): Promise<void> {
     try {
-      const memories = await this.memoryRepository.find({
-        where: { sessionId: params.sessionId },
-        order: { createdAt: 'DESC' },
-        take: 10,
-      });
-
-      const recentMessages = memories.reverse().map((m) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      }));
-
       const detectionResult =
-        await this.actionDetectionService.detectActions(recentMessages);
+        await this.actionDetectionService.detectActionsFromSession(
+          params.sessionId,
+        );
 
       this.logger.debug('Detection result:', detectionResult);
 
