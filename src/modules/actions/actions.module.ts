@@ -4,13 +4,14 @@ import { ActionDetectionService } from './services/action-detection.service';
 import { ActionExecutorService } from './services/action-executor.service';
 import { SendMessageActionService } from './services/send-message-action.service';
 import { Contact } from '../contacts/entities/contact.entity';
+import { User } from '../users/entities/user.entity';
 import { AiModule } from '../ai/ai.module';
 import { ChatModule } from '../chat/chat.module';
 import { EvolutionMessageProvider } from '../chat/providers/evolution-message.provider';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Contact]),
+    TypeOrmModule.forFeature([Contact, User]),
     AiModule,
     forwardRef(() => ChatModule),
   ],

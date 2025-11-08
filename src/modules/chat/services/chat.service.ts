@@ -203,4 +203,27 @@ export class ChatService {
       text,
     });
   }
+
+  async sendMessageAndSaveToMemory(params: {
+    sessionId: string;
+    companyId: string;
+    instanceName: string;
+    remoteJid: string;
+    message: string;
+  }): Promise<void> {
+    const { sessionId, companyId, instanceName, remoteJid, message } = params;
+
+    await this.messageProvider.sendTextMessage({
+      instanceName,
+      remoteJid,
+      text: message,
+    });
+
+    await this.addMessageToMemory({
+      sessionId,
+      companyId,
+      role: 'assistant',
+      content: message,
+    });
+  }
 }

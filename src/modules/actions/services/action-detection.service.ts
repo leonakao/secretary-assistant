@@ -40,7 +40,7 @@ export class ActionDetectionService {
       const result = this.parseActionResponse(response);
 
       this.logger.log(
-        `Detected ${result.actions.length} actions. RequiresAction: ${result.requiresAction}`,
+        `Detected ${result.actions.length} actions. RequiresAction: ${result.requiresAction}. Conversation: ${conversationContext}`,
       );
 
       return result;
@@ -61,7 +61,7 @@ export class ActionDetectionService {
 
   private parseActionResponse(response: string): ActionDetectionResult {
     try {
-      // Clean response (remove markdown code blocks if present)
+      console.log(`Detected action response: ${response}`);
       let cleanedResponse = response.trim();
       if (cleanedResponse.startsWith('```json')) {
         cleanedResponse = cleanedResponse.replace(/```json\n?/g, '');
@@ -73,7 +73,6 @@ export class ActionDetectionService {
 
       const parsed = JSON.parse(cleanedResponse);
 
-      // Validate structure
       if (
         typeof parsed.requiresAction !== 'boolean' ||
         !Array.isArray(parsed.actions)
@@ -82,7 +81,6 @@ export class ActionDetectionService {
         return this.noActionResult();
       }
 
-      // Validate each action
       const validActions = parsed.actions.filter((action: any) => {
         return (
           action.type &&
@@ -93,7 +91,6 @@ export class ActionDetectionService {
         );
       });
 
-      // Filter out low confidence actions (< 0.5)
       const highConfidenceActions = validActions.filter(
         (action: Action) => action.confidence >= 0.5,
       );

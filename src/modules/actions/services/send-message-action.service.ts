@@ -6,6 +6,8 @@ import { ActionExecutionResult } from './action-executor.service';
 import { Contact } from '../../contacts/entities/contact.entity';
 import type { MessageProvider } from '../../chat/interfaces/message-provider.interface';
 import { User } from 'src/modules/users/entities/user.entity';
+import { ChatService } from '../../chat/services/chat.service';
+import { assistantClientPrompt } from '../../ai/agent-prompts/assistant-client';
 
 @Injectable()
 export class SendMessageActionService {
@@ -18,6 +20,7 @@ export class SendMessageActionService {
     private userRepository: Repository<User>,
     @Inject('MESSAGE_PROVIDER')
     private messageProvider: MessageProvider,
+    private chatService: ChatService,
   ) {}
 
   async execute(
@@ -89,10 +92,17 @@ export class SendMessageActionService {
 
       const remoteJid = this.buildRemoteJid(contact.phone);
 
-      await this.messageProvider.sendTextMessage({
+      const contextualMessage = await this.buildContextualMessage(
+        contact,
+        message,
+      );
+
+      await this.chatService.sendMessageAndSaveToMemory({
+        sessionId: contact.id,
+        companyId: context.companyId,
         instanceName: context.instanceName,
         remoteJid,
-        text: message,
+        message: contextualMessage,
       });
 
       await this.notifyOwner(
@@ -163,6 +173,27 @@ export class SendMessageActionService {
     }
 
     return { contact: null, multipleContacts: contacts };
+  }
+
+  private async buildContextualMessage(
+    contact: Contact,
+    ownerMessage: string,
+  ): Promise<string> {
+    const systemPrompt = `${assistantClientPrompt(contact)}
+
+[INSTRUÇÃO ESPECIAL]
+O proprietário da empresa pediu para você enviar a seguinte mensagem ao cliente:
+"${ownerMessage}"
+
+Reescreva esta mensagem de forma natural e contextual, considerando o histórico da conversa com o cliente. Mantenha o tom profissional e amigável da Julia. Se não houver histórico, envie a mensagem de forma direta mas cordial.`;
+
+    const contextualMessage = await this.chatService.buildAIResponse({
+      sessionId: contact.id,
+      message: ownerMessage,
+      systemPrompt,
+    });
+
+    return contextualMessage;
   }
 
   private buildRemoteJid(phone: string): string {
