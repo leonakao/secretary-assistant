@@ -213,17 +213,20 @@ export class ChatService {
   }): Promise<void> {
     const { sessionId, companyId, instanceName, remoteJid, message } = params;
 
+    const messageToSave = message.trim();
+    if (!messageToSave) return;
+
     await this.messageProvider.sendTextMessage({
       instanceName,
       remoteJid,
-      text: message,
+      text: messageToSave,
     });
 
     await this.addMessageToMemory({
       sessionId,
       companyId,
       role: 'assistant',
-      content: message,
+      content: messageToSave,
     });
   }
 }

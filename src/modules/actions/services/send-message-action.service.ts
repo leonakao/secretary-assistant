@@ -7,7 +7,7 @@ import { Contact } from '../../contacts/entities/contact.entity';
 import type { MessageProvider } from '../../chat/interfaces/message-provider.interface';
 import { User } from 'src/modules/users/entities/user.entity';
 import { ChatService } from '../../chat/services/chat.service';
-import { assistantClientPrompt } from '../../ai/agent-prompts/assistant-client';
+import { assistantClientPromptWithInstructions } from '../../ai/agent-prompts/assistant-client';
 
 @Injectable()
 export class SendMessageActionService {
@@ -179,13 +179,18 @@ export class SendMessageActionService {
     contact: Contact,
     ownerMessage: string,
   ): Promise<string> {
-    const systemPrompt = `${assistantClientPrompt(contact)}
-
-[INSTRUÇÃO ESPECIAL]
-O proprietário da empresa pediu para você enviar a seguinte mensagem ao cliente:
+    const customInstructions = `O proprietário da empresa pediu para você enviar a seguinte mensagem ao cliente:
 "${ownerMessage}"
 
-Reescreva esta mensagem de forma natural e contextual, considerando o histórico da conversa com o cliente. Mantenha o tom profissional e amigável da Julia. Se não houver histórico, envie a mensagem de forma direta mas cordial.`;
+Reescreva esta mensagem de forma natural e contextual, considerando o histórico da conversa com o cliente.
+Se não houver histórico, envie a mensagem de forma direta mas cordial. Não precisa informar que alguém pediu para enviar essa mensagem.
+
+Importante: Se você já tiver enviado uma mensagem para esse cliente, não diga nada.`;
+
+    const systemPrompt = assistantClientPromptWithInstructions(
+      contact,
+      customInstructions,
+    );
 
     const contextualMessage = await this.chatService.buildAIResponse({
       sessionId: contact.id,

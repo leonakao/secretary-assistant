@@ -55,7 +55,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
       const memories = await this.memoryRepository.find({
         where: { sessionId: params.sessionId },
         order: { createdAt: 'DESC' },
-        take: 5,
+        take: 10,
       });
 
       const recentMessages = memories.reverse().map((m) => ({
