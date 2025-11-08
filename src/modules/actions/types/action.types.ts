@@ -1,4 +1,5 @@
 export enum ActionType {
+  // Owner actions
   SEND_MESSAGE = 'SEND_MESSAGE',
   SCHEDULE_APPOINTMENT = 'SCHEDULE_APPOINTMENT',
   UPDATE_CONTACT = 'UPDATE_CONTACT',
@@ -6,6 +7,10 @@ export enum ActionType {
   SEARCH_CONTACT = 'SEARCH_CONTACT',
   LIST_APPOINTMENTS = 'LIST_APPOINTMENTS',
   CANCEL_APPOINTMENT = 'CANCEL_APPOINTMENT',
+
+  // Client actions
+  REQUEST_HUMAN_CONTACT = 'REQUEST_HUMAN_CONTACT',
+
   NONE = 'NONE',
 }
 
@@ -83,6 +88,14 @@ export interface CancelAppointmentAction extends BaseAction {
   };
 }
 
+export interface RequestHumanContactAction extends BaseAction {
+  type: ActionType.REQUEST_HUMAN_CONTACT;
+  payload: {
+    reason?: string;
+    urgency?: 'low' | 'medium' | 'high';
+  };
+}
+
 export interface NoAction extends BaseAction {
   type: ActionType.NONE;
   payload: null;
@@ -96,6 +109,7 @@ export type Action =
   | SearchContactAction
   | ListAppointmentsAction
   | CancelAppointmentAction
+  | RequestHumanContactAction
   | NoAction;
 
 export interface ActionDetectionResult {

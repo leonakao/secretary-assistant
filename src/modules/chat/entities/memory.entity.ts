@@ -18,9 +18,6 @@ export class Memory {
   sessionId: string;
 
   @Column({ type: 'uuid', nullable: true })
-  userId: string;
-
-  @Column({ type: 'uuid', nullable: true })
   companyId: string;
 
   @Column({

@@ -36,9 +36,19 @@ export class Contact {
   @Column({ type: 'varchar', length: 255, nullable: true })
   instagram: string;
 
+  @Column({ type: 'timestamp', nullable: true })
+  ignoreUntil: Date;
+
+  @Column({ type: 'uuid', nullable: true })
+  preferredUserId: string;
+
   @ManyToOne('Company', 'contacts')
   @JoinColumn({ name: 'company_id' })
   company: any;
+
+  @ManyToOne('User', { nullable: true })
+  @JoinColumn({ name: 'preferred_user_id' })
+  preferredUser: any;
 
   @CreateDateColumn()
   createdAt: Date;

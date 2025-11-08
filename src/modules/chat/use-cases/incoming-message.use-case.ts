@@ -85,14 +85,22 @@ export class IncomingMessageUseCase {
       return;
     }
 
-    // await this.clientStrategy.handleConversation({
-    //   sessionId: contact.id,
-    //   companyId,
-    //   instanceName,
-    //   remoteJid,
-    //   message: messageText,
-    //   systemPrompt: assistantClientPrompt(contact),
-    // });
+    // Check if conversation is paused (ignoreUntil)
+    if (contact.ignoreUntil && contact.ignoreUntil > new Date()) {
+      this.logger.log(
+        `Ignoring message from contact ${contact.id} until ${contact.ignoreUntil.toISOString()}`,
+      );
+      return;
+    }
+
+    await this.clientStrategy.handleConversation({
+      sessionId: contact.id,
+      companyId,
+      instanceName,
+      remoteJid,
+      message: messageText,
+      systemPrompt: assistantClientPrompt(contact),
+    });
   }
 
   private extractPhoneFromJid(remoteJid: string): string {

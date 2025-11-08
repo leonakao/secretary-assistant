@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Action, ActionType } from '../types/action.types';
 import { SendMessageActionService } from './send-message-action.service';
+import { RequestHumanContactActionService } from './request-human-contact-action.service';
 
 export interface ActionExecutionResult {
   success: boolean;
@@ -14,14 +15,18 @@ export interface ActionExecutionResult {
 export class ActionExecutorService {
   private readonly logger = new Logger(ActionExecutorService.name);
 
-  constructor(private sendMessageActionService: SendMessageActionService) {}
+  constructor(
+    private sendMessageActionService: SendMessageActionService,
+    private requestHumanContactActionService: RequestHumanContactActionService,
+  ) {}
 
   async executeActions(
     actions: Action[],
     context: {
       companyId: string;
       instanceName: string;
-      userId: string;
+      userId?: string;
+      contactId?: string;
     },
   ): Promise<ActionExecutionResult[]> {
     const results: ActionExecutionResult[] = [];
@@ -36,9 +41,29 @@ export class ActionExecutorService {
 
         switch (action.type) {
           case ActionType.SEND_MESSAGE:
-            result = await this.sendMessageActionService.execute(
+            if (!context.userId) {
+              throw new Error('userId required for SEND_MESSAGE action');
+            }
+            result = await this.sendMessageActionService.execute(action, {
+              companyId: context.companyId,
+              instanceName: context.instanceName,
+              userId: context.userId,
+            });
+            break;
+
+          case ActionType.REQUEST_HUMAN_CONTACT:
+            if (!context.contactId) {
+              throw new Error(
+                'contactId required for REQUEST_HUMAN_CONTACT action',
+              );
+            }
+            result = await this.requestHumanContactActionService.execute(
               action,
-              context,
+              {
+                companyId: context.companyId,
+                instanceName: context.instanceName,
+                contactId: context.contactId,
+              },
             );
             break;
 

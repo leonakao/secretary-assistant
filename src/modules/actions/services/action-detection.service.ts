@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LangchainService } from '../../ai/services/langchain.service';
 import { actionDetectionPrompt } from '../prompts/action-detection.prompt';
+import { clientActionDetectionPrompt } from '../prompts/client-action-detection.prompt';
 import { Memory } from '../../chat/entities/memory.entity';
 import {
   ActionDetectionResult,
@@ -28,11 +29,13 @@ export class ActionDetectionService {
 
   async detectActionsFromSession(
     sessionId: string,
+    context: 'owner' | 'client' = 'owner',
+    maxMessages: number = 10,
   ): Promise<ActionDetectionResult> {
     const memories = await this.memoryRepository.find({
       where: { sessionId },
       order: { createdAt: 'DESC' },
-      take: 4,
+      take: maxMessages,
     });
 
     const messages: ConversationMessage[] = memories.reverse().map((m) => ({
@@ -40,11 +43,12 @@ export class ActionDetectionService {
       content: m.content,
     }));
 
-    return this.detectActions(messages);
+    return this.detectActions(messages, context);
   }
 
   async detectActions(
     messages: ConversationMessage[],
+    context: 'owner' | 'client' = 'owner',
   ): Promise<ActionDetectionResult> {
     try {
       if (messages.length === 0) {
@@ -53,7 +57,10 @@ export class ActionDetectionService {
 
       const conversationContext = this.buildConversationContext(messages);
 
-      const prompt = actionDetectionPrompt();
+      const prompt =
+        context === 'owner'
+          ? actionDetectionPrompt()
+          : clientActionDetectionPrompt();
       const fullPrompt = `${prompt}\n\nCONVERSA:\n${conversationContext}\n\nRESPOSTA JSON:`;
 
       const response = await this.langchainService.chat(fullPrompt);
@@ -61,7 +68,7 @@ export class ActionDetectionService {
       const result = this.parseActionResponse(response);
 
       this.logger.log(
-        `Detected ${result.actions.length} actions. RequiresAction: ${result.requiresAction}. Conversation: ${conversationContext}`,
+        `[${context.toUpperCase()}] Detected ${result.actions.length} actions. RequiresAction: ${result.requiresAction}`,
       );
 
       return result;

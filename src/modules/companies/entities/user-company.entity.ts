@@ -20,6 +20,13 @@ export class UserCompany {
   @Column({ type: 'uuid' })
   companyId: string;
 
+  @Column({
+    type: 'enum',
+    enum: ['owner', 'admin', 'employee'],
+    default: 'employee',
+  })
+  role: 'owner' | 'admin' | 'employee';
+
   @ManyToOne('User', 'userCompanies')
   @JoinColumn({ name: 'user_id' })
   user: any;
