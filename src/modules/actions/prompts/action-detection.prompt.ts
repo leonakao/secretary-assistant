@@ -20,6 +20,15 @@ TIPOS DE AÇÕES DISPONÍVEIS:
    - "O cliente mencionou alguma reclamação?"
    - "Busque na conversa com a Ana se ela falou sobre pagamento"
 
+3. UPDATE_COMPANY - Atualizar informações da empresa
+   Exemplos:
+   - "Atualize o horário de atendimento para 9h às 18h"
+   - "Adicione que fazemos entregas aos sábados"
+   - "Mude o telefone de contato para (11) 98765-4321"
+   - "Remova a informação sobre entrega grátis"
+   - "Inclua que aceitamos cartão de crédito"
+   - "Altere o endereço da empresa"
+
 REGRAS IMPORTANTES:
 - Retorne APENAS um objeto JSON válido, sem texto adicional
 - Identifique TODAS as ações solicitadas na conversa
@@ -94,6 +103,21 @@ Saída:
         "contactName": "Maria",
         "query": "O que a Maria falou sobre o pagamento",
         "days": 3
+      }
+    }
+  ]
+}
+
+Entrada: "Atualize o horário de atendimento para segunda a sexta das 9h às 18h"
+Saída:
+{
+  "requiresAction": true,
+  "actions": [
+    {
+      "type": "UPDATE_COMPANY",
+      "confidence": 0.95,
+      "payload": {
+        "updateRequest": "Atualizar horário de atendimento para segunda a sexta das 9h às 18h"
       }
     }
   ]

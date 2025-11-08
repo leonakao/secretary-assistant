@@ -38,22 +38,7 @@ Retorne um JSON com a seguinte estrutura:
   "actions": [
     {
       "type": "FINISH_ONBOARDING",
-      "confidence": 0.95,
-      "payload": {
-        "companyName": "string",
-        "description": "string",
-        "businessHours": "string",
-        "phone": "string",
-        "address": "string (opcional)",
-        "email": "string (opcional)",
-        "pricing": "string (opcional)",
-        "deliveryTime": "string (opcional)",
-        "serviceArea": "string (opcional)",
-        "schedulingInfo": "string (opcional)",
-        "cancellationPolicy": "string (opcional)",
-        "faq": "string (opcional)",
-        "differentiators": "string (opcional)"
-      }
+      "confidence": 0.95
     }
   ]
 }

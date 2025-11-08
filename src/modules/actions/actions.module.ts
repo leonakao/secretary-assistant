@@ -7,6 +7,7 @@ import { RequestHumanContactActionService } from './services/request-human-conta
 import { NotifyUserActionService } from './services/notify-user-action.service';
 import { SearchConversationActionService } from './services/search-conversation-action.service';
 import { FinishOnboardingActionService } from './services/finish-onboarding-action.service';
+import { UpdateCompanyActionService } from './services/update-company-action.service';
 import { RecipientFinderService } from './services/recipient-finder.service';
 import { Contact } from '../contacts/entities/contact.entity';
 import { Company } from '../companies/entities/company.entity';
@@ -30,6 +31,7 @@ import { EvolutionMessageProvider } from '../chat/providers/evolution-message.pr
     NotifyUserActionService,
     SearchConversationActionService,
     FinishOnboardingActionService,
+    UpdateCompanyActionService,
     RecipientFinderService,
     {
       provide: 'MESSAGE_PROVIDER',

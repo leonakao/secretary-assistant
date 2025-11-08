@@ -5,6 +5,7 @@ import { RequestHumanContactActionService } from './request-human-contact-action
 import { NotifyUserActionService } from './notify-user-action.service';
 import { SearchConversationActionService } from './search-conversation-action.service';
 import { FinishOnboardingActionService } from './finish-onboarding-action.service';
+import { UpdateCompanyActionService } from './update-company-action.service';
 
 export interface ActionExecutionResult {
   success: boolean;
@@ -24,6 +25,7 @@ export class ActionExecutorService {
     private notifyUserActionService: NotifyUserActionService,
     private searchConversationActionService: SearchConversationActionService,
     private finishOnboardingActionService: FinishOnboardingActionService,
+    private updateCompanyActionService: UpdateCompanyActionService,
   ) {}
 
   async executeActions(
@@ -103,6 +105,16 @@ export class ActionExecutorService {
               throw new Error('userId required for FINISH_ONBOARDING action');
             }
             result = await this.finishOnboardingActionService.execute(action, {
+              companyId: context.companyId,
+              userId: context.userId,
+            });
+            break;
+
+          case ActionType.UPDATE_COMPANY:
+            if (!context.userId) {
+              throw new Error('userId required for UPDATE_COMPANY action');
+            }
+            result = await this.updateCompanyActionService.execute(action, {
               companyId: context.companyId,
               userId: context.userId,
             });

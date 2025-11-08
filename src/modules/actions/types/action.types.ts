@@ -8,6 +8,7 @@ export enum ActionType {
   SEARCH_CONVERSATION = 'SEARCH_CONVERSATION',
   LIST_APPOINTMENTS = 'LIST_APPOINTMENTS',
   CANCEL_APPOINTMENT = 'CANCEL_APPOINTMENT',
+  UPDATE_COMPANY = 'UPDATE_COMPANY',
 
   // Client actions
   REQUEST_HUMAN_CONTACT = 'REQUEST_HUMAN_CONTACT',
@@ -138,6 +139,13 @@ export interface FinishOnboardingAction extends BaseAction {
   };
 }
 
+export interface UpdateCompanyAction extends BaseAction {
+  type: ActionType.UPDATE_COMPANY;
+  payload: {
+    updateRequest: string;
+  };
+}
+
 export interface NoAction extends BaseAction {
   type: ActionType.NONE;
   payload: null;
@@ -152,6 +160,7 @@ export type Action =
   | SearchConversationAction
   | ListAppointmentsAction
   | CancelAppointmentAction
+  | UpdateCompanyAction
   | RequestHumanContactAction
   | NotifyUserAction
   | FinishOnboardingAction
