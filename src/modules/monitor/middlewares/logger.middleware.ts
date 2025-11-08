@@ -6,20 +6,50 @@ export class LoggerMiddleware implements NestMiddleware {
   private readonly logger = new Logger('HTTP');
 
   use(req: Request, res: Response, next: NextFunction): void {
-    const { method, originalUrl, ip } = req;
-    const userAgent = req.get('user-agent') || '';
+    const { method, originalUrl, ip, body } = req;
     const startTime = Date.now();
 
-    // Log incoming request
-    this.logger.log(`→ ${method} ${originalUrl} - ${ip} - ${userAgent}`);
+    // Capture response body
+    const originalSend = res.send;
+    let responseBody: any;
 
-    // Capture response
+    res.send = function (data: any): Response {
+      responseBody = data;
+      return originalSend.call(this, data);
+    };
+
     res.on('finish', () => {
       const { statusCode } = res;
       const responseTime = Date.now() - startTime;
-      const logMessage = `← ${method} ${originalUrl} - ${statusCode} - ${responseTime}ms`;
 
-      // Log with different levels based on status code
+      // Build log message parts
+      const parts = [
+        `${method} ${originalUrl}`,
+        `${statusCode}`,
+        `${responseTime}ms`,
+        `${ip}`,
+      ];
+
+      // Add request body if present
+      if (body && Object.keys(body).length > 0) {
+        parts.push(`ReqBody: ${JSON.stringify(body)}`);
+      }
+
+      // Add response body if present
+      if (responseBody) {
+        try {
+          const parsedBody =
+            typeof responseBody === 'string'
+              ? JSON.parse(responseBody)
+              : responseBody;
+          parts.push(`ResBody: ${JSON.stringify(parsedBody)}`);
+        } catch {
+          parts.push(`ResBody: ${responseBody}`);
+        }
+      }
+
+      const logMessage = parts.join(' | ');
+
       if (statusCode >= 500) {
         this.logger.error(logMessage);
       } else if (statusCode >= 400) {

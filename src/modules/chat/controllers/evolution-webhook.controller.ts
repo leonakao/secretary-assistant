@@ -1,6 +1,5 @@
-import { Controller, Post, Body, Logger, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Logger } from '@nestjs/common';
 import { IncomingMessageUseCase } from '../use-cases/incoming-message.use-case';
-import { EvolutionGuard } from '../../auth/guards/evolution.guard';
 import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dto';
 
 interface WebhookPayload<T> {
@@ -9,13 +8,12 @@ interface WebhookPayload<T> {
 }
 
 @Controller('webhooks/evolution')
-@UseGuards(EvolutionGuard)
 export class EvolutionWebhookController {
   private readonly logger = new Logger(EvolutionWebhookController.name);
 
   constructor(private incomingMessageUseCase: IncomingMessageUseCase) {}
 
-  @Post('messages')
+  @Post('messages-upsert')
   async handleMessages(
     @Body() payload: WebhookPayload<EvolutionMessagesUpsertPayload>,
   ) {
