@@ -1,26 +1,28 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ChatService } from '../services/chat.service';
 import { Contact } from '../../contacts/entities/contact.entity';
 import { User } from '../../users/entities/user.entity';
 import { UserCompany } from '../../companies/entities/user-company.entity';
 import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dto';
 import { assistantClientPrompt } from 'src/modules/ai/agent-prompts/assistant-client';
 import { assistantOwnerPrompt } from 'src/modules/ai/agent-prompts/assistant-owner';
+import { ClientConversationStrategy } from '../strategies/client-conversation.strategy';
+import { OwnerConversationStrategy } from '../strategies/owner-conversation.strategy';
 
 @Injectable()
 export class IncomingMessageUseCase {
   private readonly logger = new Logger(IncomingMessageUseCase.name);
 
   constructor(
-    private chatService: ChatService,
     @InjectRepository(Contact)
     private contactRepository: Repository<Contact>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @InjectRepository(UserCompany)
     private userCompanyRepository: Repository<UserCompany>,
+    private clientStrategy: ClientConversationStrategy,
+    private ownerStrategy: OwnerConversationStrategy,
   ) {}
 
   async execute(
@@ -57,14 +59,15 @@ export class IncomingMessageUseCase {
       });
 
       if (userCompany) {
-        // User is an owner/member of the company
-        await this.chatService.processAndReply({
+        // User is an owner/member of the company - use owner strategy
+        await this.ownerStrategy.handleConversation({
           sessionId: user.id,
           companyId,
           instanceName,
           remoteJid,
           message: messageText,
           systemPrompt: assistantOwnerPrompt(user),
+          userId: user.id,
         });
         return;
       }
@@ -85,8 +88,8 @@ export class IncomingMessageUseCase {
       return;
     }
 
-    // Contact is a client
-    await this.chatService.processAndReply({
+    // Contact is a client - use client strategy
+    await this.clientStrategy.handleConversation({
       sessionId: contact.id,
       companyId,
       instanceName,
