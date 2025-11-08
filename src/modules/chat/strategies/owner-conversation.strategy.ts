@@ -1,14 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ConversationStrategy } from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
 import { ActionDetectionService } from '../../actions/services/action-detection.service';
 import { ActionExecutorService } from '../../actions/services/action-executor.service';
+import { User } from '../../users/entities/user.entity';
+import { assistantOwnerPrompt } from '../../ai/agent-prompts/assistant-owner';
 
 @Injectable()
 export class OwnerConversationStrategy implements ConversationStrategy {
   private readonly logger = new Logger(OwnerConversationStrategy.name);
 
   constructor(
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
     private chatService: ChatService,
     private actionDetectionService: ActionDetectionService,
     private actionExecutorService: ActionExecutorService,
@@ -20,16 +26,22 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     instanceName: string;
     remoteJid: string;
     message: string;
-    systemPrompt: string;
     userId: string;
   }): Promise<void> {
+    // Get user to build prompt
+    const user = await this.userRepository.findOneByOrFail({
+      id: params.userId,
+    });
+
+    const systemPrompt = assistantOwnerPrompt(user);
+
     await this.chatService.processAndReply({
       sessionId: params.sessionId,
       companyId: params.companyId,
       instanceName: params.instanceName,
       remoteJid: params.remoteJid,
       message: params.message,
-      systemPrompt: params.systemPrompt,
+      systemPrompt,
     });
 
     await this.detectAndExecuteActions({

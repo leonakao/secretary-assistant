@@ -6,10 +6,9 @@ import { User } from '../../users/entities/user.entity';
 import { UserCompany } from '../../companies/entities/user-company.entity';
 import { Company } from '../../companies/entities/company.entity';
 import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dto';
-import { assistantClientPrompt } from 'src/modules/ai/agent-prompts/assistant-client';
-import { assistantOwnerPrompt } from 'src/modules/ai/agent-prompts/assistant-owner';
 import { ClientConversationStrategy } from '../strategies/client-conversation.strategy';
 import { OwnerConversationStrategy } from '../strategies/owner-conversation.strategy';
+import { OnboardingConversationStrategy } from '../strategies/onboarding-conversation.strategy';
 
 @Injectable()
 export class IncomingMessageUseCase {
@@ -26,6 +25,7 @@ export class IncomingMessageUseCase {
     private companyRepository: Repository<Company>,
     private clientStrategy: ClientConversationStrategy,
     private ownerStrategy: OwnerConversationStrategy,
+    private onboardingStrategy: OnboardingConversationStrategy,
   ) {}
 
   async execute(
@@ -60,13 +60,29 @@ export class IncomingMessageUseCase {
       });
 
       if (userCompany) {
+        const company = await this.companyRepository.findOne({
+          where: { id: companyId },
+        });
+
+        // Route to onboarding strategy if company is in onboarding step
+        if (company?.step === 'onboarding') {
+          await this.onboardingStrategy.handleConversation({
+            sessionId: user.id,
+            companyId,
+            instanceName,
+            remoteJid,
+            message: messageText,
+            userId: user.id,
+          });
+          return;
+        }
+
         await this.ownerStrategy.handleConversation({
           sessionId: user.id,
           companyId,
           instanceName,
           remoteJid,
           message: messageText,
-          systemPrompt: assistantOwnerPrompt(user),
           userId: user.id,
         });
 
@@ -113,7 +129,6 @@ export class IncomingMessageUseCase {
       instanceName,
       remoteJid,
       message: messageText,
-      systemPrompt: assistantClientPrompt(contact),
     });
   }
 

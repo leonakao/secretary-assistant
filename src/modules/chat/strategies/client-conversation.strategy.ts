@@ -1,14 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ConversationStrategy } from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
 import { ActionDetectionService } from '../../actions/services/action-detection.service';
 import { ActionExecutorService } from '../../actions/services/action-executor.service';
+import { Contact } from '../../contacts/entities/contact.entity';
+import { assistantClientPrompt } from '../../ai/agent-prompts/assistant-client';
 
 @Injectable()
 export class ClientConversationStrategy implements ConversationStrategy {
   private readonly logger = new Logger(ClientConversationStrategy.name);
 
   constructor(
+    @InjectRepository(Contact)
+    private contactRepository: Repository<Contact>,
     private chatService: ChatService,
     private actionDetectionService: ActionDetectionService,
     private actionExecutorService: ActionExecutorService,
@@ -20,8 +26,14 @@ export class ClientConversationStrategy implements ConversationStrategy {
     instanceName: string;
     remoteJid: string;
     message: string;
-    systemPrompt: string;
   }): Promise<void> {
+    // Get contact to build prompt
+    const contact = await this.contactRepository.findOneByOrFail({
+      id: params.sessionId,
+    });
+
+    const systemPrompt = assistantClientPrompt(contact);
+
     // Process and reply to client
     await this.chatService.processAndReply({
       sessionId: params.sessionId,
@@ -29,7 +41,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
       instanceName: params.instanceName,
       remoteJid: params.remoteJid,
       message: params.message,
-      systemPrompt: params.systemPrompt,
+      systemPrompt,
     });
 
     // Detect client actions (e.g., request human contact)

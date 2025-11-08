@@ -8,6 +8,5 @@ export interface ConversationStrategy {
     instanceName: string;
     remoteJid: string;
     message: string;
-    systemPrompt: string;
   }): Promise<void>;
 }

@@ -13,6 +13,7 @@ import { IncomingMessageUseCase } from './use-cases/incoming-message.use-case';
 import { EvolutionWebhookController } from './controllers/evolution-webhook.controller';
 import { ClientConversationStrategy } from './strategies/client-conversation.strategy';
 import { OwnerConversationStrategy } from './strategies/owner-conversation.strategy';
+import { OnboardingConversationStrategy } from './strategies/onboarding-conversation.strategy';
 import { Company } from '../companies/entities/company.entity';
 
 @Module({
@@ -29,6 +30,7 @@ import { Company } from '../companies/entities/company.entity';
     IncomingMessageUseCase,
     ClientConversationStrategy,
     OwnerConversationStrategy,
+    OnboardingConversationStrategy,
     {
       provide: 'MESSAGE_PROVIDER',
       useExisting: EvolutionMessageProvider,
