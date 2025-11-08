@@ -112,14 +112,12 @@ export class ChatService {
 
   async addMessageToMemory(params: {
     sessionId: string;
-    userId?: string;
     companyId?: string;
     role: 'user' | 'assistant';
     content: string;
   }): Promise<Memory> {
     return this.memoryRepository.save({
       sessionId: params.sessionId,
-      userId: params.userId,
       companyId: params.companyId,
       role: params.role,
       content: params.content,
@@ -149,7 +147,6 @@ export class ChatService {
 
   async processAndReply(params: {
     sessionId: string;
-    userId: string;
     companyId: string;
     instanceName: string;
     remoteJid: string;
@@ -158,7 +155,6 @@ export class ChatService {
   }): Promise<void> {
     const {
       sessionId,
-      userId,
       companyId,
       instanceName,
       remoteJid,
@@ -168,7 +164,6 @@ export class ChatService {
 
     await this.addMessageToMemory({
       sessionId,
-      userId,
       companyId,
       role: 'user',
       content: message,
@@ -188,7 +183,6 @@ export class ChatService {
 
     await this.addMessageToMemory({
       sessionId,
-      userId,
       companyId,
       role: 'assistant',
       content: aiResponse,

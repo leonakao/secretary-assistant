@@ -50,7 +50,6 @@ export class IncomingMessageUseCase {
 
     await this.chatService.processAndReply({
       sessionId: contact.id,
-      userId: contact.id,
       companyId,
       instanceName,
       remoteJid,
