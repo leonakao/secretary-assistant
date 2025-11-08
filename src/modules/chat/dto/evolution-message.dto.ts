@@ -31,13 +31,9 @@ export interface EvolutionMessageContent {
   };
 }
 
-export interface EvolutionMessage {
+export interface EvolutionMessagesUpsertPayload {
   key: EvolutionMessageKey;
   message: EvolutionMessageContent;
   messageTimestamp: number;
   pushName?: string;
-}
-
-export interface EvolutionMessagesUpsertPayload {
-  messages: EvolutionMessage[];
 }

@@ -20,13 +20,8 @@ export class EvolutionWebhookController {
     this.logger.log('Received messages from Evolution API');
     const { instance, data } = payload;
 
-    try {
-      await this.incomingMessageUseCase.execute(instance, data);
+    await this.incomingMessageUseCase.execute(instance, data);
 
-      return { success: true };
-    } catch (error) {
-      this.logger.error('Error processing messages webhook:', error);
-      return { success: false, error: error.message };
-    }
+    return { success: true };
   }
 }
