@@ -3,8 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChatService } from '../services/chat.service';
 import { Contact } from '../../contacts/entities/contact.entity';
+import { User } from '../../users/entities/user.entity';
+import { UserCompany } from '../../companies/entities/user-company.entity';
 import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dto';
 import { assistantClientPrompt } from 'src/modules/ai/agent-prompts/assistant-client';
+import { assistantOwnerPrompt } from 'src/modules/ai/agent-prompts/assistant-owner';
 
 @Injectable()
 export class IncomingMessageUseCase {
@@ -14,6 +17,10 @@ export class IncomingMessageUseCase {
     private chatService: ChatService,
     @InjectRepository(Contact)
     private contactRepository: Repository<Contact>,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    @InjectRepository(UserCompany)
+    private userCompanyRepository: Repository<UserCompany>,
   ) {}
 
   async execute(
@@ -35,6 +42,35 @@ export class IncomingMessageUseCase {
       return;
     }
 
+    // Check if the sender is a User (owner) of the company
+    const user = await this.userRepository.findOne({
+      where: { phone },
+    });
+
+    if (user) {
+      // Check if this user belongs to the company
+      const userCompany = await this.userCompanyRepository.findOne({
+        where: {
+          userId: user.id,
+          companyId,
+        },
+      });
+
+      if (userCompany) {
+        // User is an owner/member of the company
+        await this.chatService.processAndReply({
+          sessionId: user.id,
+          companyId,
+          instanceName,
+          remoteJid,
+          message: messageText,
+          systemPrompt: assistantOwnerPrompt(user),
+        });
+        return;
+      }
+    }
+
+    // If not a user, check if it's a contact (client)
     const contact = await this.contactRepository.findOne({
       where: {
         companyId,
@@ -44,11 +80,12 @@ export class IncomingMessageUseCase {
 
     if (!contact) {
       this.logger.warn(
-        `Contact not found for phone ${phone} in company ${companyId}`,
+        `No user or contact found for phone ${phone} in company ${companyId}`,
       );
       return;
     }
 
+    // Contact is a client
     await this.chatService.processAndReply({
       sessionId: contact.id,
       companyId,
