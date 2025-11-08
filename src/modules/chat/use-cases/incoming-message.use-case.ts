@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { ChatService } from '../services/chat.service';
 import { Contact } from '../../contacts/entities/contact.entity';
 import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dto';
+import { assistantClientPrompt } from 'src/modules/ai/agent-prompts/assistant-client';
 
 @Injectable()
 export class IncomingMessageUseCase {
@@ -54,8 +55,7 @@ export class IncomingMessageUseCase {
       instanceName,
       remoteJid,
       message: messageText,
-      systemPrompt:
-        'You are a helpful secretary assistant for a small company. Be professional, friendly, and concise in your responses.',
+      systemPrompt: assistantClientPrompt(contact),
     });
   }
 
