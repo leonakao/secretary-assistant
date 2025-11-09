@@ -160,7 +160,7 @@ INSTRUÇÕES:
 - Mantenha um tom profissional e objetivo`;
 
     const owner = await this.userRepository.findOneByOrFail({
-      id: contact.companyId, // This should be userId, will fix
+      id: contact.companyId,
     });
 
     const company = await this.companyRepository.findOneByOrFail({

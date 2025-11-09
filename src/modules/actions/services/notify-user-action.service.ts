@@ -38,7 +38,6 @@ export class NotifyUserActionService {
         id: context.contactId,
       });
 
-      // Find user to notify (preferred user or company owner)
       const userToNotify = contact.preferredUserId
         ? await this.userRepository.findOne({
             where: { id: contact.preferredUserId },
@@ -56,7 +55,6 @@ export class NotifyUserActionService {
         };
       }
 
-      // Notify user about client's message/response
       await this.notifyUser(
         userToNotify,
         contact,

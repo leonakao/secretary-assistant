@@ -123,7 +123,6 @@ MARKDOWN:`;
 
       let description = await this.langchainService.chat(prompt, 8192);
 
-      // Remove texto introdutório se houver
       const markdownStart = description.indexOf('# ');
       if (markdownStart > 0) {
         description = description.substring(markdownStart);

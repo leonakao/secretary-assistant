@@ -38,7 +38,6 @@ export class RequestHumanContactActionService {
         id: context.contactId,
       });
 
-      // Find user to notify (preferred user or company owner)
       const userToNotify = contact.preferredUserId
         ? await this.userRepository.findOne({
             where: { id: contact.preferredUserId },
@@ -174,7 +173,7 @@ Comunique isso de forma clara e profissional, sugerindo que o proprietário entr
 
     await this.chatService.sendMessageAndSaveToMemory({
       sessionId: owner.id,
-      companyId: '', // Not needed for owner notifications
+      companyId: company.id,
       instanceName,
       remoteJid: ownerRemoteJid,
       message,
