@@ -1,3 +1,5 @@
+import { User } from 'src/modules/users/entities/user.entity';
+import { Company } from 'src/modules/companies/entities/company.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -29,11 +31,11 @@ export class UserCompany {
 
   @ManyToOne('User', 'userCompanies')
   @JoinColumn({ name: 'user_id' })
-  user: any;
+  user: User;
 
   @ManyToOne('Company', 'userCompanies')
   @JoinColumn({ name: 'company_id' })
-  company: any;
+  company: Company;
 
   @CreateDateColumn()
   createdAt: Date;

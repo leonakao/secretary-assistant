@@ -54,41 +54,24 @@ export class IncomingMessageUseCase {
       };
     }
 
-    const user = await this.userRepository.findOne({
-      where: { phone },
+    const company = await this.companyRepository.findOne({
+      where: { id: companyId },
     });
 
-    if (user) {
-      const userCompany = await this.userCompanyRepository.findOne({
-        where: {
-          userId: user.id,
-          companyId,
-        },
-      });
+    const userCompany = await this.userCompanyRepository.findOne({
+      where: {
+        companyId,
+        user: { phone },
+      },
+      relations: ['user'],
+    });
 
-      if (userCompany) {
-        const company = await this.companyRepository.findOne({
-          where: { id: companyId },
-        });
+    if (userCompany) {
+      const user = userCompany.user;
 
-        if (company?.step === 'onboarding') {
-          const { message, actions } =
-            await this.onboardingStrategy.handleConversation({
-              companyId,
-              instanceName,
-              remoteJid,
-              message: messageText,
-              userId: user.id,
-            });
-
-          return {
-            message,
-            actions,
-          };
-        }
-
+      if (company?.step === 'onboarding') {
         const { message, actions } =
-          await this.ownerStrategy.handleConversation({
+          await this.onboardingStrategy.handleConversation({
             companyId,
             instanceName,
             remoteJid,
@@ -101,6 +84,19 @@ export class IncomingMessageUseCase {
           actions,
         };
       }
+
+      const { message, actions } = await this.ownerStrategy.handleConversation({
+        companyId,
+        instanceName,
+        remoteJid,
+        message: messageText,
+        userId: user.id,
+      });
+
+      return {
+        message,
+        actions,
+      };
     }
 
     const contact = await this.contactRepository.findOne({
@@ -119,10 +115,6 @@ export class IncomingMessageUseCase {
         actions: [],
       };
     }
-
-    const company = await this.companyRepository.findOne({
-      where: { id: companyId },
-    });
 
     if (!company?.isClientsSupportEnabled) {
       this.logger.log(
