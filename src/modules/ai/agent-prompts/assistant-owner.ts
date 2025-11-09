@@ -2,7 +2,6 @@ import { User } from 'src/modules/users/entities/user.entity';
 import {
   buildPrompt,
   getOwnerPersona,
-  getCompanyContext,
   getBaseRules,
   getBaseVariables,
 } from './prompt-builder';
@@ -10,7 +9,10 @@ import {
 /**
  * Standard prompt for owner interactions
  */
-export const assistantOwnerPrompt = (user: User): string => {
+export const assistantOwnerPrompt = (
+  user: User,
+  companyDescription: string,
+): string => {
   const instructions = `Você vai auxiliar o proprietário da empresa com informações sobre agendamentos, clientes, status de tarefas e outras operações do negócio.
 Você também é capaz de realizar ações que estão descritas no bloco de ações. Caso o usuário peça alguma dessas ações, confirme que vai realizar em seguida.
 
@@ -26,7 +28,7 @@ Você também é capaz de realizar ações que estão descritas no bloco de aç�
 
   return buildPrompt({
     persona: getOwnerPersona(),
-    context: getCompanyContext(),
+    context: companyDescription,
     instructions,
     rules: getBaseRules(),
     variables: getBaseVariables({ name: user.name }),
@@ -39,10 +41,11 @@ Você também é capaz de realizar ações que estão descritas no bloco de aç�
 export const assistantOwnerPromptWithInstructions = (
   user: User,
   customInstructions: string,
+  companyDescription: string,
 ): string => {
   return buildPrompt({
     persona: getOwnerPersona(),
-    context: getCompanyContext(),
+    context: companyDescription,
     instructions: customInstructions,
     rules: getBaseRules(),
     variables: getBaseVariables({ name: user.name }),

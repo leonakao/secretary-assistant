@@ -39,15 +39,6 @@ export function getOwnerPersona(): string {
 }
 
 /**
- * Company context (can be made dynamic per company in the future)
- */
-export function getCompanyContext(): string {
-  return `A NakaLM é uma empresa que vende produtos de limpeza e higiene.
-Nosso atendimento é presencial de segunda a sexta-feira das 08:00 às 18:00.
-Nosso telefone é (11) 99999-9999.`;
-}
-
-/**
  * Universal rules that apply to all interactions
  */
 export function getBaseRules(): string {
@@ -59,20 +50,6 @@ export function getBaseRules(): string {
 - Mantenha confidencialidade das informações
 - Não responda com informações que não estejam no contexto
 - Caso não tenha certeza de uma resposta, diga que não sabe`;
-}
-
-/**
- * @deprecated Use getBaseRules() instead - rules are now universal
- */
-export function getClientRules(): string {
-  return getBaseRules();
-}
-
-/**
- * @deprecated Use getBaseRules() instead - rules are now universal
- */
-export function getOwnerRules(): string {
-  return getBaseRules();
 }
 
 /**

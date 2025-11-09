@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { SendMessageAction } from '../types/action.types';
 import { ActionExecutionResult } from './action-executor.service';
 import { Contact } from '../../contacts/entities/contact.entity';
+import { Company } from '../../companies/entities/company.entity';
 import type { MessageProvider } from '../../chat/interfaces/message-provider.interface';
 import { User } from 'src/modules/users/entities/user.entity';
 import { ChatService } from '../../chat/services/chat.service';
@@ -20,6 +21,8 @@ export class SendMessageActionService {
     private contactRepository: Repository<Contact>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Company)
+    private companyRepository: Repository<Company>,
     @Inject('MESSAGE_PROVIDER')
     private messageProvider: MessageProvider,
     private chatService: ChatService,
@@ -56,6 +59,7 @@ export class SendMessageActionService {
           const errorMsg = await this.buildErrorMessage(
             context.userId,
             `Encontrei ${result.multipleRecipients.length} pessoas com o nome "${recipientName}":\n\n${recipientList}\n\nInforme qual pessoa você deseja enviar a mensagem.`,
+            context.companyId,
           );
 
           await this.notifyOwner(
@@ -76,6 +80,7 @@ export class SendMessageActionService {
         const errorMsg = await this.buildErrorMessage(
           context.userId,
           `Não consegui encontrar "${recipientName}" nos contatos ou funcionários. Verifique o nome.`,
+          context.companyId,
         );
 
         await this.notifyOwner(
@@ -98,6 +103,7 @@ export class SendMessageActionService {
         const errorMsg = await this.buildErrorMessage(
           context.userId,
           `${type === 'user' ? 'O funcionário' : 'O contato'} "${recipient.name}" não possui telefone cadastrado.`,
+          context.companyId,
         );
 
         await this.notifyOwner(
@@ -120,6 +126,7 @@ export class SendMessageActionService {
         recipient,
         type ?? 'contact',
         message,
+        context.companyId,
       );
 
       await this.chatService.sendMessageAndSaveToMemory({
@@ -151,6 +158,7 @@ export class SendMessageActionService {
       const errorMsg = await this.buildErrorMessage(
         context.userId,
         `Erro ao enviar mensagem: ${error.message}`,
+        context.companyId,
       );
 
       await this.notifyOwner(
@@ -172,6 +180,7 @@ export class SendMessageActionService {
     recipient: Contact | User,
     recipientType: 'contact' | 'user',
     ownerMessage: string,
+    companyId: string,
   ): Promise<string> {
     const recipientLabel = recipientType === 'user' ? 'funcionário' : 'cliente';
 
@@ -183,9 +192,14 @@ Se não houver histórico, envie a mensagem de forma direta mas cordial. Não pr
 
 Importante: Se você já tiver enviado uma mensagem para essa pessoa, não diga nada.`;
 
+    const company = await this.companyRepository.findOneByOrFail({
+      id: companyId,
+    });
+
     const systemPrompt = assistantClientPromptWithInstructions(
       recipient as Contact,
       customInstructions,
+      company.description,
     );
 
     const contextualMessage = await this.chatService.buildAIResponse({
@@ -200,6 +214,7 @@ Importante: Se você já tiver enviado uma mensagem para essa pessoa, não diga 
   private async buildErrorMessage(
     userId: string,
     errorContext: string,
+    companyId: string,
   ): Promise<string> {
     const owner = await this.userRepository.findOneByOrFail({ id: userId });
 
@@ -209,9 +224,14 @@ ${errorContext}
 
 Comunique isso ao proprietário de forma natural e profissional, mantendo seu tom de secretaria eficiente.`;
 
+    const company = await this.companyRepository.findOneByOrFail({
+      id: companyId,
+    });
+
     const systemPrompt = assistantOwnerPromptWithInstructions(
       owner,
       instructions,
+      company.description,
     );
 
     const errorMessage = await this.chatService.buildAIResponse({

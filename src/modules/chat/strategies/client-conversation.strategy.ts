@@ -9,6 +9,7 @@ import { ChatService } from '../services/chat.service';
 import { ActionDetectionService } from '../../actions/services/action-detection.service';
 import { ActionExecutorService } from '../../actions/services/action-executor.service';
 import { Contact } from '../../contacts/entities/contact.entity';
+import { Company } from '../../companies/entities/company.entity';
 import { assistantClientPrompt } from '../../ai/agent-prompts/assistant-client';
 
 @Injectable()
@@ -18,6 +19,8 @@ export class ClientConversationStrategy implements ConversationStrategy {
   constructor(
     @InjectRepository(Contact)
     private contactRepository: Repository<Contact>,
+    @InjectRepository(Company)
+    private companyRepository: Repository<Company>,
     private chatService: ChatService,
     private actionDetectionService: ActionDetectionService,
     private actionExecutorService: ActionExecutorService,
@@ -34,7 +37,11 @@ export class ClientConversationStrategy implements ConversationStrategy {
       id: params.sessionId,
     });
 
-    const systemPrompt = assistantClientPrompt(contact);
+    const company = await this.companyRepository.findOneByOrFail({
+      id: params.companyId,
+    });
+
+    const systemPrompt = assistantClientPrompt(contact, company.description);
 
     const { message } = await this.chatService.processAndReply({
       sessionId: params.sessionId,

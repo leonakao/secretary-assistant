@@ -4,6 +4,7 @@ import { Repository, MoreThan } from 'typeorm';
 import { SearchConversationAction } from '../types/action.types';
 import { ActionExecutionResult } from './action-executor.service';
 import { Contact } from '../../contacts/entities/contact.entity';
+import { Company } from '../../companies/entities/company.entity';
 import { User } from '../../users/entities/user.entity';
 import { Memory } from '../../chat/entities/memory.entity';
 import { ChatService } from '../../chat/services/chat.service';
@@ -19,6 +20,8 @@ export class SearchConversationActionService {
     private contactRepository: Repository<Contact>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Company)
+    private companyRepository: Repository<Company>,
     @InjectRepository(Memory)
     private memoryRepository: Repository<Memory>,
     private chatService: ChatService,
@@ -79,6 +82,7 @@ export class SearchConversationActionService {
         contact,
         conversationHistory,
         query,
+        context.companyId,
       );
 
       await this.notifyOwner(context.userId, context.instanceName, answer);
@@ -130,8 +134,8 @@ export class SearchConversationActionService {
     contact: Contact,
     conversationHistory: Memory[],
     query: string,
+    companyId: string,
   ): Promise<string> {
-    // Build conversation context
     const conversationText = conversationHistory
       .map((m) => {
         const role = m.role === 'user' ? contact.name : 'Julia';
@@ -159,9 +163,14 @@ INSTRUÇÕES:
       id: contact.companyId, // This should be userId, will fix
     });
 
+    const company = await this.companyRepository.findOneByOrFail({
+      id: companyId,
+    });
+
     const systemPrompt = assistantOwnerPromptWithInstructions(
       owner,
       instructions,
+      company.description,
     );
 
     const answer = await this.chatService.buildAIResponse({

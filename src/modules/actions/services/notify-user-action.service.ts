@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { NotifyUserAction } from '../types/action.types';
 import { ActionExecutionResult } from './action-executor.service';
 import { Contact } from '../../contacts/entities/contact.entity';
+import { Company } from '../../companies/entities/company.entity';
 import { User } from '../../users/entities/user.entity';
 import { ChatService } from '../../chat/services/chat.service';
 import { assistantOwnerPromptWithInstructions } from '../../ai/agent-prompts/assistant-owner';
@@ -17,6 +18,8 @@ export class NotifyUserActionService {
     private contactRepository: Repository<Contact>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Company)
+    private companyRepository: Repository<Company>,
     private chatService: ChatService,
   ) {}
 
@@ -59,6 +62,7 @@ export class NotifyUserActionService {
         contact,
         context.instanceName,
         message,
+        context.companyId,
         actionContext,
       );
 
@@ -103,6 +107,7 @@ export class NotifyUserActionService {
     contact: Contact,
     instanceName: string,
     clientMessage: string,
+    companyId: string,
     actionContext?: string,
   ): Promise<void> {
     const notificationContext = `📬 ${contact.name} respondeu:
@@ -116,9 +121,14 @@ ${notificationContext}
 
 Comunique isso ao proprietário de forma clara e profissional, resumindo a mensagem do cliente.`;
 
+    const company = await this.companyRepository.findOneByOrFail({
+      id: companyId,
+    });
+
     const systemPrompt = assistantOwnerPromptWithInstructions(
       user,
       instructions,
+      company.description,
     );
 
     const notificationMessage = await this.chatService.buildAIResponse({

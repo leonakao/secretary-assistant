@@ -2,7 +2,6 @@ import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import {
   buildPrompt,
   getClientPersona,
-  getCompanyContext,
   getBaseRules,
   getBaseVariables,
 } from './prompt-builder';
@@ -10,13 +9,16 @@ import {
 /**
  * Standard prompt for client interactions
  */
-export const assistantClientPrompt = (contact: Contact): string => {
+export const assistantClientPrompt = (
+  contact: Contact,
+  companyDescription: string,
+): string => {
   const instructions = `Você vai atender os clientes e responder perguntas sobre a empresa.
 - Sempre termine sua resposta perguntando se o cliente precisa de ajuda com algo mais, exceto quando o cliente terminar sua mensagem com "obrigado" ou "obrigada".`;
 
   return buildPrompt({
     persona: getClientPersona(),
-    context: getCompanyContext(),
+    context: companyDescription,
     instructions,
     rules: getBaseRules(),
     variables: getBaseVariables({ name: contact.name }),
@@ -29,10 +31,11 @@ export const assistantClientPrompt = (contact: Contact): string => {
 export const assistantClientPromptWithInstructions = (
   contact: Contact,
   customInstructions: string,
+  companyDescription: string,
 ): string => {
   return buildPrompt({
     persona: getClientPersona(),
-    context: getCompanyContext(),
+    context: companyDescription,
     instructions: customInstructions,
     rules: getBaseRules(),
     variables: getBaseVariables({ name: contact.name }),

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { RequestHumanContactAction } from '../types/action.types';
 import { ActionExecutionResult } from './action-executor.service';
 import { Contact } from '../../contacts/entities/contact.entity';
+import { Company } from '../../companies/entities/company.entity';
 import { User } from '../../users/entities/user.entity';
 import { ChatService } from '../../chat/services/chat.service';
 import { assistantOwnerPromptWithInstructions } from '../../ai/agent-prompts/assistant-owner';
@@ -17,6 +18,8 @@ export class RequestHumanContactActionService {
     private contactRepository: Repository<Contact>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Company)
+    private companyRepository: Repository<Company>,
     private chatService: ChatService,
   ) {}
 
@@ -59,6 +62,7 @@ export class RequestHumanContactActionService {
         userToNotify,
         contact,
         context.instanceName,
+        context.companyId,
         reason,
         urgency,
       );
@@ -118,6 +122,7 @@ export class RequestHumanContactActionService {
     owner: User,
     contact: Contact,
     instanceName: string,
+    companyId: string,
     reason?: string,
     urgency?: 'low' | 'medium' | 'high',
   ): Promise<void> {
@@ -142,9 +147,14 @@ ${notificationContext}
 
 Comunique isso de forma clara e profissional, sugerindo que o proprietário entre em contato com o cliente.`;
 
+    const company = await this.companyRepository.findOneByOrFail({
+      id: companyId,
+    });
+
     const systemPrompt = assistantOwnerPromptWithInstructions(
       owner,
       instructions,
+      company.description,
     );
 
     const message = await this.chatService.buildAIResponse({
