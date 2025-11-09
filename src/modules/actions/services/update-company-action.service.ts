@@ -90,7 +90,7 @@ export class UpdateCompanyActionService {
     const recentConversation = recentMemories
       .reverse()
       .map((m) => {
-        const role = m.role === 'user' ? 'User' : 'AI';
+        const role = m.role === 'user' ? 'Human' : 'AI';
         return `${role}: ${m.content}`;
       })
       .join('\n');
