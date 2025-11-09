@@ -33,13 +33,12 @@ export class FinishOnboardingActionService {
 
       const structuredDescription = await this.generateDescriptionFromHistory(
         context.userId,
-        action.payload.companyName,
+        company.name,
       );
 
       await this.companyRepository.update(
         { id: context.companyId },
         {
-          name: action.payload.companyName,
           description: structuredDescription,
           step: 'running',
         },
@@ -55,7 +54,7 @@ export class FinishOnboardingActionService {
         message: 'Onboarding completed successfully',
         data: {
           companyId: context.companyId,
-          companyName: action.payload.companyName,
+          companyName: company.name,
           previousStep: company.step,
           newStep: 'running',
         },
