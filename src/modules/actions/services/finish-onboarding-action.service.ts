@@ -91,39 +91,43 @@ export class FinishOnboardingActionService {
         })
         .join('\n');
 
-      const prompt = `Você é um assistente que organiza informações de empresas.
+      const prompt = `Extraia e organize as informações da conversa em Markdown estruturado.
 
-Analise a conversa de onboarding abaixo e gere uma descrição estruturada e completa da empresa em formato Markdown.
+IMPORTANTE: Comece DIRETO com o título # [Nome da Empresa], sem texto introdutório.
 
-A descrição deve incluir TODAS as informações coletadas, organizadas nas seguintes seções (quando disponíveis):
+Seções (inclua apenas se houver informação):
+# [Nome da Empresa]
+## Sobre a Empresa
+## Informações de Contato
+## Horário de Atendimento
+## Área de Atendimento
+## Preços e Formas de Pagamento
+## Tempo de Entrega/Atendimento
+## Agendamento
+## Política de Cancelamento
+## Perguntas Frequentes
+## Diferenciais
+## Outras Informações
 
-1. # [Nome da Empresa] (título principal)
-2. ## Sobre a Empresa (descrição dos produtos/serviços)
-3. ## Informações de Contato (telefone, e-mail, endereço)
-4. ## Horário de Atendimento
-5. ## Área de Atendimento (cobertura geográfica)
-6. ## Preços e Formas de Pagamento
-7. ## Tempo de Entrega/Atendimento
-8. ## Agendamento (como funciona, antecedência necessária)
-9. ## Política de Cancelamento
-10. ## Perguntas Frequentes
-11. ## Diferenciais
-12. ## Outras informações relevantes
+Regras:
+- Comece DIRETO com # [Nome da Empresa]
+- Use listas com - para múltiplos itens
+- Seja objetivo e direto
+- Não adicione informações que não estão na conversa
+- Complete TODAS as seções até o final
 
-IMPORTANTE:
-- Use formatação Markdown apropriada (títulos ##, listas -, negrito **)
-- Seja claro, objetivo e profissional
-- Inclua TODAS as informações mencionadas na conversa
-- Organize as informações de forma lógica e fácil de ler
-- Se alguma seção não tiver informação, não a inclua
-- Use linguagem natural e fluida
-
-CONVERSA DE ONBOARDING:
+CONVERSA:
 ${conversationHistory}
 
-DESCRIÇÃO ESTRUTURADA EM MARKDOWN:`;
+MARKDOWN:`;
 
-      const description = await this.langchainService.chat(prompt);
+      let description = await this.langchainService.chat(prompt, 8192);
+
+      // Remove texto introdutório se houver
+      const markdownStart = description.indexOf('# ');
+      if (markdownStart > 0) {
+        description = description.substring(markdownStart);
+      }
 
       return description.trim();
     } catch (error) {

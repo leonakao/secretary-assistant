@@ -122,21 +122,6 @@ export interface NotifyUserAction extends BaseAction {
 
 export interface FinishOnboardingAction extends BaseAction {
   type: ActionType.FINISH_ONBOARDING;
-  payload: {
-    companyName: string;
-    description: string;
-    businessHours: string;
-    phone: string;
-    address?: string;
-    email?: string;
-    pricing?: string;
-    deliveryTime?: string;
-    serviceArea?: string;
-    schedulingInfo?: string;
-    cancellationPolicy?: string;
-    faq?: string;
-    differentiators?: string;
-  };
 }
 
 export interface UpdateCompanyAction extends BaseAction {

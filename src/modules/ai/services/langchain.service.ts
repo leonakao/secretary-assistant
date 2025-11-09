@@ -36,8 +36,17 @@ export class LangchainService {
   /**
    * Send a simple message to the AI
    */
-  async chat(message: string): Promise<string> {
-    const response = await this.model.invoke([new HumanMessage(message)]);
+  async chat(message: string, maxTokens?: number): Promise<string> {
+    const model = maxTokens
+      ? new ChatGoogleGenerativeAI({
+          apiKey: this.configService.get<string>('GOOGLE_API_KEY'),
+          model: 'gemini-2.5-flash',
+          temperature: 0.7,
+          maxOutputTokens: maxTokens,
+        })
+      : this.model;
+
+    const response = await model.invoke([new HumanMessage(message)]);
     return typeof response.content === 'string'
       ? response.content
       : JSON.stringify(response.content);
