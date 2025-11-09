@@ -86,7 +86,7 @@ export class ActionDetectionService {
   private buildConversationContext(messages: ConversationMessage[]): string {
     return messages
       .map((msg) => {
-        const role = msg.role === 'user' ? 'Proprietário' : 'Julia';
+        const role = msg.role === 'user' ? 'User' : 'AI';
         return `${role}: ${msg.content}`;
       })
       .join('\n');

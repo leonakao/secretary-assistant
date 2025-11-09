@@ -86,7 +86,7 @@ export class FinishOnboardingActionService {
 
       const conversationHistory = memories
         .map((m) => {
-          const role = m.role === 'user' ? 'Proprietário' : 'Julia';
+          const role = m.role === 'user' ? 'User' : 'AI';
           return `${role}: ${m.content}`;
         })
         .join('\n');

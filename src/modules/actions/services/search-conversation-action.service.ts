@@ -138,7 +138,7 @@ export class SearchConversationActionService {
   ): Promise<string> {
     const conversationText = conversationHistory
       .map((m) => {
-        const role = m.role === 'user' ? contact.name : 'Julia';
+        const role = m.role === 'user' ? 'User' : 'AI';
         const timestamp = m.createdAt.toLocaleString('pt-BR');
         return `[${timestamp}] ${role}: ${m.content}`;
       })
