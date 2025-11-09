@@ -9,6 +9,7 @@ import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dt
 import { ClientConversationStrategy } from '../strategies/client-conversation.strategy';
 import { OwnerConversationStrategy } from '../strategies/owner-conversation.strategy';
 import { OnboardingConversationStrategy } from '../strategies/onboarding-conversation.strategy';
+import { ConversationResponse } from '../strategies';
 
 @Injectable()
 export class IncomingMessageUseCase {
@@ -32,11 +33,14 @@ export class IncomingMessageUseCase {
     companyId: string,
     instanceName: string,
     payload: EvolutionMessagesUpsertPayload,
-  ): Promise<void> {
+  ): Promise<ConversationResponse> {
     const { key, message: messageContent } = payload;
 
     if (key.fromMe) {
-      return;
+      return {
+        message: '',
+        actions: [],
+      };
     }
 
     const remoteJid = key.remoteJid;
@@ -44,7 +48,10 @@ export class IncomingMessageUseCase {
     const messageText = this.extractMessageText(messageContent);
 
     if (!messageText) {
-      return;
+      return {
+        message: '',
+        actions: [],
+      };
     }
 
     const user = await this.userRepository.findOne({
@@ -64,9 +71,25 @@ export class IncomingMessageUseCase {
           where: { id: companyId },
         });
 
-        // Route to onboarding strategy if company is in onboarding step
         if (company?.step === 'onboarding') {
-          await this.onboardingStrategy.handleConversation({
+          const { message, actions } =
+            await this.onboardingStrategy.handleConversation({
+              sessionId: user.id,
+              companyId,
+              instanceName,
+              remoteJid,
+              message: messageText,
+              userId: user.id,
+            });
+
+          return {
+            message,
+            actions,
+          };
+        }
+
+        const { message, actions } =
+          await this.ownerStrategy.handleConversation({
             sessionId: user.id,
             companyId,
             instanceName,
@@ -74,19 +97,11 @@ export class IncomingMessageUseCase {
             message: messageText,
             userId: user.id,
           });
-          return;
-        }
 
-        await this.ownerStrategy.handleConversation({
-          sessionId: user.id,
-          companyId,
-          instanceName,
-          remoteJid,
-          message: messageText,
-          userId: user.id,
-        });
-
-        return;
+        return {
+          message,
+          actions,
+        };
       }
     }
 
@@ -101,7 +116,10 @@ export class IncomingMessageUseCase {
       this.logger.warn(
         `No user or contact found for phone ${phone} in company ${companyId}`,
       );
-      return;
+      return {
+        message: '',
+        actions: [],
+      };
     }
 
     const company = await this.companyRepository.findOne({
@@ -112,24 +130,34 @@ export class IncomingMessageUseCase {
       this.logger.log(
         `Clients support is disabled for company ${companyId}. Ignoring message from contact ${contact.id}`,
       );
-      return;
+      return {
+        message: '',
+        actions: [],
+      };
     }
 
-    // Check if conversation is paused (ignoreUntil)
     if (contact.ignoreUntil && contact.ignoreUntil > new Date()) {
       this.logger.log(
         `Ignoring message from contact ${contact.id} until ${contact.ignoreUntil.toISOString()}`,
       );
-      return;
+      return {
+        message: '',
+        actions: [],
+      };
     }
 
-    await this.clientStrategy.handleConversation({
+    const { message, actions } = await this.clientStrategy.handleConversation({
       sessionId: contact.id,
       companyId,
       instanceName,
       remoteJid,
       message: messageText,
     });
+
+    return {
+      message,
+      actions,
+    };
   }
 
   private extractPhoneFromJid(remoteJid: string): string {

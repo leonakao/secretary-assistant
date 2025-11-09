@@ -118,7 +118,7 @@ export class SendMessageActionService {
 
       const contextualMessage = await this.buildContextualMessage(
         recipient,
-        type,
+        type ?? 'contact',
         message,
       );
 

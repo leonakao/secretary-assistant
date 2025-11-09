@@ -64,7 +64,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
     instanceName: string;
     contactId: string;
   }): Promise<string[]> {
-    const actions = [];
+    const actions: string[] = [];
 
     try {
       const detectionResult =
@@ -75,7 +75,9 @@ export class ClientConversationStrategy implements ConversationStrategy {
 
       this.logger.debug('Client action detection result:', detectionResult);
 
-      actions.push(...detectionResult.actions.map((action) => action.type));
+      actions.push(
+        ...detectionResult.actions.map((action): string => action.type),
+      );
 
       if (
         detectionResult.requiresAction &&

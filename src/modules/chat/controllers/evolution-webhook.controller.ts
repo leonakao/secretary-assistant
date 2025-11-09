@@ -21,8 +21,14 @@ export class EvolutionWebhookController {
     this.logger.log('Received messages from Evolution API');
     const { instance, data } = payload;
 
-    await this.incomingMessageUseCase.execute(companyId, instance, data);
+    const response = await this.incomingMessageUseCase.execute(
+      companyId,
+      instance,
+      data,
+    );
 
-    return { success: true };
+    console.log(response);
+
+    return { success: true, ...response };
   }
 }

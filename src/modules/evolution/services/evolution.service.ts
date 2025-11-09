@@ -11,7 +11,7 @@ export class EvolutionService {
     this.evolutionApiUrl =
       this.configService.get<string>('EVOLUTION_API_URL') ||
       'http://evolution-api:8080';
-    this.apiKey = this.configService.get<string>('EVOLUTION_API_KEY');
+    this.apiKey = this.configService.getOrThrow<string>('EVOLUTION_API_KEY');
   }
 
   async sendTextMessage(params: {
