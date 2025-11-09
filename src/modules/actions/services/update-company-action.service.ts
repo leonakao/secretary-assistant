@@ -129,7 +129,7 @@ ${recentConversation}
 
 NOVA DESCRIÇÃO COMPLETA EM MARKDOWN:`;
 
-    const updatedDescription = await this.langchainService.chat(prompt);
+    const updatedDescription = await this.langchainService.chat(prompt, 8192);
 
     return updatedDescription.trim();
   }
