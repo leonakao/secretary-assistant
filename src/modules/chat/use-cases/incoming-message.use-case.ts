@@ -99,6 +99,16 @@ export class IncomingMessageUseCase {
       };
     }
 
+    if (!company?.isClientsSupportEnabled) {
+      this.logger.log(
+        `Clients support is disabled for company ${companyId}. Ignoring message from contact ${phone}`,
+      );
+      return {
+        message: '',
+        actions: [],
+      };
+    }
+
     const contact = await this.contactRepository.findOne({
       where: {
         companyId,
@@ -109,16 +119,6 @@ export class IncomingMessageUseCase {
     if (!contact) {
       this.logger.warn(
         `No user or contact found for phone ${phone} in company ${companyId}`,
-      );
-      return {
-        message: '',
-        actions: [],
-      };
-    }
-
-    if (!company?.isClientsSupportEnabled) {
-      this.logger.log(
-        `Clients support is disabled for company ${companyId}. Ignoring message from contact ${contact.id}`,
       );
       return {
         message: '',
