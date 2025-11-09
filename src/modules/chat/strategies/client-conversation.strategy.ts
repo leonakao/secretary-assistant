@@ -27,14 +27,17 @@ export class ClientConversationStrategy implements ConversationStrategy {
   ) {}
 
   async handleConversation(params: {
-    sessionId: string;
     companyId: string;
     instanceName: string;
     remoteJid: string;
     message: string;
+    contactId?: string;
   }): Promise<ConversationResponse> {
+    if (!params.contactId) {
+      throw new Error('contactId is required for client conversation');
+    }
     const contact = await this.contactRepository.findOneByOrFail({
-      id: params.sessionId,
+      id: params.contactId,
     });
 
     const company = await this.companyRepository.findOneByOrFail({
@@ -44,7 +47,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
     const systemPrompt = assistantClientPrompt(contact, company.description);
 
     const { message } = await this.chatService.processAndReply({
-      sessionId: params.sessionId,
+      sessionId: params.contactId,
       companyId: params.companyId,
       instanceName: params.instanceName,
       remoteJid: params.remoteJid,
@@ -53,10 +56,10 @@ export class ClientConversationStrategy implements ConversationStrategy {
     });
 
     const actions = await this.detectAndExecuteClientActions({
-      sessionId: params.sessionId,
+      sessionId: params.contactId,
       companyId: params.companyId,
       instanceName: params.instanceName,
-      contactId: params.sessionId,
+      contactId: params.contactId,
     });
 
     return {

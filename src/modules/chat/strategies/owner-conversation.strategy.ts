@@ -27,13 +27,15 @@ export class OwnerConversationStrategy implements ConversationStrategy {
   ) {}
 
   async handleConversation(params: {
-    sessionId: string;
     companyId: string;
     instanceName: string;
     remoteJid: string;
     message: string;
-    userId: string;
+    userId?: string;
   }): Promise<ConversationResponse> {
+    if (!params.userId) {
+      throw new Error('userId is required for owner conversation');
+    }
     const user = await this.userRepository.findOneByOrFail({
       id: params.userId,
     });
@@ -45,7 +47,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     const systemPrompt = assistantOwnerPrompt(user, company.description);
 
     const { message } = await this.chatService.processAndReply({
-      sessionId: params.sessionId,
+      sessionId: params.userId,
       companyId: params.companyId,
       instanceName: params.instanceName,
       remoteJid: params.remoteJid,
@@ -54,7 +56,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     });
 
     const actions = await this.detectAndExecuteActions({
-      sessionId: params.sessionId,
+      sessionId: params.userId,
       companyId: params.companyId,
       instanceName: params.instanceName,
       userId: params.userId,

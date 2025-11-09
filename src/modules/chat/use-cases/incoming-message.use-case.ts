@@ -74,7 +74,6 @@ export class IncomingMessageUseCase {
         if (company?.step === 'onboarding') {
           const { message, actions } =
             await this.onboardingStrategy.handleConversation({
-              sessionId: user.id,
               companyId,
               instanceName,
               remoteJid,
@@ -90,7 +89,6 @@ export class IncomingMessageUseCase {
 
         const { message, actions } =
           await this.ownerStrategy.handleConversation({
-            sessionId: user.id,
             companyId,
             instanceName,
             remoteJid,
@@ -147,11 +145,11 @@ export class IncomingMessageUseCase {
     }
 
     const { message, actions } = await this.clientStrategy.handleConversation({
-      sessionId: contact.id,
       companyId,
       instanceName,
       remoteJid,
       message: messageText,
+      contactId: contact.id,
     });
 
     return {

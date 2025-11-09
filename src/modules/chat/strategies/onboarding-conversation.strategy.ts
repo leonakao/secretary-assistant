@@ -24,15 +24,17 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
   ) {}
 
   async handleConversation(params: {
-    sessionId: string;
     companyId: string;
     instanceName: string;
     remoteJid: string;
     message: string;
-    userId: string;
+    userId?: string;
   }): Promise<ConversationResponse> {
+    if (!params.userId) {
+      throw new Error('userId is required for onboarding conversation');
+    }
     this.logger.log(
-      `Handling onboarding conversation for session ${params.sessionId}`,
+      `Handling onboarding conversation for user ${params.userId}`,
     );
 
     // Get user to build prompt
@@ -44,7 +46,7 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
 
     // Process and reply to user during onboarding
     const { message } = await this.chatService.processAndReply({
-      sessionId: params.sessionId,
+      sessionId: params.userId,
       companyId: params.companyId,
       instanceName: params.instanceName,
       remoteJid: params.remoteJid,
@@ -54,7 +56,7 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
 
     // Detect and execute onboarding actions (e.g., FINISH_ONBOARDING)
     const actions = await this.detectAndExecuteOnboardingActions({
-      sessionId: params.sessionId,
+      sessionId: params.userId,
       companyId: params.companyId,
       instanceName: params.instanceName,
       userId: params.userId,
