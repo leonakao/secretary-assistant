@@ -76,6 +76,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
       const detectionResult =
         await this.actionDetectionService.detectActionsFromSession(
           params.sessionId,
+          'owner',
         );
 
       this.logger.debug('Detection result:', detectionResult);

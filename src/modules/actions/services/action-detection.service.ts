@@ -30,7 +30,7 @@ export class ActionDetectionService {
 
   async detectActionsFromSession(
     sessionId: string,
-    context: 'owner' | 'client' | 'onboarding' = 'owner',
+    context: 'owner' | 'client' | 'onboarding',
     maxMessages: number = 10,
   ): Promise<ActionDetectionResult> {
     const memories = await this.memoryRepository.find({
