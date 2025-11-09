@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ConversationStrategy } from './conversation-strategy.interface';
+import {
+  ConversationResponse,
+  ConversationStrategy,
+} from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
 import { ActionDetectionService } from '../../actions/services/action-detection.service';
 import { ActionExecutorService } from '../../actions/services/action-executor.service';
@@ -27,15 +30,14 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     remoteJid: string;
     message: string;
     userId: string;
-  }): Promise<void> {
-    // Get user to build prompt
+  }): Promise<ConversationResponse> {
     const user = await this.userRepository.findOneByOrFail({
       id: params.userId,
     });
 
     const systemPrompt = assistantOwnerPrompt(user);
 
-    await this.chatService.processAndReply({
+    const { message } = await this.chatService.processAndReply({
       sessionId: params.sessionId,
       companyId: params.companyId,
       instanceName: params.instanceName,
@@ -44,12 +46,17 @@ export class OwnerConversationStrategy implements ConversationStrategy {
       systemPrompt,
     });
 
-    await this.detectAndExecuteActions({
+    const actions = await this.detectAndExecuteActions({
       sessionId: params.sessionId,
       companyId: params.companyId,
       instanceName: params.instanceName,
       userId: params.userId,
     });
+
+    return {
+      message,
+      actions,
+    };
   }
 
   private async detectAndExecuteActions(params: {
@@ -57,7 +64,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     companyId: string;
     instanceName: string;
     userId: string;
-  }): Promise<void> {
+  }): Promise<string[]> {
     try {
       const detectionResult =
         await this.actionDetectionService.detectActionsFromSession(
@@ -88,9 +95,13 @@ export class OwnerConversationStrategy implements ConversationStrategy {
             );
           }
         });
+
+        return results.map((result) => result.action.type);
       }
     } catch (error) {
       this.logger.error('Error in detectAndExecuteActions:', error);
     }
+
+    return [];
   }
 }

@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ConversationStrategy } from './conversation-strategy.interface';
+import {
+  ConversationResponse,
+  ConversationStrategy,
+} from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
 import { ActionDetectionService } from '../../actions/services/action-detection.service';
 import { ActionExecutorService } from '../../actions/services/action-executor.service';
@@ -26,16 +29,14 @@ export class ClientConversationStrategy implements ConversationStrategy {
     instanceName: string;
     remoteJid: string;
     message: string;
-  }): Promise<void> {
-    // Get contact to build prompt
+  }): Promise<ConversationResponse> {
     const contact = await this.contactRepository.findOneByOrFail({
       id: params.sessionId,
     });
 
     const systemPrompt = assistantClientPrompt(contact);
 
-    // Process and reply to client
-    await this.chatService.processAndReply({
+    const { message } = await this.chatService.processAndReply({
       sessionId: params.sessionId,
       companyId: params.companyId,
       instanceName: params.instanceName,
@@ -44,13 +45,17 @@ export class ClientConversationStrategy implements ConversationStrategy {
       systemPrompt,
     });
 
-    // Detect client actions (e.g., request human contact)
-    await this.detectAndExecuteClientActions({
+    const actions = await this.detectAndExecuteClientActions({
       sessionId: params.sessionId,
       companyId: params.companyId,
       instanceName: params.instanceName,
       contactId: params.sessionId,
     });
+
+    return {
+      message,
+      actions,
+    };
   }
 
   private async detectAndExecuteClientActions(params: {
@@ -58,7 +63,9 @@ export class ClientConversationStrategy implements ConversationStrategy {
     companyId: string;
     instanceName: string;
     contactId: string;
-  }): Promise<void> {
+  }): Promise<string[]> {
+    const actions = [];
+
     try {
       const detectionResult =
         await this.actionDetectionService.detectActionsFromSession(
@@ -67,6 +74,8 @@ export class ClientConversationStrategy implements ConversationStrategy {
         );
 
       this.logger.debug('Client action detection result:', detectionResult);
+
+      actions.push(...detectionResult.actions.map((action) => action.type));
 
       if (
         detectionResult.requiresAction &&
@@ -88,5 +97,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
     } catch (error) {
       this.logger.error('Error detecting/executing client actions:', error);
     }
+
+    return actions;
   }
 }

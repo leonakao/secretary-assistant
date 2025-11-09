@@ -152,7 +152,7 @@ export class ChatService {
     remoteJid: string;
     message: string;
     systemPrompt?: string;
-  }): Promise<void> {
+  }): Promise<{ message: string }> {
     const {
       sessionId,
       companyId,
@@ -187,6 +187,8 @@ export class ChatService {
       role: 'assistant',
       content: aiResponse,
     });
+
+    return { message: aiResponse };
   }
 
   async sendReply(params: {

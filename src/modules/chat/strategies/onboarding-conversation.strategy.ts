@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ConversationStrategy } from './conversation-strategy.interface';
+import {
+  ConversationResponse,
+  ConversationStrategy,
+} from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
 import { User } from '../../users/entities/user.entity';
 import { assistantOnboardingPrompt } from '../../ai/agent-prompts/assistant-onboarding';
@@ -27,7 +30,7 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     remoteJid: string;
     message: string;
     userId: string;
-  }): Promise<void> {
+  }): Promise<ConversationResponse> {
     this.logger.log(
       `Handling onboarding conversation for session ${params.sessionId}`,
     );
@@ -40,7 +43,7 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     const systemPrompt = assistantOnboardingPrompt(user);
 
     // Process and reply to user during onboarding
-    await this.chatService.processAndReply({
+    const { message } = await this.chatService.processAndReply({
       sessionId: params.sessionId,
       companyId: params.companyId,
       instanceName: params.instanceName,
@@ -50,12 +53,17 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     });
 
     // Detect and execute onboarding actions (e.g., FINISH_ONBOARDING)
-    await this.detectAndExecuteOnboardingActions({
+    const actions = await this.detectAndExecuteOnboardingActions({
       sessionId: params.sessionId,
       companyId: params.companyId,
       instanceName: params.instanceName,
       userId: params.userId,
     });
+
+    return {
+      message,
+      actions,
+    };
   }
 
   private async detectAndExecuteOnboardingActions(params: {
@@ -63,7 +71,7 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     companyId: string;
     instanceName: string;
     userId: string;
-  }): Promise<void> {
+  }): Promise<string[]> {
     try {
       const detectionResult =
         await this.actionDetectionService.detectActionsFromSession(
@@ -88,16 +96,22 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
 
         results.forEach((result) => {
           if (result.success) {
-            this.logger.log(`✓ Onboarding action executed: ${result.action.type}`);
+            this.logger.log(
+              `✓ Onboarding action executed: ${result.action.type}`,
+            );
           } else {
             this.logger.log(
               `✗ Onboarding action failed: ${result.action.type} - ${result.error || result.message}`,
             );
           }
         });
+
+        return results.map((result) => result.action.type);
       }
     } catch (error) {
       this.logger.error('Error in detectAndExecuteOnboardingActions:', error);
     }
+
+    return [];
   }
 }
