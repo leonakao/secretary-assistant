@@ -8,6 +8,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { EvolutionModule } from './modules/evolution/evolution.module';
 import { MonitorModule } from './modules/monitor/monitor.module';
+import { ServiceRequestsModule } from './modules/service-requests/service-requests.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { MonitorModule } from './modules/monitor/monitor.module';
     AiModule,
     ChatModule,
     EvolutionModule,
+    ServiceRequestsModule,
   ],
 })
 export class AppModule {}

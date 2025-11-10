@@ -7,7 +7,7 @@ Analise as últimas mensagens da conversa e identifique se:
 
 AÇÕES DISPONÍVEIS:
 
-1. REQUEST_HUMAN_CONTACT - Cliente solicita atendimento humano
+1. REQUEST_HUMAN_CONTACT - Cliente solicita atendimento humano ou parece insatisfeito, frustrado ou agressivo.
    Exemplos:
    - "Quero falar com alguém"
    - "Preciso falar com o dono"
@@ -24,29 +24,53 @@ AÇÕES DISPONÍVEIS:
    - Cliente faz pergunta importante que precisa de atenção do usuário
    Contexto: Verifique no histórico se Julia mencionou que "o proprietário" ou alguém pediu algo
 
+3. CREATE_SERVICE_REQUEST - Cliente está fazendo uma NOVA solicitação de serviço
+   Exemplos:
+   - "Gostaria de agendar um horário"
+   - "Quero fazer um pedido"
+   - "Preciso de um orçamento"
+   - "Meu celular quebrou, pode consertar?"
+   - "Quero marcar uma consulta"
+
+4. UPDATE_SERVICE_REQUEST - Cliente quer MODIFICAR uma solicitação existente
+   Exemplos:
+   - "Preciso mudar o horário do meu agendamento"
+   - "Pode trocar a cor do pedido?"
+   - "Esqueci de mencionar que..."
+   - "Na verdade, quero mudar para..."
+
+5. QUERY_SERVICE_REQUEST - Cliente quer saber o STATUS de uma solicitação
+   Exemplos:
+   - "Como está meu pedido?"
+   - "Meu conserto ficou pronto?"
+   - "Quando vai chegar?"
+   - "Qual o status do meu agendamento?"
+
 REGRAS IMPORTANTES:
 - Retorne APENAS um objeto JSON válido, sem texto adicional
-- Identifique solicitações explícitas ou implícitas de contato humano
-- Use confidence entre 0 e 1:
-  * 0.9-1.0: Solicitação explícita ("quero falar com alguém")
-  * 0.7-0.9: Solicitação implícita ("tem alguém aí?")
-  * 0.5-0.7: Insatisfação que pode precisar de humano
-  * <0.5: Não é uma solicitação de contato humano
-- Classifique a urgência:
-  * high: Cliente frustrado, problema urgente
-  * medium: Solicitação direta mas calma
-  * low: Pergunta casual sobre disponibilidade
+- Foque em identificar a INTENÇÃO/AÇÃO, não os detalhes
+- Para service requests, retorne apenas as mensagens relevantes que contêm a solicitação
+- Use confidence entre 0 e 1 baseado na clareza da intenção
+- Múltiplas ações podem ser detectadas se necessário
 
 FORMATO DE RESPOSTA:
 {
   "requiresAction": boolean,
   "actions": [
     {
-      "type": "REQUEST_HUMAN_CONTACT",
+      "type": "ACTION_TYPE",
       "confidence": number,
       "payload": {
+        // Para REQUEST_HUMAN_CONTACT:
         "reason": string,
         "urgency": "low" | "medium" | "high"
+        
+        // Para NOTIFY_USER:
+        "message": string,
+        "context": string
+        
+        // Para CREATE_SERVICE_REQUEST, UPDATE_SERVICE_REQUEST, QUERY_SERVICE_REQUEST:
+        "relevantMessages": string[] // Apenas as mensagens do cliente que contêm a solicitação
       }
     }
   ]
@@ -124,6 +148,43 @@ Saída:
       "payload": {
         "message": "Cliente informou que não pode comparecer à reunião amanhã",
         "context": "Tem outro compromisso"
+      }
+    }
+  ]
+}
+
+Entrada: "Meu celular quebrou, vocês consertam?" "É um iPhone 12" "A tela rachou"
+Saída:
+{
+  "requiresAction": true,
+  "actions": [
+    {
+      "type": "CREATE_SERVICE_REQUEST",
+      "confidence": 0.95,
+      "payload": {
+        "relevantMessages": [
+          "Meu celular quebrou, vocês consertam?",
+          "É um iPhone 12",
+          "A tela rachou"
+        ]
+      }
+    }
+  ]
+}
+
+Entrada: "Preciso mudar o horário do meu agendamento" "Pode ser amanhã às 14h?"
+Saída:
+{
+  "requiresAction": true,
+  "actions": [
+    {
+      "type": "UPDATE_SERVICE_REQUEST",
+      "confidence": 0.9,
+      "payload": {
+        "relevantMessages": [
+          "Preciso mudar o horário do meu agendamento",
+          "Pode ser amanhã às 14h?"
+        ]
       }
     }
   ]

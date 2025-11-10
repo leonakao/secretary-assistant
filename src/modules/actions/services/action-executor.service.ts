@@ -6,6 +6,9 @@ import { NotifyUserActionService } from './notify-user-action.service';
 import { SearchConversationActionService } from './search-conversation-action.service';
 import { FinishOnboardingActionService } from './finish-onboarding-action.service';
 import { UpdateCompanyActionService } from './update-company-action.service';
+import { CreateServiceRequestActionService } from './create-service-request-action.service';
+import { UpdateServiceRequestActionService } from './update-service-request-action.service';
+import { QueryServiceRequestActionService } from './query-service-request-action.service';
 
 export interface ActionExecutionResult {
   success: boolean;
@@ -26,6 +29,9 @@ export class ActionExecutorService {
     private searchConversationActionService: SearchConversationActionService,
     private finishOnboardingActionService: FinishOnboardingActionService,
     private updateCompanyActionService: UpdateCompanyActionService,
+    private createServiceRequestActionService: CreateServiceRequestActionService,
+    private updateServiceRequestActionService: UpdateServiceRequestActionService,
+    private queryServiceRequestActionService: QueryServiceRequestActionService,
   ) {}
 
   async executeActions(
@@ -118,6 +124,50 @@ export class ActionExecutorService {
               companyId: context.companyId,
               userId: context.userId,
             });
+            break;
+
+          case ActionType.CREATE_SERVICE_REQUEST:
+            if (!context.contactId) {
+              throw new Error(
+                'contactId required for CREATE_SERVICE_REQUEST action',
+              );
+            }
+            result = await this.createServiceRequestActionService.execute(
+              action,
+              {
+                companyId: context.companyId,
+                instanceName: context.instanceName,
+                contactId: context.contactId,
+              },
+            );
+            break;
+
+          case ActionType.UPDATE_SERVICE_REQUEST:
+            result = await this.updateServiceRequestActionService.execute(
+              action,
+              {
+                companyId: context.companyId,
+                instanceName: context.instanceName,
+                userId: context.userId,
+                contactId: context.contactId,
+              },
+            );
+            break;
+
+          case ActionType.QUERY_SERVICE_REQUEST:
+            if (!context.contactId) {
+              throw new Error(
+                'contactId required for QUERY_SERVICE_REQUEST action',
+              );
+            }
+            result = await this.queryServiceRequestActionService.execute(
+              action,
+              {
+                companyId: context.companyId,
+                instanceName: context.instanceName,
+                contactId: context.contactId,
+              },
+            );
             break;
 
           default:

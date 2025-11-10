@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Memory } from './entities/memory.entity';
 import { Contact } from '../contacts/entities/contact.entity';
@@ -21,7 +21,7 @@ import { Company } from '../companies/entities/company.entity';
     TypeOrmModule.forFeature([Memory, Contact, User, UserCompany, Company]),
     AiModule,
     EvolutionModule,
-    ActionsModule,
+    forwardRef(() => ActionsModule),
   ],
   controllers: [EvolutionWebhookController],
   providers: [

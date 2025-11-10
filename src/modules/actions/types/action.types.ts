@@ -14,6 +14,13 @@ export enum ActionType {
   REQUEST_HUMAN_CONTACT = 'REQUEST_HUMAN_CONTACT',
   NOTIFY_USER = 'NOTIFY_USER',
 
+  // Service Request actions (Client & Owner)
+  CREATE_SERVICE_REQUEST = 'CREATE_SERVICE_REQUEST',
+  UPDATE_SERVICE_REQUEST = 'UPDATE_SERVICE_REQUEST',
+  QUERY_SERVICE_REQUEST = 'QUERY_SERVICE_REQUEST',
+  LIST_SERVICE_REQUESTS = 'LIST_SERVICE_REQUESTS',
+  CANCEL_SERVICE_REQUEST = 'CANCEL_SERVICE_REQUEST',
+
   // Onboarding actions
   FINISH_ONBOARDING = 'FINISH_ONBOARDING',
 
@@ -131,6 +138,46 @@ export interface UpdateCompanyAction extends BaseAction {
   };
 }
 
+export interface CreateServiceRequestAction extends BaseAction {
+  type: ActionType.CREATE_SERVICE_REQUEST;
+  payload: {
+    relevantMessages: string[]; // Messages from conversation that contain the request
+  };
+}
+
+export interface UpdateServiceRequestAction extends BaseAction {
+  type: ActionType.UPDATE_SERVICE_REQUEST;
+  payload: {
+    relevantMessages: string[]; // Messages from conversation that contain the update request
+  };
+}
+
+export interface QueryServiceRequestAction extends BaseAction {
+  type: ActionType.QUERY_SERVICE_REQUEST;
+  payload: {
+    relevantMessages: string[]; // Messages from conversation that contain the query
+  };
+}
+
+export interface ListServiceRequestsAction extends BaseAction {
+  type: ActionType.LIST_SERVICE_REQUESTS;
+  payload: {
+    requestType?: string;
+    status?: string;
+    fromDate?: string;
+    toDate?: string;
+  };
+}
+
+export interface CancelServiceRequestAction extends BaseAction {
+  type: ActionType.CANCEL_SERVICE_REQUEST;
+  payload: {
+    requestId?: string;
+    requestType?: string;
+    reason?: string;
+  };
+}
+
 export interface NoAction extends BaseAction {
   type: ActionType.NONE;
   payload: null;
@@ -149,6 +196,11 @@ export type Action =
   | RequestHumanContactAction
   | NotifyUserAction
   | FinishOnboardingAction
+  | CreateServiceRequestAction
+  | UpdateServiceRequestAction
+  | QueryServiceRequestAction
+  | ListServiceRequestsAction
+  | CancelServiceRequestAction
   | NoAction;
 
 export interface ActionDetectionResult {
