@@ -33,9 +33,6 @@ export class SearchContactTool extends StructuredTool {
     _,
     config: ToolConfig,
   ): Promise<string> {
-    this.logger.log('🔧 [TOOL] searchContact called');
-    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
-
     const { query } = args;
     const { companyId } = config.configurable.context;
 
@@ -55,18 +52,21 @@ export class SearchContactTool extends StructuredTool {
       .take(10)
       .getMany();
 
-    if (contacts.length === 0) {
-      return `Nenhum contato encontrado com "${query}".`;
-    }
+    const result = {
+      success: true,
+      count: contacts.length,
+      contacts: contacts.map((c) => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        email: c.email,
+        instagram: c.instagram,
+        companyId: c.companyId,
+        preferredUserId: c.preferredUserId,
+        ignoreUntil: c.ignoreUntil,
+      })),
+    };
 
-    const results = contacts
-      .map((c) => {
-        const phone = c.phone ? ` - Tel: ${c.phone}` : '';
-        const email = c.email ? ` - Email: ${c.email}` : '';
-        return `- ${c.name}${phone}${email}`;
-      })
-      .join('\n');
-
-    return `Encontrei ${contacts.length} contato(s):\n${results}`;
+    return JSON.stringify(result, null, 2);
   }
 }

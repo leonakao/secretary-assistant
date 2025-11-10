@@ -57,9 +57,6 @@ export class CreateServiceRequestTool extends StructuredTool {
     _,
     config: ToolConfig,
   ): Promise<string> {
-    this.logger.log('🔧 [TOOL] createServiceRequest called');
-    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
-
     const {
       contactId,
       requestType,
@@ -91,8 +88,25 @@ export class CreateServiceRequestTool extends StructuredTool {
 
     await this.serviceRequestRepository.save(serviceRequest);
 
-    const result = `Service request created: ${serviceRequest.title} (${serviceRequest.id})`;
-    this.logger.log(`✅ [TOOL] ${result}`);
-    return result;
+    const result = {
+      success: true,
+      message: 'Requisição de serviço criada com sucesso',
+      serviceRequest: {
+        id: serviceRequest.id,
+        contactId: serviceRequest.contactId,
+        requestType: serviceRequest.requestType,
+        title: serviceRequest.title,
+        description: serviceRequest.description,
+        status: serviceRequest.status,
+        scheduledFor: serviceRequest.scheduledFor,
+        clientNotes: serviceRequest.clientNotes,
+        internalNotes: serviceRequest.internalNotes,
+        assignedToUserId: serviceRequest.assignedToUserId,
+        companyId: serviceRequest.companyId,
+      },
+    };
+
+    this.logger.log(`✅ [TOOL] Service request created: ${serviceRequest.id}`);
+    return JSON.stringify(result, null, 2);
   }
 }

@@ -34,9 +34,6 @@ export class UpdateContactTool extends StructuredTool {
     _,
     config: ToolConfig,
   ): Promise<string> {
-    this.logger.log('🔧 [TOOL] updateContact called');
-    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
-
     const { contactId, newName, newPhone, newEmail } = args;
     const { companyId } = config.configurable.context;
 
@@ -52,7 +49,12 @@ export class UpdateContactTool extends StructuredTool {
     });
 
     if (!contact) {
-      return `Contato com ID ${contactId} não encontrado.`;
+      const result = {
+        success: false,
+        error: 'Contact not found',
+        message: `Contato com ID ${contactId} não encontrado`,
+      };
+      return JSON.stringify(result, null, 2);
     }
     const updates: Partial<Contact> = {};
 
@@ -60,10 +62,22 @@ export class UpdateContactTool extends StructuredTool {
     if (newPhone) updates.phone = newPhone;
     if (newEmail) updates.email = newEmail;
 
-    await this.contactRepository.update({ id: contact.id }, updates);
+    await this.contactRepository.save(contact);
 
-    const result = `Contato "${contact.name}" atualizado com sucesso.`;
-    this.logger.log(`✅ [TOOL] ${result}`);
-    return result;
+    const result = {
+      success: true,
+      message: 'Contato atualizado com sucesso',
+      contact: {
+        id: contact.id,
+        name: contact.name,
+        phone: contact.phone,
+        email: contact.email,
+        instagram: contact.instagram,
+        companyId: contact.companyId,
+        preferredUserId: contact.preferredUserId,
+      },
+    };
+
+    return JSON.stringify(result, null, 2);
   }
 }

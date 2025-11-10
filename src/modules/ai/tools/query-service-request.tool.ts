@@ -44,9 +44,6 @@ export class QueryServiceRequestTool extends StructuredTool {
     _,
     config: ToolConfig,
   ): Promise<string> {
-    this.logger.log('🔧 [TOOL] queryServiceRequest called');
-    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
-
     const { contactId, requestType, status } = args;
     const { companyId } = config.configurable.context;
 
@@ -74,21 +71,28 @@ export class QueryServiceRequestTool extends StructuredTool {
 
     queryBuilder.orderBy('sr.createdAt', 'DESC');
 
-    const requests = await queryBuilder.getMany();
+    const serviceRequests = await queryBuilder.getMany();
 
-    if (requests.length === 0) {
-      return 'Nenhuma requisição de serviço encontrada com os critérios especificados.';
-    }
+    const result = {
+      success: true,
+      count: serviceRequests.length,
+      serviceRequests: serviceRequests.map((sr) => ({
+        id: sr.id,
+        contactId: sr.contactId,
+        requestType: sr.requestType,
+        title: sr.title,
+        description: sr.description,
+        status: sr.status,
+        scheduledFor: sr.scheduledFor,
+        clientNotes: sr.clientNotes,
+        internalNotes: sr.internalNotes,
+        assignedToUserId: sr.assignedToUserId,
+        companyId: sr.companyId,
+        createdAt: sr.createdAt,
+        updatedAt: sr.updatedAt,
+      })),
+    };
 
-    const summary = requests
-      .map((req) => {
-        const scheduledInfo = req.scheduledFor
-          ? ` - Agendado para: ${req.scheduledFor.toLocaleString('pt-BR')}`
-          : '';
-        return `- ${req.title || req.requestType} (Status: ${req.status})${scheduledInfo}`;
-      })
-      .join('\n');
-
-    return `Encontrei ${requests.length} requisição(ões):\n${summary}`;
+    return JSON.stringify(result, null, 2);
   }
 }

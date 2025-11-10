@@ -38,9 +38,6 @@ export class SendMessageTool extends StructuredTool {
     _,
     config: ToolConfig,
   ): Promise<string> {
-    this.logger.log('🔧 [TOOL] sendMessage called');
-    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
-
     const { recipientId, recipientType, message } = args;
     const { companyId, instanceName } = config.configurable.context;
 
@@ -65,11 +62,21 @@ export class SendMessageTool extends StructuredTool {
     }
 
     if (!recipient) {
-      return `Destinatário com ID ${recipientId} não encontrado.`;
+      const result = {
+        success: false,
+        error: 'Recipient not found',
+        message: `Destinatário com ID ${recipientId} não encontrado`,
+      };
+      return JSON.stringify(result, null, 2);
     }
 
     if (!recipient.phone) {
-      return `${recipientType === 'user' ? 'O funcionário' : 'O contato'} "${recipient.name}" não possui telefone cadastrado.`;
+      const result = {
+        success: false,
+        error: 'Phone number missing',
+        message: `${recipientType === 'user' ? 'O funcionário' : 'O contato'} "${recipient.name}" não possui telefone cadastrado`,
+      };
+      return JSON.stringify(result, null, 2);
     }
 
     const remoteJid = this.buildRemoteJid(recipient.phone);
@@ -82,9 +89,20 @@ export class SendMessageTool extends StructuredTool {
       message,
     });
 
-    const result = `Mensagem enviada com sucesso para ${recipient.name}${recipientType === 'user' ? ' (Funcionário)' : ''}`;
-    this.logger.log(`✅ [TOOL] ${result}`);
-    return result;
+    const result = {
+      success: true,
+      message: 'Mensagem enviada com sucesso',
+      recipient: {
+        id: recipient.id,
+        name: recipient.name,
+        type: recipientType,
+        phone: 'phone' in recipient ? recipient.phone : undefined,
+      },
+      sentMessage: message,
+    };
+
+    this.logger.log(`✅ [TOOL] Message sent to ${recipient.name}`);
+    return JSON.stringify(result, null, 2);
   }
 
   private buildRemoteJid(phone: string): string {

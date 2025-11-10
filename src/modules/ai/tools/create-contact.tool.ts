@@ -8,7 +8,10 @@ import { ToolConfig } from '../types';
 
 const createContactSchema = z.object({
   name: z.string().describe('Nome do contato'),
-  phone: z.string().optional().describe('Telefone do contato'),
+  phone: z
+    .string()
+    .optional()
+    .describe('Telefone do contato. Sempre no formato +5511999999999'),
   email: z.string().optional().describe('Email do contato'),
 });
 
@@ -33,9 +36,6 @@ export class CreateContactTool extends StructuredTool {
     _,
     config: ToolConfig,
   ): Promise<string> {
-    this.logger.log('🔧 [TOOL] createContact called');
-    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
-
     const { name, phone, email } = args;
 
     const { companyId } = config.configurable.context;
@@ -54,7 +54,19 @@ export class CreateContactTool extends StructuredTool {
       });
 
       if (existingContact) {
-        return `Já existe um contato com o telefone ${phone}: ${existingContact.name}`;
+        const result = {
+          success: false,
+          error: 'Contact already exists',
+          message: `Já existe um contato com o telefone ${phone}`,
+          existingContact: {
+            id: existingContact.id,
+            name: existingContact.name,
+            phone: existingContact.phone,
+            email: existingContact.email,
+            instagram: existingContact.instagram,
+          },
+        };
+        return JSON.stringify(result, null, 2);
       }
     }
 
@@ -67,8 +79,19 @@ export class CreateContactTool extends StructuredTool {
 
     await this.contactRepository.save(contact);
 
-    const result = `Contato "${name}" criado com sucesso.`;
-    this.logger.log(`✅ [TOOL] ${result}`);
-    return result;
+    const result = {
+      success: true,
+      message: 'Contato criado com sucesso',
+      contact: {
+        id: contact.id,
+        name: contact.name,
+        phone: contact.phone,
+        email: contact.email,
+        instagram: contact.instagram,
+        companyId: contact.companyId,
+      },
+    };
+
+    return JSON.stringify(result, null, 2);
   }
 }

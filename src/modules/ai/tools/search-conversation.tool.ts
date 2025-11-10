@@ -45,12 +45,9 @@ export class SearchConversationTool extends StructuredTool {
 
   protected async _call(
     args: z.infer<typeof searchConversationSchema>,
-    runManager,
+    _,
     config: ToolConfig,
   ): Promise<string> {
-    this.logger.log('🔧 [TOOL] searchConversation called');
-    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
-
     const { contactName, contactPhone, query, days = 3 } = args;
     const { companyId } = config.configurable.context;
 
@@ -74,12 +71,22 @@ export class SearchConversationTool extends StructuredTool {
       );
 
       if (matchingContacts.length === 0) {
-        return `Contato "${contactName || contactPhone}" não encontrado.`;
+        const result = {
+          success: false,
+          error: 'Contact not found',
+          message: `Nenhum contato encontrado com "${contactName || contactPhone}"`,
+        };
+        return JSON.stringify(result, null, 2);
       }
 
       if (matchingContacts.length > 1) {
         const names = matchingContacts.map((c) => c.name).join(', ');
-        return `Múltiplos contatos encontrados: ${names}. Por favor, especifique melhor.`;
+        const result = {
+          success: false,
+          error: 'Multiple contacts found',
+          message: `Múltiplos contatos encontrados: ${names}. Por favor, especifique melhor.`,
+        };
+        return JSON.stringify(result, null, 2);
       }
 
       sessionId = matchingContacts[0].id;
@@ -112,19 +119,30 @@ export class SearchConversationTool extends StructuredTool {
         : sessionId
           ? 'para este contato'
           : '';
-      return `Nenhuma conversa encontrada ${searchDesc} nos últimos ${days} dias.`;
+      const result = {
+        success: true,
+        count: 0,
+        message: `Nenhuma conversa encontrada ${searchDesc} nos últimos ${days} dias`,
+        conversations: [],
+      };
+      return JSON.stringify(result, null, 2);
     }
 
-    const results = memories
-      .reverse()
-      .map((m) => {
-        const date = m.createdAt.toLocaleDateString('pt-BR');
-        const role = m.role === 'user' ? 'Cliente' : 'Assistente';
-        return `[${date}] ${role}: ${m.content.substring(0, 200)}${m.content.length > 200 ? '...' : ''}`;
-      })
-      .join('\n\n');
+    const result = {
+      success: true,
+      count: memories.length,
+      query: query || null,
+      days,
+      conversations: memories.reverse().map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        sessionId: m.sessionId,
+        createdAt: m.createdAt,
+      })),
+    };
 
-    const searchInfo = query ? ` com o termo "${query}"` : '';
-    return `Encontradas ${memories.length} mensagens${searchInfo}:\n\n${results}`;
+    this.logger.log(`✅ [TOOL] Found ${memories.length} conversation(s)`);
+    return JSON.stringify(result, null, 2);
   }
 }

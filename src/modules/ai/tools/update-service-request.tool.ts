@@ -45,9 +45,6 @@ export class UpdateServiceRequestTool extends StructuredTool {
     _,
     config: ToolConfig,
   ): Promise<string> {
-    this.logger.log('🔧 [TOOL] updateServiceRequest called');
-    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
-
     const {
       requestId,
       status,
@@ -72,7 +69,12 @@ export class UpdateServiceRequestTool extends StructuredTool {
     });
 
     if (!serviceRequest) {
-      return `Requisição com ID ${requestId} não encontrada.`;
+      const result = {
+        success: false,
+        error: 'Service request not found',
+        message: `Requisição com ID ${requestId} não encontrada`,
+      };
+      return JSON.stringify(result, null, 2);
     }
 
     const updates: Partial<ServiceRequest> = {};
@@ -89,10 +91,27 @@ export class UpdateServiceRequestTool extends StructuredTool {
         : internalNotes;
     }
 
-    await this.serviceRequestRepository.update({ id: requestId }, updates);
+    await this.serviceRequestRepository.save(serviceRequest);
 
-    const result = `Requisição "${serviceRequest.title}" atualizada com sucesso.`;
-    this.logger.log(`✅ [TOOL] ${result}`);
-    return result;
+    const result = {
+      success: true,
+      message: 'Requisição atualizada com sucesso',
+      serviceRequest: {
+        id: serviceRequest.id,
+        contactId: serviceRequest.contactId,
+        requestType: serviceRequest.requestType,
+        title: serviceRequest.title,
+        description: serviceRequest.description,
+        status: serviceRequest.status,
+        scheduledFor: serviceRequest.scheduledFor,
+        clientNotes: serviceRequest.clientNotes,
+        internalNotes: serviceRequest.internalNotes,
+        assignedToUserId: serviceRequest.assignedToUserId,
+        companyId: serviceRequest.companyId,
+        updatedAt: serviceRequest.updatedAt,
+      },
+    };
+
+    return JSON.stringify(result, null, 2);
   }
 }

@@ -40,9 +40,6 @@ export class UpdateCompanyTool extends StructuredTool {
     _,
     config: ToolConfig,
   ): Promise<string> {
-    this.logger.log('🔧 [TOOL] updateCompany called');
-    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
-
     const { updateRequest } = args;
     const { companyId, userId } = config.configurable.context;
 
@@ -63,12 +60,21 @@ export class UpdateCompanyTool extends StructuredTool {
       company.name,
     );
 
-    await this.companyRepository.update(
-      { id: companyId },
-      { description: updatedDescription },
-    );
+    company.description = updatedDescription;
+    await this.companyRepository.save(company);
 
-    return `Informações da empresa "${company.name}" atualizadas com sucesso.`;
+    const result = {
+      success: true,
+      message: 'Informações da empresa atualizadas com sucesso',
+      company: {
+        id: company.id,
+        name: company.name,
+        description: company.description,
+        updatedAt: company.updatedAt,
+      },
+    };
+
+    return JSON.stringify(result, null, 2);
   }
 
   private async generateUpdatedDescription(
