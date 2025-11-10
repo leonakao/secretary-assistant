@@ -36,6 +36,11 @@ import { Company } from '../companies/entities/company.entity';
       useExisting: EvolutionMessageProvider,
     },
   ],
-  exports: [TypeOrmModule, ChatService, EvolutionMessageProvider],
+  exports: [
+    TypeOrmModule,
+    ChatService,
+    EvolutionMessageProvider,
+    'MESSAGE_PROVIDER',
+  ],
 })
 export class ChatModule {}

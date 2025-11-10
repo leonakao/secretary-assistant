@@ -6,11 +6,9 @@ import {
   ConversationStrategy,
 } from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
-import { ActionDetectionService } from '../../actions/services/action-detection.service';
-import { ActionExecutorService } from '../../actions/services/action-executor.service';
+import { OwnerAssistantAgent } from '../../ai/agents/owner-assistant.agent';
 import { User } from '../../users/entities/user.entity';
 import { Company } from '../../companies/entities/company.entity';
-import { assistantOwnerPrompt } from '../../ai/agent-prompts/assistant-owner';
 
 @Injectable()
 export class OwnerConversationStrategy implements ConversationStrategy {
@@ -22,8 +20,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     @InjectRepository(Company)
     private companyRepository: Repository<Company>,
     private chatService: ChatService,
-    private actionDetectionService: ActionDetectionService,
-    private actionExecutorService: ActionExecutorService,
+    private ownerAssistantAgent: OwnerAssistantAgent,
   ) {}
 
   async handleConversation(params: {
@@ -36,6 +33,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     if (!params.userId) {
       throw new Error('userId is required for owner conversation');
     }
+
     const user = await this.userRepository.findOneByOrFail({
       id: params.userId,
     });
@@ -44,74 +42,79 @@ export class OwnerConversationStrategy implements ConversationStrategy {
       id: params.companyId,
     });
 
-    const systemPrompt = assistantOwnerPrompt(user, company.description);
-
-    const { message } = await this.chatService.processAndReply({
+    // Save user message to memory
+    await this.chatService.addMessageToMemory({
       sessionId: params.userId,
       companyId: params.companyId,
-      instanceName: params.instanceName,
-      remoteJid: params.remoteJid,
-      message: params.message,
-      systemPrompt,
+      role: 'user',
+      content: params.message,
     });
 
-    const actions = await this.detectAndExecuteActions({
-      sessionId: params.userId,
-      companyId: params.companyId,
-      instanceName: params.instanceName,
-      userId: params.userId,
-    });
+    this.logger.log(`Processing owner message: ${params.message}`);
 
-    return {
-      message,
-      actions,
-    };
-  }
-
-  private async detectAndExecuteActions(params: {
-    sessionId: string;
-    companyId: string;
-    instanceName: string;
-    userId: string;
-  }): Promise<string[]> {
     try {
-      const detectionResult =
-        await this.actionDetectionService.detectActionsFromSession(
-          params.sessionId,
-          'owner',
-        );
+      // Execute the agent with the user's message
+      const agentResponse = await this.ownerAssistantAgent.execute(
+        params.message,
+        user,
+        {
+          companyId: params.companyId,
+          instanceName: params.instanceName,
+          userId: params.userId,
+          companyDescription: company.description,
+        },
+        params.userId, // Use userId as thread ID
+      );
 
-      this.logger.debug('Detection result:', detectionResult);
+      // Save agent response to memory
+      await this.chatService.addMessageToMemory({
+        sessionId: params.userId,
+        companyId: params.companyId,
+        role: 'assistant',
+        content: agentResponse,
+      });
 
-      if (
-        detectionResult.requiresAction &&
-        detectionResult.actions.length > 0
-      ) {
-        const results = await this.actionExecutorService.executeActions(
-          detectionResult.actions,
-          {
-            companyId: params.companyId,
-            instanceName: params.instanceName,
-            userId: params.userId,
-          },
-        );
+      // Send the response back to the user
+      await this.chatService.sendMessageAndSaveToMemory({
+        sessionId: params.userId,
+        companyId: params.companyId,
+        instanceName: params.instanceName,
+        remoteJid: params.remoteJid,
+        message: agentResponse,
+      });
 
-        results.forEach((result) => {
-          if (result.success) {
-            this.logger.log(`✓ Action executed: ${result.action.type}`);
-          } else {
-            this.logger.log(
-              `✗ Action failed: ${result.action.type} - ${result.error || result.message}`,
-            );
-          }
-        });
+      this.logger.log('Agent response sent successfully');
 
-        return results.map((result) => result.action.type);
-      }
+      return {
+        message: agentResponse,
+        actions: [], // Agent handles actions internally
+      };
     } catch (error) {
-      this.logger.error('Error in detectAndExecuteActions:', error);
-    }
+      this.logger.error('Error executing owner agent:', error);
 
-    return [];
+      const errorMessage =
+        'Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.';
+
+      await this.chatService.addMessageToMemory({
+        sessionId: params.userId,
+        companyId: params.companyId,
+        role: 'assistant',
+        content: errorMessage,
+      });
+
+      await this.chatService.sendMessageAndSaveToMemory({
+        sessionId: params.userId,
+        companyId: params.companyId,
+        instanceName: params.instanceName,
+        remoteJid: params.remoteJid,
+        message: errorMessage,
+      });
+
+      return {
+        message: errorMessage,
+        actions: [],
+      };
+    }
   }
+
 }

@@ -31,6 +31,7 @@
   "dependencies": {
     "@langchain/core": "^1.0.3",
     "@langchain/google-genai": "^1.0.0",
+    "@langchain/langgraph": "^1.0.1",
     "@nestjs/common": "^11.0.17",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.1",
@@ -43,7 +44,8 @@
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "typeorm": "^0.3.27"
+    "typeorm": "^0.3.27",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
