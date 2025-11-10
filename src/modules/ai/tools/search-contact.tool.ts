@@ -1,9 +1,10 @@
 import { StructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
+import { ToolConfig } from '../types';
 
 const searchContactSchema = z.object({
   query: z
@@ -13,6 +14,8 @@ const searchContactSchema = z.object({
 
 @Injectable()
 export class SearchContactTool extends StructuredTool {
+  private readonly logger = new Logger(SearchContactTool.name);
+
   name = 'searchContact';
   description =
     'Busca informações de contatos (clientes). Use para encontrar dados de contato, telefone, email, etc.';
@@ -28,18 +31,22 @@ export class SearchContactTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof searchContactSchema>,
     _,
-    config,
+    config: ToolConfig,
   ): Promise<string> {
-    const { query } = args;
+    this.logger.log('🔧 [TOOL] searchContact called');
+    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
 
-    if (!config?.context?.companyId) {
+    const { query } = args;
+    const { companyId } = config.configurable.context;
+
+    if (!companyId) {
       throw new Error('Company ID missing in the context');
     }
 
     const contacts = await this.contactRepository
       .createQueryBuilder('contact')
       .where('contact.companyId = :companyId', {
-        companyId: config.context.companyId,
+        companyId,
       })
       .andWhere(
         '(LOWER(contact.name) LIKE LOWER(:query) OR contact.phone LIKE :query OR LOWER(contact.email) LIKE LOWER(:query))',

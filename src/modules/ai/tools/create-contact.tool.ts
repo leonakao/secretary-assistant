@@ -1,9 +1,10 @@
 import { StructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
+import { ToolConfig } from '../types';
 
 const createContactSchema = z.object({
   name: z.string().describe('Nome do contato'),
@@ -13,6 +14,8 @@ const createContactSchema = z.object({
 
 @Injectable()
 export class CreateContactTool extends StructuredTool {
+  private readonly logger = new Logger(CreateContactTool.name);
+
   name = 'createContact';
   description =
     'Cria um novo contato (cliente). Use quando o proprietário quiser adicionar um novo cliente ao sistema.';
@@ -28,11 +31,16 @@ export class CreateContactTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof createContactSchema>,
     _,
-    config,
+    config: ToolConfig,
   ): Promise<string> {
+    this.logger.log('🔧 [TOOL] createContact called');
+    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
+
     const { name, phone, email } = args;
 
-    if (!config?.context?.companyId) {
+    const { companyId } = config.configurable.context;
+
+    if (!companyId) {
       throw new Error('Company ID missing in the context');
     }
 
@@ -40,7 +48,7 @@ export class CreateContactTool extends StructuredTool {
     if (phone) {
       const existingContact = await this.contactRepository.findOne({
         where: {
-          companyId: config.context.companyId,
+          companyId,
           phone,
         },
       });
@@ -51,7 +59,7 @@ export class CreateContactTool extends StructuredTool {
     }
 
     const contact = this.contactRepository.create({
-      companyId: config.context.companyId,
+      companyId,
       name,
       phone,
       email,
@@ -59,6 +67,8 @@ export class CreateContactTool extends StructuredTool {
 
     await this.contactRepository.save(contact);
 
-    return `Contato "${name}" criado com sucesso.`;
+    const result = `Contato "${name}" criado com sucesso.`;
+    this.logger.log(`✅ [TOOL] ${result}`);
+    return result;
   }
 }

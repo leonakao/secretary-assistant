@@ -1,11 +1,12 @@
 import { StructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { Company } from 'src/modules/companies/entities/company.entity';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { LangchainService } from '../services/langchain.service';
+import { ToolConfig } from '../types';
 
 const updateCompanySchema = z.object({
   updateRequest: z
@@ -17,6 +18,8 @@ const updateCompanySchema = z.object({
 
 @Injectable()
 export class UpdateCompanyTool extends StructuredTool {
+  private readonly logger = new Logger(UpdateCompanyTool.name);
+
   name = 'updateCompany';
   description =
     'Atualiza informações da empresa (descrição, serviços, horários, etc). Use quando o proprietário quiser adicionar, modificar ou remover informações sobre a empresa.';
@@ -35,15 +38,17 @@ export class UpdateCompanyTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof updateCompanySchema>,
     _,
-    config,
+    config: ToolConfig,
   ): Promise<string> {
-    const { updateRequest } = args;
+    this.logger.log('🔧 [TOOL] updateCompany called');
+    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
 
-    if (!config?.context?.companyId || !config?.context?.userId) {
+    const { updateRequest } = args;
+    const { companyId, userId } = config.configurable.context;
+
+    if (!companyId || !userId) {
       throw new Error('Context missing required fields: companyId, userId');
     }
-
-    const { companyId, userId } = config.context;
 
     const company = await this.companyRepository.findOneByOrFail({
       id: companyId,

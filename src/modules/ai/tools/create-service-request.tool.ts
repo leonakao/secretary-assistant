@@ -1,16 +1,22 @@
 import { StructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ServiceRequest } from 'src/modules/service-requests';
 import { Repository } from 'typeorm';
 import { z } from 'zod';
+import { ToolConfig } from '../types';
 
 const createServiceRequestSchema = z.object({
   contactId: z.string().describe('O ID do contato (cliente)'),
   requestType: z.string().describe('O tipo de requisição'),
   title: z.string().optional().describe('O título da requisição'),
   description: z.string().optional().describe('A descrição da requisição'),
-  scheduledFor: z.date().optional().describe('A data e hora agendada'),
+  scheduledFor: z
+    .string()
+    .optional()
+    .describe(
+      'A data e hora agendada (formato ISO 8601, ex: 2024-11-10T15:30:00)',
+    ),
   clientNotes: z
     .string()
     .optional()
@@ -33,6 +39,8 @@ const createServiceRequestSchema = z.object({
 
 @Injectable()
 export class CreateServiceRequestTool extends StructuredTool {
+  private readonly logger = new Logger(CreateServiceRequestTool.name);
+
   name = 'createServiceRequestTool';
   description = 'Create a service request';
   schema = createServiceRequestSchema;
@@ -47,8 +55,11 @@ export class CreateServiceRequestTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof createServiceRequestSchema>,
     _,
-    config,
+    config: ToolConfig,
   ): Promise<string> {
+    this.logger.log('🔧 [TOOL] createServiceRequest called');
+    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
+
     const {
       contactId,
       requestType,
@@ -60,19 +71,19 @@ export class CreateServiceRequestTool extends StructuredTool {
       assignedToUserId,
     } = args;
 
-    console.log('Executing createServiceRequestTool', args, config);
+    const { companyId } = config.configurable.context;
 
-    if (!config?.context?.companyId) {
+    if (!companyId) {
       throw new Error('Company ID missing in the context');
     }
 
     const serviceRequest = this.serviceRequestRepository.create({
-      companyId: config.context.companyId,
+      companyId,
       contactId,
       requestType,
       title,
       description,
-      scheduledFor,
+      scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
       clientNotes,
       internalNotes,
       assignedToUserId,
@@ -80,6 +91,8 @@ export class CreateServiceRequestTool extends StructuredTool {
 
     await this.serviceRequestRepository.save(serviceRequest);
 
-    return `Service request created: ${serviceRequest.title} (${serviceRequest.id})`;
+    const result = `Service request created: ${serviceRequest.title} (${serviceRequest.id})`;
+    this.logger.log(`✅ [TOOL] ${result}`);
+    return result;
   }
 }

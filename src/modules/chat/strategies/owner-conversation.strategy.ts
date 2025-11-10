@@ -42,7 +42,6 @@ export class OwnerConversationStrategy implements ConversationStrategy {
       id: params.companyId,
     });
 
-    // Save user message to memory
     await this.chatService.addMessageToMemory({
       sessionId: params.userId,
       companyId: params.companyId,
@@ -53,7 +52,6 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     this.logger.log(`Processing owner message: ${params.message}`);
 
     try {
-      // Execute the agent with the user's message
       const agentResponse = await this.ownerAssistantAgent.execute(
         params.message,
         user,
@@ -61,12 +59,13 @@ export class OwnerConversationStrategy implements ConversationStrategy {
           companyId: params.companyId,
           instanceName: params.instanceName,
           userId: params.userId,
+          userName: user.name,
+          userPhone: user.phone,
           companyDescription: company.description,
         },
-        params.userId, // Use userId as thread ID
+        params.userId,
       );
 
-      // Save agent response to memory
       await this.chatService.addMessageToMemory({
         sessionId: params.userId,
         companyId: params.companyId,
@@ -74,7 +73,6 @@ export class OwnerConversationStrategy implements ConversationStrategy {
         content: agentResponse,
       });
 
-      // Send the response back to the user
       await this.chatService.sendMessageAndSaveToMemory({
         sessionId: params.userId,
         companyId: params.companyId,
@@ -87,7 +85,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
 
       return {
         message: agentResponse,
-        actions: [], // Agent handles actions internally
+        actions: [],
       };
     } catch (error) {
       this.logger.error('Error executing owner agent:', error);
@@ -116,5 +114,4 @@ export class OwnerConversationStrategy implements ConversationStrategy {
       };
     }
   }
-
 }

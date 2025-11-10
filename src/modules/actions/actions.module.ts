@@ -26,7 +26,7 @@ import { EvolutionMessageProvider } from '../chat/providers/evolution-message.pr
 @Module({
   imports: [
     TypeOrmModule.forFeature([Contact, Company, User, Memory]),
-    AiModule,
+    forwardRef(() => AiModule),
     forwardRef(() => ChatModule),
     ServiceRequestsModule,
   ],

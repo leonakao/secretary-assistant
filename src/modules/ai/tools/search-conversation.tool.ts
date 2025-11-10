@@ -1,10 +1,11 @@
 import { StructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
+import { ToolConfig } from '../types';
 
 const searchConversationSchema = z.object({
   contactName: z
@@ -12,18 +13,25 @@ const searchConversationSchema = z.object({
     .optional()
     .describe('Nome do contato para buscar conversas'),
   contactPhone: z.string().optional().describe('Telefone do contato'),
-  query: z.string().describe('Termo ou assunto a ser buscado nas conversas'),
+  query: z
+    .string()
+    .optional()
+    .describe(
+      'Termo ou assunto a ser buscado nas conversas. Se não fornecido, retorna todas as conversas recentes do contato.',
+    ),
   days: z
     .number()
     .optional()
-    .describe('Número de dias para buscar no histórico (padrão: 30)'),
+    .describe('Número de dias para buscar no histórico (padrão: 3)'),
 });
 
 @Injectable()
 export class SearchConversationTool extends StructuredTool {
+  private readonly logger = new Logger(SearchConversationTool.name);
+
   name = 'searchConversation';
   description =
-    'Busca em conversas anteriores com clientes. Use para encontrar informações específicas mencionadas em conversas passadas.';
+    'Busca em conversas anteriores com clientes. Use para encontrar informações específicas mencionadas em conversas passadas ou para ver todas as conversas recentes de um contato.';
   schema = searchConversationSchema;
 
   constructor(
@@ -37,12 +45,16 @@ export class SearchConversationTool extends StructuredTool {
 
   protected async _call(
     args: z.infer<typeof searchConversationSchema>,
-    _,
-    config,
+    runManager,
+    config: ToolConfig,
   ): Promise<string> {
-    const { contactName, contactPhone, query, days = 30 } = args;
+    this.logger.log('🔧 [TOOL] searchConversation called');
+    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
 
-    if (!config?.context?.companyId) {
+    const { contactName, contactPhone, query, days = 3 } = args;
+    const { companyId } = config.configurable.context;
+
+    if (!companyId) {
       throw new Error('Company ID missing in the context');
     }
 
@@ -51,7 +63,7 @@ export class SearchConversationTool extends StructuredTool {
     // Find contact if name or phone provided
     if (contactName || contactPhone) {
       const contacts = await this.contactRepository.find({
-        where: { companyId: config.context.companyId },
+        where: { companyId },
       });
 
       const matchingContacts = contacts.filter(
@@ -79,9 +91,6 @@ export class SearchConversationTool extends StructuredTool {
     const queryBuilder = this.memoryRepository
       .createQueryBuilder('memory')
       .where('memory.createdAt > :daysAgo', { daysAgo })
-      .andWhere('LOWER(memory.content) LIKE LOWER(:query)', {
-        query: `%${query}%`,
-      })
       .orderBy('memory.createdAt', 'DESC')
       .take(10);
 
@@ -89,13 +98,25 @@ export class SearchConversationTool extends StructuredTool {
       queryBuilder.andWhere('memory.sessionId = :sessionId', { sessionId });
     }
 
+    if (query) {
+      queryBuilder.andWhere('LOWER(memory.content) LIKE LOWER(:query)', {
+        query: `%${query}%`,
+      });
+    }
+
     const memories = await queryBuilder.getMany();
 
     if (memories.length === 0) {
-      return `Nenhuma conversa encontrada com o termo "${query}" nos últimos ${days} dias.`;
+      const searchDesc = query
+        ? `com o termo "${query}"`
+        : sessionId
+          ? 'para este contato'
+          : '';
+      return `Nenhuma conversa encontrada ${searchDesc} nos últimos ${days} dias.`;
     }
 
     const results = memories
+      .reverse()
       .map((m) => {
         const date = m.createdAt.toLocaleDateString('pt-BR');
         const role = m.role === 'user' ? 'Cliente' : 'Assistente';
@@ -103,6 +124,7 @@ export class SearchConversationTool extends StructuredTool {
       })
       .join('\n\n');
 
-    return `Encontrei ${memories.length} mensagem(ns) relacionada(s):\n\n${results}`;
+    const searchInfo = query ? ` com o termo "${query}"` : '';
+    return `Encontradas ${memories.length} mensagens${searchInfo}:\n\n${results}`;
   }
 }

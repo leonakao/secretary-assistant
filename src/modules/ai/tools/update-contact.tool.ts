@@ -1,9 +1,10 @@
 import { StructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
+import { ToolConfig } from '../types';
 
 const updateContactSchema = z.object({
   contactId: z.string().describe('ID do contato a ser atualizado'),
@@ -14,6 +15,8 @@ const updateContactSchema = z.object({
 
 @Injectable()
 export class UpdateContactTool extends StructuredTool {
+  private readonly logger = new Logger(UpdateContactTool.name);
+
   name = 'updateContact';
   description =
     'Atualiza informações de um contato existente. Use para modificar nome, telefone, email ou adicionar notas.';
@@ -29,18 +32,22 @@ export class UpdateContactTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof updateContactSchema>,
     _,
-    config,
+    config: ToolConfig,
   ): Promise<string> {
-    const { contactId, newName, newPhone, newEmail } = args;
+    this.logger.log('🔧 [TOOL] updateContact called');
+    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
 
-    if (!config?.context?.companyId) {
+    const { contactId, newName, newPhone, newEmail } = args;
+    const { companyId } = config.configurable.context;
+
+    if (!companyId) {
       throw new Error('Company ID missing in the context');
     }
 
     const contact = await this.contactRepository.findOne({
       where: {
         id: contactId,
-        companyId: config.context.companyId,
+        companyId,
       },
     });
 
@@ -55,6 +62,8 @@ export class UpdateContactTool extends StructuredTool {
 
     await this.contactRepository.update({ id: contact.id }, updates);
 
-    return `Contato "${contact.name}" atualizado com sucesso.`;
+    const result = `Contato "${contact.name}" atualizado com sucesso.`;
+    this.logger.log(`✅ [TOOL] ${result}`);
+    return result;
   }
 }

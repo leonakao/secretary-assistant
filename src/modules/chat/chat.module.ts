@@ -19,7 +19,7 @@ import { Company } from '../companies/entities/company.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Memory, Contact, User, UserCompany, Company]),
-    AiModule,
+    forwardRef(() => AiModule),
     EvolutionModule,
     forwardRef(() => ActionsModule),
   ],

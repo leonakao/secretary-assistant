@@ -1,9 +1,10 @@
 import { StructuredTool } from '@langchain/core/tools';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { ServiceRequest } from 'src/modules/service-requests';
+import { ToolConfig } from '../types';
 
 const queryServiceRequestSchema = z.object({
   contactId: z
@@ -24,6 +25,8 @@ const queryServiceRequestSchema = z.object({
 
 @Injectable()
 export class QueryServiceRequestTool extends StructuredTool {
+  private readonly logger = new Logger(QueryServiceRequestTool.name);
+
   name = 'queryServiceRequest';
   description =
     'Consulta requisições de serviço. Use para buscar informações sobre agendamentos, pedidos ou tarefas.';
@@ -39,18 +42,22 @@ export class QueryServiceRequestTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof queryServiceRequestSchema>,
     _,
-    config,
+    config: ToolConfig,
   ): Promise<string> {
-    const { contactId, requestType, status } = args;
+    this.logger.log('🔧 [TOOL] queryServiceRequest called');
+    this.logger.log(`📥 [TOOL] Args: ${JSON.stringify(args)}`);
 
-    if (!config?.context?.companyId) {
+    const { contactId, requestType, status } = args;
+    const { companyId } = config.configurable.context;
+
+    if (!companyId) {
       throw new Error('Company ID missing in the context');
     }
 
     const queryBuilder = this.serviceRequestRepository
       .createQueryBuilder('sr')
       .where('sr.companyId = :companyId', {
-        companyId: config.context.companyId,
+        companyId,
       });
 
     if (contactId) {
