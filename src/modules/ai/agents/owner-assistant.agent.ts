@@ -10,7 +10,6 @@ import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { BaseMessage, HumanMessage, AIMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { User } from 'src/modules/users/entities/user.entity';
-import { Pool } from 'pg';
 import {
   CreateServiceRequestTool,
   QueryServiceRequestTool,
@@ -51,7 +50,6 @@ export class OwnerAssistantAgent implements OnModuleInit {
   private model: ChatGoogleGenerativeAI;
   private checkpointer: PostgresSaver;
   private graph: any;
-  private pool: Pool;
 
   constructor(
     private configService: ConfigService,
@@ -73,36 +71,24 @@ export class OwnerAssistantAgent implements OnModuleInit {
 
     this.model = new ChatGoogleGenerativeAI({
       apiKey,
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-2.5-flash',
       temperature: 0.7,
-      maxOutputTokens: 4096,
-    });
-
-    // Initialize PostgreSQL connection pool
-    this.pool = new Pool({
-      host: this.configService.get<string>('DB_HOST', 'localhost'),
-      port: this.configService.get<number>('DB_PORT', 5432),
-      user: this.configService.get<string>('DB_USERNAME', 'postgres'),
-      password: this.configService.get<string>('DB_PASSWORD', 'postgres'),
-      database: this.configService.get<string>('DB_DATABASE', 'postgres'),
+      maxOutputTokens: 2048,
     });
   }
 
   async onModuleInit() {
     this.logger.log('🔌 Initializing PostgresSaver checkpointer...');
 
-    // Initialize PostgresSaver with connection string and schema option
     this.checkpointer = PostgresSaver.fromConnString(
       `postgresql://${this.configService.get<string>('DB_USERNAME', 'postgres')}:${this.configService.get<string>('DB_PASSWORD', 'postgres')}@${this.configService.get<string>('DB_HOST', 'localhost')}:${this.configService.get<number>('DB_PORT', 5432)}/${this.configService.get<string>('DB_DATABASE', 'postgres')}`,
       { schema: 'checkpointer' }, // Schema is passed here as an option
     );
 
-    // Setup creates the necessary tables (no arguments)
     await this.checkpointer.setup();
 
     this.logger.log('✅ PostgresSaver initialized with schema: checkpointer');
 
-    // Initialize the graph after checkpointer is ready
     this.initializeGraph();
   }
 
@@ -112,7 +98,6 @@ export class OwnerAssistantAgent implements OnModuleInit {
   private initializeGraph() {
     const tools = this.getTools();
 
-    // Create a custom tool node that passes context to tools
     const toolNode = async (state: typeof AgentState.State) => {
       const toolCalls =
         (state.messages[state.messages.length - 1] as AIMessage).tool_calls ||
@@ -132,7 +117,6 @@ export class OwnerAssistantAgent implements OnModuleInit {
           try {
             console.log('🔧 [TOOL] Executing tool:', toolCall.name);
             console.log('🔧 [TOOL] Args:', toolCall.args);
-            console.log('🔧 [TOOL] Context:', state.context);
             const result = await tool.invoke(toolCall.args, {
               configurable: {
                 context: state.context,
@@ -168,7 +152,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
         `📊 [TASK] Current messages count: ${state.messages.length}`,
       );
 
-      const systemMessage = this.buildSystemPrompt();
+      const systemMessage = this.buildSystemPrompt(state.context);
       const messages = [
         { role: 'system', content: systemMessage },
         ...state.messages,
@@ -250,6 +234,9 @@ export class OwnerAssistantAgent implements OnModuleInit {
       let chunkCount = 0;
 
       this.logger.log('📡 Starting stream...');
+      this.logger.log(
+        `📝 Sending new message to graph (checkpointer will load history for thread: ${threadId})`,
+      );
 
       const stream = await this.graph.stream(
         {
@@ -361,8 +348,8 @@ export class OwnerAssistantAgent implements OnModuleInit {
   /**
    * Build the system prompt for the agent
    */
-  private buildSystemPrompt(): string {
-    return `Você é uma secretária executiva virtual altamente eficiente e proativa.
+  private buildSystemPrompt(context: AgentContext): string {
+    return `Seu nome é Julia, e você é uma secretária executiva altamente eficiente e proativa.
 
 ## PERSONA
 - Profissional, organizada e atenciosa
@@ -385,20 +372,70 @@ Você tem acesso a várias ferramentas para executar ações. Use-as quando apro
 - Para executar ações: use as ferramentas de criação e atualização
 - Para comunicação: use a ferramenta de envio de mensagens
 
+**IMPORTANTE - USO DE RESULTADOS DE FERRAMENTAS**: 
+As ferramentas retornam JSON com dados completos (incluindo IDs). 
+Você DEVE usar esses dados retornados em ações subsequentes.
+
+Exemplos de uso correto:
+✅ Usuário: "Crie um contato João e depois crie uma requisição para ele"
+   1. Criar contato → recebe { "contact": { "id": "abc-123", ... } }
+   2. Criar requisição usando contactId: "abc-123"
+
+✅ Usuário: "Busque o contato Maria e envie uma mensagem para ela"
+   1. Buscar contato → recebe { "contacts": [{ "id": "xyz-789", ... }] }
+   2. Enviar mensagem usando recipientId: "xyz-789"
+
+❌ NUNCA faça isso:
+   - Criar contato e depois perguntar "Qual o ID do contato?"
+   - Buscar algo e pedir ao usuário para informar o ID
+   - Ignorar os dados retornados pelas ferramentas
+
+## CONTEXTO DA CONVERSA
+Você tem acesso a TODAS as mensagens anteriores desta conversa, incluindo:
+- Mensagens do usuário
+- Suas respostas anteriores
+- Resultados de ferramentas executadas anteriormente
+
+**Use este contexto para:**
+- Entender referências como "aquele contato", "a requisição", "ele", "ela"
+- Lembrar de IDs e dados mencionados anteriormente
+- Manter continuidade na conversa
+- Evitar perguntar informações já fornecidas
+
+**Exemplos de uso do contexto:**
+✅ Usuário: "Crie um contato João" → Julia cria
+   Usuário: "Agora envie uma mensagem para ele"
+   Julia: Usa o ID do contato João criado anteriormente
+
+✅ Usuário: "Busque requisições do cliente Maria"
+   Usuário: "Atualize a primeira para em andamento"
+   Julia: Usa o ID da primeira requisição da busca anterior
+
 ## DIRETRIZES
-1. Seja proativa em sugerir ações relevantes
-2. Use as ferramentas disponíveis para executar tarefas solicitadas
-3. Forneça informações de forma estruturada e clara
-4. Priorize eficiência e clareza nas respostas
-5. Destaque informações urgentes ou importantes
-6. Se precisar de mais informações, pergunte ao usuário
-7. O usuário não sabe termos técnicos ou IDs, você precisa descobrir as informações necessárias
-8. Antes de pedir mais informações, tente descobrir as informações necessárias utilizando as ferramentas disponíveis
+1. **SEMPRE revise as mensagens anteriores da conversa antes de responder**
+2. Use o contexto das mensagens anteriores para entender melhor as solicitações
+3. Se o usuário se referir a algo mencionado antes ("aquele contato", "a requisição que criamos"), busque nas mensagens anteriores
+4. Seja proativa em sugerir ações relevantes
+5. Use as ferramentas disponíveis para executar tarefas solicitadas
+6. **MEMORIZE os IDs retornados pelas ferramentas e use-os em ações subsequentes**
+7. Forneça informações de forma estruturada e clara
+8. Priorize eficiência e clareza nas respostas
+9. Destaque informações urgentes ou importantes
+10. Se precisar de mais informações, pergunte ao usuário
+11. Nunca comente sobre termos técnicos ou IDs, sem usar as ferramentas disponíveis
+12. Antes de pedir mais informações, tente descobrir as informações necessárias utilizando as ferramentas disponíveis
+13. **Quando executar múltiplas ações relacionadas, use os dados retornados pela primeira ação na segunda**
 
 ## FORMATO DE RESPOSTA
 - Seja concisa mas completa
 - Use formatação quando apropriado (listas, negrito)
 - Sempre confirme ações executadas
-- Sugira próximos passos quando relevante`;
+- Sugira próximos passos quando relevante
+
+## VARIÁVEIS
+- Você está falando com ${context.userName}
+- Hoje é ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+- Agora são ${new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
+`;
   }
 }

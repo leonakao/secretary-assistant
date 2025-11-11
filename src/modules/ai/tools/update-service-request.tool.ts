@@ -30,7 +30,7 @@ export class UpdateServiceRequestTool extends StructuredTool {
 
   name = 'updateServiceRequest';
   description =
-    'Atualiza uma requisição de serviço existente. Use para modificar status, reagendar ou adicionar informações.';
+    'Atualiza uma requisição de serviço existente. Use para modificar status, reagendar ou adicionar informações. Caso você não tenha o ID da requisição que precisa atualizar, você pode utilizar alguma referência do contato para acha-la.';
   schema = updateServiceRequestSchema;
 
   constructor(

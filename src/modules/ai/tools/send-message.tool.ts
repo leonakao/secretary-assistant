@@ -20,7 +20,7 @@ export class SendMessageTool extends StructuredTool {
 
   name = 'sendMessage';
   description =
-    'Envia uma mensagem para um cliente ou funcionário. Use esta ferramenta quando o proprietário pedir para enviar uma mensagem para alguém OU quando você achar que algum funcionário precisa receber uma mensagem.';
+    'Envia uma mensagem para um cliente ou funcionário. Use esta ferramenta quando o proprietário pedir para enviar uma mensagem para alguém OU quando você achar que algum funcionário precisa receber uma mensagem. A mensagem será enviada em seu nome, e não no nome do usuário.';
   schema = sendMessageSchema;
 
   constructor(
@@ -101,7 +101,6 @@ export class SendMessageTool extends StructuredTool {
       sentMessage: message,
     };
 
-    this.logger.log(`✅ [TOOL] Message sent to ${recipient.name}`);
     return JSON.stringify(result, null, 2);
   }
 

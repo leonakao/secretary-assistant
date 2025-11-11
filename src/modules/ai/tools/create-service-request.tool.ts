@@ -41,8 +41,8 @@ const createServiceRequestSchema = z.object({
 export class CreateServiceRequestTool extends StructuredTool {
   private readonly logger = new Logger(CreateServiceRequestTool.name);
 
-  name = 'createServiceRequestTool';
-  description = 'Create a service request';
+  name = 'createServiceRequest';
+  description = 'Cria uma solicitação de serviço';
   schema = createServiceRequestSchema;
 
   constructor(
@@ -90,7 +90,7 @@ export class CreateServiceRequestTool extends StructuredTool {
 
     const result = {
       success: true,
-      message: 'Requisição de serviço criada com sucesso',
+      message: 'Solicitação de serviço criada com sucesso',
       serviceRequest: {
         id: serviceRequest.id,
         contactId: serviceRequest.contactId,
