@@ -29,6 +29,7 @@ export interface EvolutionMessageContent {
     mimetype: string;
     fileName: string;
   };
+  base64?: string;
 }
 
 export interface EvolutionMessagesUpsertPayload {

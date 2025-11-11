@@ -10,6 +10,7 @@ import { ClientConversationStrategy } from '../strategies/client-conversation.st
 import { OwnerConversationStrategy } from '../strategies/owner-conversation.strategy';
 import { OnboardingConversationStrategy } from '../strategies/onboarding-conversation.strategy';
 import { ConversationResponse } from '../strategies';
+import { AudioTranscriptionService } from '../../ai/services/audio-transcription.service';
 
 @Injectable()
 export class IncomingMessageUseCase {
@@ -27,6 +28,7 @@ export class IncomingMessageUseCase {
     private clientStrategy: ClientConversationStrategy,
     private ownerStrategy: OwnerConversationStrategy,
     private onboardingStrategy: OnboardingConversationStrategy,
+    private audioTranscriptionService: AudioTranscriptionService,
   ) {}
 
   async execute(
@@ -45,7 +47,9 @@ export class IncomingMessageUseCase {
 
     const remoteJid = key.remoteJid;
     const phone = this.extractPhoneFromJid(remoteJid);
-    const messageText = this.extractMessageText(messageContent);
+
+    // Extract or transcribe message text
+    const messageText = await this.extractOrTranscribeMessage(messageContent);
 
     if (!messageText) {
       return {
@@ -154,13 +158,45 @@ export class IncomingMessageUseCase {
     return '+' + remoteJid.split('@')[0];
   }
 
-  private extractMessageText(
+  /**
+   * Extract text from message or transcribe audio if it's an audio message
+   */
+  private async extractOrTranscribeMessage(
     messageContent: EvolutionMessagesUpsertPayload['message'],
-  ): string {
-    return (
-      messageContent?.conversation ||
-      messageContent?.extendedTextMessage?.text ||
-      ''
-    );
+  ): Promise<string> {
+    // Check for text messages first
+    const textMessage =
+      messageContent?.conversation || messageContent?.extendedTextMessage?.text;
+
+    if (textMessage) {
+      return textMessage;
+    }
+
+    // Check for audio message
+    if (messageContent?.audioMessage?.url) {
+      try {
+        this.logger.log('🎤 Audio message detected, transcribing...');
+
+        const transcription =
+          await this.audioTranscriptionService.transcribeAudioFromBase64(
+            messageContent.base64!,
+          );
+
+        if (transcription) {
+          this.logger.log(`✅ Audio transcribed: "${transcription}"`);
+          return transcription;
+        } else {
+          this.logger.warn('⚠️ Audio transcription returned empty result');
+          return '';
+        }
+      } catch (error) {
+        this.logger.error('❌ Failed to transcribe audio:', error);
+        // Return empty string if transcription fails
+        return '';
+      }
+    }
+
+    // No text or audio found
+    return '';
   }
 }
