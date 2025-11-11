@@ -4,7 +4,7 @@ import { LangchainService } from './services/langchain.service';
 import { OwnerAssistantAgent } from './agents/owner-assistant.agent';
 import {
   CreateServiceRequestTool,
-  QueryServiceRequestTool,
+  SearchServiceRequestTool,
   UpdateServiceRequestTool,
   SendMessageTool,
   SearchConversationTool,
@@ -30,7 +30,7 @@ import { ChatModule } from '../chat/chat.module';
     OwnerAssistantAgent,
     // Tools
     CreateServiceRequestTool,
-    QueryServiceRequestTool,
+    SearchServiceRequestTool,
     UpdateServiceRequestTool,
     SendMessageTool,
     SearchConversationTool,

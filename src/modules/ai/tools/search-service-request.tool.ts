@@ -11,6 +11,10 @@ const queryServiceRequestSchema = z.object({
     .string()
     .optional()
     .describe('O ID do contato (cliente) para filtrar requisições'),
+  userId: z
+    .string()
+    .optional()
+    .describe('O ID do usuário que está responsável pela requisição'),
   requestType: z
     .string()
     .optional()
@@ -21,11 +25,19 @@ const queryServiceRequestSchema = z.object({
     .describe(
       'O status da requisição (pending, in_progress, completed, cancelled)',
     ),
+  scheduledForFrom: z
+    .string()
+    .optional()
+    .describe('A data e hora mínima agendada para a requisição'),
+  scheduledForTo: z
+    .string()
+    .optional()
+    .describe('A data e hora máxima agendada para a requisição'),
 });
 
 @Injectable()
-export class QueryServiceRequestTool extends StructuredTool {
-  private readonly logger = new Logger(QueryServiceRequestTool.name);
+export class SearchServiceRequestTool extends StructuredTool {
+  private readonly logger = new Logger(SearchServiceRequestTool.name);
 
   name = 'queryServiceRequest';
   description =

@@ -12,7 +12,7 @@ import { StructuredTool } from '@langchain/core/tools';
 import { User } from 'src/modules/users/entities/user.entity';
 import {
   CreateServiceRequestTool,
-  QueryServiceRequestTool,
+  SearchServiceRequestTool,
   UpdateServiceRequestTool,
   SendMessageTool,
   SearchConversationTool,
@@ -54,7 +54,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
   constructor(
     private configService: ConfigService,
     private createServiceRequestTool: CreateServiceRequestTool,
-    private queryServiceRequestTool: QueryServiceRequestTool,
+    private searchServiceRequestTool: SearchServiceRequestTool,
     private updateServiceRequestTool: UpdateServiceRequestTool,
     private sendMessageTool: SendMessageTool,
     private searchConversationTool: SearchConversationTool,
@@ -334,7 +334,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
   private getTools(): StructuredTool[] {
     return [
       this.createServiceRequestTool,
-      this.queryServiceRequestTool,
+      this.searchServiceRequestTool,
       this.updateServiceRequestTool,
       this.sendMessageTool,
       this.searchConversationTool,
@@ -349,7 +349,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
    * Build the system prompt for the agent
    */
   private buildSystemPrompt(context: AgentContext): string {
-    return `Seu nome é Julia, e você é uma secretária executiva altamente eficiente e proativa.
+    return `Seu nome é Julia, e você é uma secretária executiva altamente eficiente e proativa. Você representa a empresa durante conversas com os clientes e atende a chamadas dos usuários / funcionários.
 
 ## PERSONA
 - Profissional, organizada e atenciosa
@@ -358,6 +358,13 @@ export class OwnerAssistantAgent implements OnModuleInit {
 - Mantém o proprietário informado de forma clara
 - Utilize o nome do proprietário quando apropriado
 
+## SOBRE O SISTEMA
+- Usuário (user) é um funcionário ou dono da empresa
+- Contato (contact) é um cliente da empresa
+- Empresa (company) é a empresa do usuário, na qual você é a secretária
+- Solicitação (service_request) é um serviço solicitado pelo contato (cliente)
+- Conversa (conversation) é uma conversa entre o usuário ou contato com você, representando a empresa.
+
 ## SUAS RESPONSABILIDADES
 Você auxilia o proprietário com:
 - Informações sobre agendamentos e requisições de serviço
@@ -365,6 +372,7 @@ Você auxilia o proprietário com:
 - Envio de mensagens para clientes ou funcionários
 - Gerenciamento de informações da empresa
 - Criação e atualização de contatos e requisições
+- Gerenciar compromissos dos funcionários
 
 ## FERRAMENTAS DISPONÍVEIS
 Você tem acesso a várias ferramentas para executar ações. Use-as quando apropriado:

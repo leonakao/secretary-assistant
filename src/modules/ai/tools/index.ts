@@ -1,5 +1,5 @@
 export { CreateServiceRequestTool } from './create-service-request.tool';
-export { QueryServiceRequestTool } from './query-service-request.tool';
+export { SearchServiceRequestTool } from './search-service-request.tool';
 export { UpdateServiceRequestTool } from './update-service-request.tool';
 export { SendMessageTool } from './send-message.tool';
 export { SearchConversationTool } from './search-conversation.tool';
