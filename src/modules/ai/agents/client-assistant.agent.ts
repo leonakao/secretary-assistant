@@ -133,7 +133,7 @@ export class ClientAssistantAgent implements OnModuleInit {
             this.logger.error(`Error executing tool ${toolCall.name}:`, error);
             return {
               role: 'tool',
-              content: `Error: ${error.message}`,
+              content: `Erro: ${error.message}`,
               tool_call_id: toolCall.id,
               name: toolCall.name,
             };
@@ -160,17 +160,6 @@ export class ClientAssistantAgent implements OnModuleInit {
           context: state.context,
         },
       });
-
-      const aiMessage = response as AIMessage;
-      if (aiMessage.tool_calls && aiMessage.tool_calls.length > 0) {
-        aiMessage.tool_calls.forEach((tc, idx) => {
-          this.logger.log(
-            `🛠️  [CLIENT] Tool call ${idx + 1}: ${tc.name}(${JSON.stringify(tc.args)})`,
-          );
-        });
-      } else {
-        this.logger.log('✅ [CLIENT] Model generated final response');
-      }
 
       return { messages: [response] };
     };

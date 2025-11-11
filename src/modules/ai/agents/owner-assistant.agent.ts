@@ -134,7 +134,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
             this.logger.error(`Error executing tool ${toolCall.name}:`, error);
             return {
               role: 'tool',
-              content: `Error: ${error.message}`,
+              content: `Erro: ${error.message}`,
               tool_call_id: toolCall.id,
               name: toolCall.name,
             };
@@ -165,22 +165,6 @@ export class OwnerAssistantAgent implements OnModuleInit {
           context: state.context,
         },
       });
-
-      const aiMessage = response as AIMessage;
-      if (aiMessage.tool_calls && aiMessage.tool_calls.length > 0) {
-        this.logger.log(
-          `🛠️  [TASK] Model requested ${aiMessage.tool_calls.length} tool calls:`,
-        );
-        aiMessage.tool_calls.forEach((tc, idx) => {
-          this.logger.log(
-            `   ${idx + 1}. ${tc.name}(${JSON.stringify(tc.args)})`,
-          );
-        });
-      } else {
-        this.logger.log(
-          '💭 [TASK] Model generated final response (no tool calls)',
-        );
-      }
 
       return { messages: [response] };
     };
