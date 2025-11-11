@@ -15,6 +15,8 @@ import {
   SearchConversationTool,
   SearchServiceRequestTool,
   UpdateServiceRequestTool,
+  SearchUserTool,
+  SendMessageTool,
 } from '../tools';
 
 const AgentState = Annotation.Root({
@@ -51,6 +53,8 @@ export class ClientAssistantAgent implements OnModuleInit {
     private readonly searchServiceRequestTool: SearchServiceRequestTool,
     private readonly updateServiceRequestTool: UpdateServiceRequestTool,
     private readonly searchConversationTool: SearchConversationTool,
+    private readonly searchUserTool: SearchUserTool,
+    private readonly sendMessageTool: SendMessageTool,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -87,6 +91,13 @@ export class ClientAssistantAgent implements OnModuleInit {
 
   private initializeGraph(): void {
     const tools = this.getTools();
+    const toolByName = tools.reduce(
+      (acc, tool) => {
+        acc[tool.name] = tool;
+        return acc;
+      },
+      {} as Record<string, StructuredTool>,
+    );
 
     const toolNode = async (state: typeof AgentState.State) => {
       const toolCalls =
@@ -95,7 +106,7 @@ export class ClientAssistantAgent implements OnModuleInit {
 
       const toolMessages = await Promise.all(
         toolCalls.map(async (toolCall) => {
-          const tool = tools.find((t) => t.name === toolCall.name);
+          const tool = toolByName[toolCall.name];
           if (!tool) {
             return {
               role: 'tool',
@@ -294,6 +305,8 @@ export class ClientAssistantAgent implements OnModuleInit {
       this.searchServiceRequestTool,
       this.updateServiceRequestTool,
       this.searchConversationTool,
+      this.searchUserTool,
+      this.sendMessageTool,
     ];
   }
 
@@ -327,7 +340,8 @@ ${context.companyDescription || 'Descrição não disponível'}
 - createServiceRequest: registre novas solicitações quando o cliente pedir um serviço ou agendamento
 - updateServiceRequest: atualize solicitações existentes com novas informações ou mudanças de status
 - searchServiceRequest: consulte solicitações passadas para informar o cliente
-- sendMessage: envie mensagens para o usuário responsável pela solicitação
+- searchUser: encontre funcionários responsáveis ou disponíveis para apoiar o atendimento
+- sendMessage: envie mensagens para funcionários ou contatos quando necessário
 
 Sempre que usar uma ferramenta:
 1. Leia atentamente o resultado retornado (JSON)

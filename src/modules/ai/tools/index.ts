@@ -7,3 +7,4 @@ export { SearchContactTool } from './search-contact.tool';
 export { CreateContactTool } from './create-contact.tool';
 export { UpdateContactTool } from './update-contact.tool';
 export { UpdateCompanyTool } from './update-company.tool';
+export { SearchUserTool } from './search-user.tool';

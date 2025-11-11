@@ -14,6 +14,7 @@ import {
   CreateContactTool,
   UpdateContactTool,
   UpdateCompanyTool,
+  SearchUserTool,
 } from './tools';
 import { ServiceRequest } from '../service-requests';
 import { Contact } from '../contacts/entities/contact.entity';
@@ -42,6 +43,7 @@ import { ChatModule } from '../chat/chat.module';
     CreateContactTool,
     UpdateContactTool,
     UpdateCompanyTool,
+    SearchUserTool,
   ],
   exports: [
     LangchainService,

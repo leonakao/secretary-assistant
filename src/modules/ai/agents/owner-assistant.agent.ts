@@ -16,6 +16,7 @@ import {
   UpdateServiceRequestTool,
   SendMessageTool,
   SearchConversationTool,
+  SearchUserTool,
 } from '../tools';
 
 // Define the agent state
@@ -54,6 +55,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
     private updateServiceRequestTool: UpdateServiceRequestTool,
     private sendMessageTool: SendMessageTool,
     private searchConversationTool: SearchConversationTool,
+    private searchUserTool: SearchUserTool,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -89,6 +91,13 @@ export class OwnerAssistantAgent implements OnModuleInit {
    */
   private initializeGraph() {
     const tools = this.getTools();
+    const toolByName = tools.reduce(
+      (acc, tool) => {
+        acc[tool.name] = tool;
+        return acc;
+      },
+      {} as Record<string, StructuredTool>,
+    );
 
     const toolNode = async (state: typeof AgentState.State) => {
       const toolCalls =
@@ -97,7 +106,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
 
       const toolMessages = await Promise.all(
         toolCalls.map(async (toolCall) => {
-          const tool = tools.find((t) => t.name === toolCall.name);
+          const tool = toolByName[toolCall.name];
           if (!tool) {
             return {
               role: 'tool',
@@ -330,6 +339,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
       this.updateServiceRequestTool,
       this.searchConversationTool,
       this.sendMessageTool,
+      this.searchUserTool,
     ];
   }
 
@@ -364,7 +374,7 @@ Você auxilia o proprietário com:
 
 ## FERRAMENTAS DISPONÍVEIS
 Você tem acesso a várias ferramentas para executar ações. Use-as quando apropriado:
-- Para buscar informações: use as ferramentas de consulta e busca
+- Para buscar informações: use as ferramentas de consulta e busca (ex: searchServiceRequest, searchConversation, searchUser)
 - Para executar ações: use as ferramentas de criação e atualização
 - Para comunicação: use a ferramenta de envio de mensagens
 
