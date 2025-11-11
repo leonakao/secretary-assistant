@@ -16,10 +16,6 @@ import {
   UpdateServiceRequestTool,
   SendMessageTool,
   SearchConversationTool,
-  SearchContactTool,
-  CreateContactTool,
-  UpdateContactTool,
-  UpdateCompanyTool,
 } from '../tools';
 
 // Define the agent state
@@ -58,10 +54,6 @@ export class OwnerAssistantAgent implements OnModuleInit {
     private updateServiceRequestTool: UpdateServiceRequestTool,
     private sendMessageTool: SendMessageTool,
     private searchConversationTool: SearchConversationTool,
-    private searchContactTool: SearchContactTool,
-    private createContactTool: CreateContactTool,
-    private updateContactTool: UpdateContactTool,
-    private updateCompanyTool: UpdateCompanyTool,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -336,12 +328,8 @@ export class OwnerAssistantAgent implements OnModuleInit {
       this.createServiceRequestTool,
       this.searchServiceRequestTool,
       this.updateServiceRequestTool,
-      this.sendMessageTool,
       this.searchConversationTool,
-      this.searchContactTool,
-      this.createContactTool,
-      this.updateContactTool,
-      this.updateCompanyTool,
+      this.sendMessageTool,
     ];
   }
 

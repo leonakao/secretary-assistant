@@ -5,12 +5,12 @@ import {
   ConversationResponse,
   ConversationStrategy,
 } from './conversation-strategy.interface';
+import { Contact } from '../../contacts/entities/contact.entity';
+import { Company } from '../../companies/entities/company.entity';
+import { ClientAssistantAgent } from '../../ai/agents/client-assistant.agent';
 import { ChatService } from '../services/chat.service';
 import { ActionDetectionService } from '../../actions/services/action-detection.service';
 import { ActionExecutorService } from '../../actions/services/action-executor.service';
-import { Contact } from '../../contacts/entities/contact.entity';
-import { Company } from '../../companies/entities/company.entity';
-import { assistantClientPrompt } from '../../ai/agent-prompts/assistant-client';
 
 @Injectable()
 export class ClientConversationStrategy implements ConversationStrategy {
@@ -22,6 +22,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
     @InjectRepository(Company)
     private companyRepository: Repository<Company>,
     private chatService: ChatService,
+    private clientAssistantAgent: ClientAssistantAgent,
     private actionDetectionService: ActionDetectionService,
     private actionExecutorService: ActionExecutorService,
   ) {}
@@ -44,28 +45,86 @@ export class ClientConversationStrategy implements ConversationStrategy {
       id: params.companyId,
     });
 
-    const systemPrompt = assistantClientPrompt(contact, company.description);
-
-    const { message } = await this.chatService.processAndReply({
+    await this.chatService.addMessageToMemory({
       sessionId: params.contactId,
       companyId: params.companyId,
-      instanceName: params.instanceName,
-      remoteJid: params.remoteJid,
-      message: params.message,
-      systemPrompt,
+      role: 'user',
+      content: params.message,
     });
 
-    const actions = await this.detectAndExecuteClientActions({
-      sessionId: params.contactId,
+    this.logger.log(
+      `Processing client message from ${contact.name}: ${params.message}`,
+    );
+
+    const agentContext = {
       companyId: params.companyId,
       instanceName: params.instanceName,
       contactId: params.contactId,
-    });
-
-    return {
-      message,
-      actions,
+      contactName: contact.name,
+      contactPhone: contact.phone ?? undefined,
+      companyDescription: company.description,
     };
+
+    try {
+      const agentResponse = await this.clientAssistantAgent.execute(
+        params.message,
+        contact,
+        agentContext,
+        params.contactId,
+      );
+
+      await this.chatService.addMessageToMemory({
+        sessionId: params.contactId,
+        companyId: params.companyId,
+        role: 'assistant',
+        content: agentResponse,
+      });
+
+      await this.chatService.sendMessageAndSaveToMemory({
+        sessionId: params.contactId,
+        companyId: params.companyId,
+        instanceName: params.instanceName,
+        remoteJid: params.remoteJid,
+        message: agentResponse,
+      });
+
+      const actions = await this.detectAndExecuteClientActions({
+        sessionId: params.contactId,
+        companyId: params.companyId,
+        instanceName: params.instanceName,
+        contactId: params.contactId,
+      });
+
+      return {
+        message: agentResponse,
+        actions,
+      };
+    } catch (error) {
+      this.logger.error('Error executing client agent:', error);
+
+      const errorMessage =
+        'Desculpe, ocorreu um erro ao processar sua mensagem. Vou pedir ajuda humana e retornaremos em breve.';
+
+      await this.chatService.addMessageToMemory({
+        sessionId: params.contactId,
+        companyId: params.companyId,
+        role: 'assistant',
+        content: errorMessage,
+      });
+
+      await this.chatService.sendMessageAndSaveToMemory({
+        sessionId: params.contactId,
+        companyId: params.companyId,
+        instanceName: params.instanceName,
+        remoteJid: params.remoteJid,
+        message: errorMessage,
+      });
+
+      return {
+        message: errorMessage,
+        actions: [],
+      };
+    }
   }
 
   private async detectAndExecuteClientActions(params: {

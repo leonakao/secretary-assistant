@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { LangchainService } from './services/langchain.service';
 import { AudioTranscriptionService } from './services/audio-transcription.service';
 import { OwnerAssistantAgent } from './agents/owner-assistant.agent';
+import { ClientAssistantAgent } from './agents/client-assistant.agent';
 import {
   CreateServiceRequestTool,
   SearchServiceRequestTool,
@@ -30,6 +31,7 @@ import { ChatModule } from '../chat/chat.module';
     LangchainService,
     AudioTranscriptionService,
     OwnerAssistantAgent,
+    ClientAssistantAgent,
     // Tools
     CreateServiceRequestTool,
     SearchServiceRequestTool,
@@ -41,6 +43,11 @@ import { ChatModule } from '../chat/chat.module';
     UpdateContactTool,
     UpdateCompanyTool,
   ],
-  exports: [LangchainService, AudioTranscriptionService, OwnerAssistantAgent],
+  exports: [
+    LangchainService,
+    AudioTranscriptionService,
+    OwnerAssistantAgent,
+    ClientAssistantAgent,
+  ],
 })
 export class AiModule {}
