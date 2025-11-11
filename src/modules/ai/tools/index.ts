@@ -8,3 +8,6 @@ export { CreateContactTool } from './create-contact.tool';
 export { UpdateContactTool } from './update-contact.tool';
 export { UpdateCompanyTool } from './update-company.tool';
 export { SearchUserTool } from './search-user.tool';
+export { CreateMediationTool } from './create-mediation.tool';
+export { SearchMediationsTool } from './search-mediations.tool';
+export { UpdateMediationTool } from './update-mediation.tool';

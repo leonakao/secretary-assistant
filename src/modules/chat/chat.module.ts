@@ -15,10 +15,18 @@ import { ClientConversationStrategy } from './strategies/client-conversation.str
 import { OwnerConversationStrategy } from './strategies/owner-conversation.strategy';
 import { OnboardingConversationStrategy } from './strategies/onboarding-conversation.strategy';
 import { Company } from '../companies/entities/company.entity';
+import { MediationSession } from '../service-requests/entities/mediation-session.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Memory, Contact, User, UserCompany, Company]),
+    TypeOrmModule.forFeature([
+      Memory,
+      Contact,
+      User,
+      UserCompany,
+      Company,
+      MediationSession,
+    ]),
     forwardRef(() => AiModule),
     EvolutionModule,
     forwardRef(() => ActionsModule),
