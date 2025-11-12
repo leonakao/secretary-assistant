@@ -16,6 +16,7 @@ import { OwnerConversationStrategy } from './strategies/owner-conversation.strat
 import { OnboardingConversationStrategy } from './strategies/onboarding-conversation.strategy';
 import { Company } from '../companies/entities/company.entity';
 import { Mediation } from '../service-requests/entities/mediation.entity';
+import { ServiceRequestsModule } from '../service-requests';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { Mediation } from '../service-requests/entities/mediation.entity';
     forwardRef(() => AiModule),
     EvolutionModule,
     forwardRef(() => ActionsModule),
+    ServiceRequestsModule,
   ],
   controllers: [EvolutionWebhookController],
   providers: [
