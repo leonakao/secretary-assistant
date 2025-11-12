@@ -24,7 +24,7 @@ import { Contact } from '../contacts/entities/contact.entity';
 import { User } from '../users/entities/user.entity';
 import { Company } from '../companies/entities/company.entity';
 import { Memory } from '../chat/entities/memory.entity';
-import { MediationSession } from '../service-requests/entities/mediation-session.entity';
+import { Mediation } from '../service-requests/entities/mediation.entity';
 import { ChatModule } from '../chat/chat.module';
 
 @Module({
@@ -35,7 +35,7 @@ import { ChatModule } from '../chat/chat.module';
       User,
       Company,
       Memory,
-      MediationSession,
+      Mediation,
     ]),
     forwardRef(() => ChatModule),
   ],

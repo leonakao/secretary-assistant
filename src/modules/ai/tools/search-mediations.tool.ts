@@ -3,17 +3,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
   MediationInteractionPending,
-  MediationSessionStatus,
-  MediationSession,
-} from 'src/modules/service-requests/entities/mediation-session.entity';
+  MediationStatus,
+  Mediation,
+} from 'src/modules/service-requests/entities/mediation.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ToolConfig } from '../types';
 
 const mediationStatusValues: [
-  MediationSessionStatus,
-  ...MediationSessionStatus[],
-] = [MediationSessionStatus.ACTIVE, MediationSessionStatus.CLOSED];
+  MediationStatus,
+  ...MediationStatus[],
+] = [MediationStatus.ACTIVE, MediationStatus.CLOSED];
 
 const mediationInteractionValues: [
   MediationInteractionPending,
@@ -56,8 +56,8 @@ export class SearchMediationsTool extends StructuredTool {
   schema = searchMediationSchema;
 
   constructor(
-    @InjectRepository(MediationSession)
-    private readonly mediationRepository: Repository<MediationSession>,
+    @InjectRepository(Mediation)
+    private readonly mediationRepository: Repository<Mediation>,
   ) {
     super();
   }

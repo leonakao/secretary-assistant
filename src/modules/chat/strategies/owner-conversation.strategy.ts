@@ -9,6 +9,7 @@ import { ChatService } from '../services/chat.service';
 import { OwnerAssistantAgent } from '../../ai/agents/owner-assistant/owner-assistant.agent';
 import { User } from '../../users/entities/user.entity';
 import { Company } from '../../companies/entities/company.entity';
+import { MediationService } from 'src/modules/service-requests/services/mediation.service';
 
 @Injectable()
 export class OwnerConversationStrategy implements ConversationStrategy {
@@ -16,11 +17,12 @@ export class OwnerConversationStrategy implements ConversationStrategy {
 
   constructor(
     @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly userRepository: Repository<User>,
     @InjectRepository(Company)
-    private companyRepository: Repository<Company>,
-    private chatService: ChatService,
-    private ownerAssistantAgent: OwnerAssistantAgent,
+    private readonly companyRepository: Repository<Company>,
+    private readonly chatService: ChatService,
+    private readonly ownerAssistantAgent: OwnerAssistantAgent,
+    private readonly mediationService: MediationService,
   ) {}
 
   async handleConversation(params: {
@@ -62,6 +64,10 @@ export class OwnerConversationStrategy implements ConversationStrategy {
           userName: user.name,
           userPhone: user.phone,
           companyDescription: company.description,
+          mediations: await this.mediationService.findPendingMediations({
+            companyId: params.companyId,
+            userId: params.userId,
+          }),
         },
         params.userId,
       );

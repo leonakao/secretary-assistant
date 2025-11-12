@@ -6,9 +6,9 @@ import { z } from 'zod';
 import { ToolConfig } from '../types';
 import {
   MediationInteractionPending,
-  MediationSession,
-  MediationSessionStatus,
-} from 'src/modules/service-requests/entities/mediation-session.entity';
+  Mediation,
+  MediationStatus,
+} from 'src/modules/service-requests/entities/mediation.entity';
 
 const createMediationSchema = z.object({
   description: z
@@ -46,8 +46,8 @@ export class CreateMediationTool extends StructuredTool {
   schema = createMediationSchema;
 
   constructor(
-    @InjectRepository(MediationSession)
-    private readonly mediationRepository: Repository<MediationSession>,
+    @InjectRepository(Mediation)
+    private readonly mediationRepository: Repository<Mediation>,
   ) {
     super();
   }
@@ -77,7 +77,7 @@ export class CreateMediationTool extends StructuredTool {
       expectedResult: args.expectedResult,
       interactionPending:
         interactionPending ?? MediationInteractionPending.CONTACT,
-      status: MediationSessionStatus.ACTIVE,
+      status: MediationStatus.ACTIVE,
       metadata: args.metadata ?? null,
     });
 

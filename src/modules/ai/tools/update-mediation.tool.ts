@@ -5,9 +5,9 @@ import { Repository } from 'typeorm';
 import { z } from 'zod';
 import {
   MediationInteractionPending,
-  MediationSessionStatus,
-  MediationSession,
-} from 'src/modules/service-requests/entities/mediation-session.entity';
+  MediationStatus,
+  Mediation,
+} from 'src/modules/service-requests/entities/mediation.entity';
 
 const updateMediationSchema = z.object({
   mediationId: z.uuid().describe('Identificador da mediação a ser atualizada'),
@@ -45,8 +45,8 @@ export class UpdateMediationTool extends StructuredTool {
   schema = updateMediationSchema;
 
   constructor(
-    @InjectRepository(MediationSession)
-    private readonly mediationRepository: Repository<MediationSession>,
+    @InjectRepository(Mediation)
+    private readonly mediationRepository: Repository<Mediation>,
   ) {
     super();
   }
@@ -82,8 +82,8 @@ export class UpdateMediationTool extends StructuredTool {
     if (args.status) {
       mediation.status =
         args.status === 'active'
-          ? MediationSessionStatus.ACTIVE
-          : MediationSessionStatus.CLOSED;
+          ? MediationStatus.ACTIVE
+          : MediationStatus.CLOSED;
     }
 
     if (args.metadata !== undefined) {

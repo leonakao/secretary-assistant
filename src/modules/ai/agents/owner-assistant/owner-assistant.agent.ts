@@ -20,6 +20,7 @@ import {
 } from '../../tools';
 import { createOwnerAssistantNode } from './owner-assistant.node';
 import { createToolNode } from '../../nodes/tool.node';
+import { PendingMediation } from 'src/modules/service-requests/services/mediation.service';
 
 // Define the agent state
 export const OwnerAssistantAgentState = Annotation.Root({
@@ -34,12 +35,7 @@ export interface OwnerAgentContext {
   userName: string;
   userPhone?: string;
   companyDescription: string;
-  mediations?: {
-    id: string;
-    description: string;
-    expectedResult: string;
-    interactionPending: 'user' | 'contact';
-  }[];
+  mediations: PendingMediation[];
 }
 
 @Injectable()

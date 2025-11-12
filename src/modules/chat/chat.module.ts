@@ -15,7 +15,7 @@ import { ClientConversationStrategy } from './strategies/client-conversation.str
 import { OwnerConversationStrategy } from './strategies/owner-conversation.strategy';
 import { OnboardingConversationStrategy } from './strategies/onboarding-conversation.strategy';
 import { Company } from '../companies/entities/company.entity';
-import { MediationSession } from '../service-requests/entities/mediation-session.entity';
+import { Mediation } from '../service-requests/entities/mediation.entity';
 
 @Module({
   imports: [
@@ -25,7 +25,7 @@ import { MediationSession } from '../service-requests/entities/mediation-session
       User,
       UserCompany,
       Company,
-      MediationSession,
+      Mediation,
     ]),
     forwardRef(() => AiModule),
     EvolutionModule,

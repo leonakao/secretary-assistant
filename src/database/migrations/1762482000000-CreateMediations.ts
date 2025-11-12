@@ -6,13 +6,11 @@ import {
   TableIndex,
 } from 'typeorm';
 
-export class CreateMediationSessions1762482000000
-  implements MigrationInterface
-{
+export class CreateMediations1762482000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
       new Table({
-        name: 'mediation_sessions',
+        name: 'mediations',
         columns: [
           {
             name: 'id',
@@ -34,7 +32,7 @@ export class CreateMediationSessions1762482000000
           {
             name: 'contact_id',
             type: 'uuid',
-            isNullable: true,
+            isNullable: false,
           },
           {
             name: 'status',

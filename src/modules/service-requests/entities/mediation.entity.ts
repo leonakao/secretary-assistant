@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-export enum MediationSessionStatus {
+export enum MediationStatus {
   ACTIVE = 'active',
   CLOSED = 'closed',
 }
@@ -18,8 +18,8 @@ export enum MediationInteractionPending {
   CONTACT = 'contact',
 }
 
-@Entity('mediation_sessions')
-export class MediationSession {
+@Entity('mediation')
+export class Mediation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -32,13 +32,13 @@ export class MediationSession {
   userId: string;
 
   @Index()
-  @Column({ type: 'uuid', nullable: true })
-  contactId?: string | null;
+  @Column({ type: 'uuid' })
+  contactId: string;
 
   @Column({
-    default: MediationSessionStatus.ACTIVE,
+    default: MediationStatus.ACTIVE,
   })
-  status: MediationSessionStatus;
+  status: MediationStatus;
 
   @Column({
     default: MediationInteractionPending.USER,

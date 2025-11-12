@@ -20,6 +20,7 @@ import {
 } from '../../tools';
 import { createClientAssistantNode } from './client-assistant.node';
 import { createToolNode } from '../../nodes/tool.node';
+import { PendingMediation } from 'src/modules/service-requests/services/mediation.service';
 
 export const ClientAssistantAgentState = Annotation.Root({
   ...MessagesAnnotation.spec,
@@ -34,12 +35,7 @@ export interface ClientAgentContext {
   contactName: string;
   contactPhone?: string;
   companyDescription: string;
-  mediations?: {
-    id: string;
-    description: string;
-    expectedResult: string;
-    interactionPending: 'user' | 'contact';
-  }[];
+  mediations: PendingMediation[];
 }
 
 @Injectable()

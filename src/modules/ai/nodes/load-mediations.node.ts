@@ -2,12 +2,12 @@ import { Repository } from 'typeorm';
 import { ClientAssistantAgentState } from '../agents/client-assistant/client-assistant.agent';
 import { OwnerAssistantAgentState } from '../agents/owner-assistant/owner-assistant.agent';
 import {
-  MediationSession,
-  MediationSessionStatus,
-} from 'src/modules/service-requests/entities/mediation-session.entity';
+  Mediation,
+  MediationStatus,
+} from 'src/modules/service-requests/entities/mediation.entity';
 
 export const createLoadMediationsNode = (
-  mediationRepository: Repository<MediationSession>,
+  mediationRepository: Repository<Mediation>,
 ) => {
   return async (
     state:
@@ -27,7 +27,7 @@ export const createLoadMediationsNode = (
     const mediations = await mediationRepository.find({
       where: {
         companyId,
-        status: MediationSessionStatus.ACTIVE,
+        status: MediationStatus.ACTIVE,
         contactId,
         userId,
       },

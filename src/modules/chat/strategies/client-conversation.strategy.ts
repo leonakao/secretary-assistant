@@ -7,10 +7,12 @@ import {
 } from './conversation-strategy.interface';
 import { Contact } from '../../contacts/entities/contact.entity';
 import { Company } from '../../companies/entities/company.entity';
-import { ClientAssistantAgent } from '../../ai/agents/client-assistant/client-assistant.agent';
+import {
+  ClientAgentContext,
+  ClientAssistantAgent,
+} from '../../ai/agents/client-assistant/client-assistant.agent';
 import { ChatService } from '../services/chat.service';
-import { ActionDetectionService } from '../../actions/services/action-detection.service';
-import { ActionExecutorService } from '../../actions/services/action-executor.service';
+import { MediationService } from 'src/modules/service-requests/services/mediation.service';
 
 @Injectable()
 export class ClientConversationStrategy implements ConversationStrategy {
@@ -18,13 +20,12 @@ export class ClientConversationStrategy implements ConversationStrategy {
 
   constructor(
     @InjectRepository(Contact)
-    private contactRepository: Repository<Contact>,
+    private readonly contactRepository: Repository<Contact>,
     @InjectRepository(Company)
-    private companyRepository: Repository<Company>,
-    private chatService: ChatService,
-    private clientAssistantAgent: ClientAssistantAgent,
-    private actionDetectionService: ActionDetectionService,
-    private actionExecutorService: ActionExecutorService,
+    private readonly companyRepository: Repository<Company>,
+    private readonly chatService: ChatService,
+    private readonly clientAssistantAgent: ClientAssistantAgent,
+    private readonly mediationService: MediationService,
   ) {}
 
   async handleConversation(params: {
@@ -56,13 +57,17 @@ export class ClientConversationStrategy implements ConversationStrategy {
       `Processing client message from ${contact.name}: ${params.message}`,
     );
 
-    const agentContext = {
+    const agentContext: ClientAgentContext = {
       companyId: params.companyId,
       instanceName: params.instanceName,
       contactId: params.contactId,
       contactName: contact.name,
       contactPhone: contact.phone ?? undefined,
       companyDescription: company.description,
+      mediations: await this.mediationService.findPendingMediations({
+        companyId: params.companyId,
+        contactId: params.contactId,
+      }),
     };
 
     try {
