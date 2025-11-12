@@ -1,6 +1,7 @@
 import { AIMessage } from '@langchain/core/messages';
 import { OwnerAssistantAgentState } from '../agents/owner-assistant/owner-assistant.agent';
 import { StructuredTool } from '@langchain/core/tools';
+import { ClientAssistantAgentState } from '../agents/client-assistant/client-assistant.agent';
 
 export const createToolNode = (tools: StructuredTool[]) => {
   const toolByName = tools.reduce(
@@ -11,7 +12,11 @@ export const createToolNode = (tools: StructuredTool[]) => {
     {} as Record<string, StructuredTool>,
   );
 
-  return async (state: typeof OwnerAssistantAgentState.State) => {
+  return async (
+    state:
+      | typeof OwnerAssistantAgentState.State
+      | typeof ClientAssistantAgentState.State,
+  ) => {
     const toolCalls =
       (state.messages[state.messages.length - 1] as AIMessage).tool_calls || [];
 

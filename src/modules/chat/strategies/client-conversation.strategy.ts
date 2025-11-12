@@ -88,16 +88,8 @@ export class ClientConversationStrategy implements ConversationStrategy {
         message: agentResponse,
       });
 
-      const actions = await this.detectAndExecuteClientActions({
-        sessionId: params.contactId,
-        companyId: params.companyId,
-        instanceName: params.instanceName,
-        contactId: params.contactId,
-      });
-
       return {
         message: agentResponse,
-        actions,
       };
     } catch (error) {
       this.logger.error('Error executing client agent:', error);
@@ -122,53 +114,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
 
       return {
         message: errorMessage,
-        actions: [],
       };
     }
-  }
-
-  private async detectAndExecuteClientActions(params: {
-    sessionId: string;
-    companyId: string;
-    instanceName: string;
-    contactId: string;
-  }): Promise<string[]> {
-    const actions: string[] = [];
-
-    try {
-      const detectionResult =
-        await this.actionDetectionService.detectActionsFromSession(
-          params.sessionId,
-          'client',
-        );
-
-      this.logger.debug('Client action detection result:', detectionResult);
-
-      actions.push(
-        ...detectionResult.actions.map((action): string => action.type),
-      );
-
-      if (
-        detectionResult.requiresAction &&
-        detectionResult.actions.length > 0
-      ) {
-        const results = await this.actionExecutorService.executeActions(
-          detectionResult.actions,
-          {
-            companyId: params.companyId,
-            instanceName: params.instanceName,
-            contactId: params.contactId,
-          },
-        );
-
-        this.logger.log(
-          `Executed ${results.length} client actions. Success: ${results.filter((r) => r.success).length}`,
-        );
-      }
-    } catch (error) {
-      this.logger.error('Error detecting/executing client actions:', error);
-    }
-
-    return actions;
   }
 }

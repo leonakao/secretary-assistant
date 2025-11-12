@@ -55,7 +55,7 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     });
 
     // Detect and execute onboarding actions (e.g., FINISH_ONBOARDING)
-    const actions = await this.detectAndExecuteOnboardingActions({
+    await this.detectAndExecuteOnboardingActions({
       sessionId: params.userId,
       companyId: params.companyId,
       instanceName: params.instanceName,
@@ -64,7 +64,6 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
 
     return {
       message,
-      actions,
     };
   }
 

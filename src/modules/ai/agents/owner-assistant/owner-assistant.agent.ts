@@ -24,14 +24,7 @@ import { createToolNode } from '../../nodes/tool.node';
 // Define the agent state
 export const OwnerAssistantAgentState = Annotation.Root({
   ...MessagesAnnotation.spec,
-  context: Annotation<{
-    companyId: string;
-    instanceName: string;
-    userId: string;
-    userName: string;
-    userPhone?: string;
-    companyDescription: string;
-  }>(),
+  context: Annotation<OwnerAgentContext>(),
 });
 
 export interface OwnerAgentContext {
@@ -41,6 +34,12 @@ export interface OwnerAgentContext {
   userName: string;
   userPhone?: string;
   companyDescription: string;
+  mediations?: {
+    id: string;
+    description: string;
+    expectedResult: string;
+    interactionPending: 'user' | 'contact';
+  }[];
 }
 
 @Injectable()
@@ -191,52 +190,6 @@ export class OwnerAssistantAgent implements OnModuleInit {
       return finalResponse || 'Desculpe, não consegui processar sua mensagem.';
     } catch (error) {
       this.logger.error('❌ Error executing owner agent:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Stream the agent execution
-   */
-  async *stream(
-    message: string,
-    user: User,
-    context: OwnerAgentContext,
-    threadId: string = 'default',
-  ): AsyncGenerator<string> {
-    try {
-      this.logger.log(`Streaming agent for user ${user.name}: ${message}`);
-
-      const config = {
-        configurable: {
-          thread_id: threadId,
-          context,
-        },
-      };
-
-      const stream = await this.graph.stream(
-        {
-          messages: [new HumanMessage(message)],
-          context,
-        },
-        config,
-      );
-
-      for await (const chunk of stream) {
-        if (chunk.agent) {
-          const messages = chunk.agent.messages as BaseMessage[];
-          const lastMessage = messages[messages.length - 1];
-
-          if (lastMessage.type === 'ai') {
-            const content = (lastMessage as AIMessage).content;
-            if (typeof content === 'string') {
-              yield content;
-            }
-          }
-        }
-      }
-    } catch (error) {
-      this.logger.error('Error streaming owner agent:', error);
       throw error;
     }
   }

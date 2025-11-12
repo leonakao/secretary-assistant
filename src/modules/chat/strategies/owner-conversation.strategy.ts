@@ -85,7 +85,6 @@ export class OwnerConversationStrategy implements ConversationStrategy {
 
       return {
         message: agentResponse,
-        actions: [],
       };
     } catch (error) {
       this.logger.error('Error executing owner agent:', error);
@@ -110,7 +109,6 @@ export class OwnerConversationStrategy implements ConversationStrategy {
 
       return {
         message: errorMessage,
-        actions: [],
       };
     }
   }

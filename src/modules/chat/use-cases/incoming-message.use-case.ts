@@ -41,7 +41,6 @@ export class IncomingMessageUseCase {
     if (key.fromMe) {
       return {
         message: '',
-        actions: [],
       };
     }
 
@@ -54,7 +53,6 @@ export class IncomingMessageUseCase {
     if (!messageText) {
       return {
         message: '',
-        actions: [],
       };
     }
 
@@ -74,22 +72,20 @@ export class IncomingMessageUseCase {
       const user = userCompany.user;
 
       if (company?.step === 'onboarding') {
-        const { message, actions } =
-          await this.onboardingStrategy.handleConversation({
-            companyId,
-            instanceName,
-            remoteJid,
-            message: messageText,
-            userId: user.id,
-          });
+        const { message } = await this.onboardingStrategy.handleConversation({
+          companyId,
+          instanceName,
+          remoteJid,
+          message: messageText,
+          userId: user.id,
+        });
 
         return {
           message,
-          actions,
         };
       }
 
-      const { message, actions } = await this.ownerStrategy.handleConversation({
+      const { message } = await this.ownerStrategy.handleConversation({
         companyId,
         instanceName,
         remoteJid,
@@ -99,7 +95,6 @@ export class IncomingMessageUseCase {
 
       return {
         message,
-        actions,
       };
     }
 
@@ -109,7 +104,6 @@ export class IncomingMessageUseCase {
       );
       return {
         message: '',
-        actions: [],
       };
     }
 
@@ -126,7 +120,6 @@ export class IncomingMessageUseCase {
       );
       return {
         message: '',
-        actions: [],
       };
     }
 
@@ -136,11 +129,10 @@ export class IncomingMessageUseCase {
       );
       return {
         message: '',
-        actions: [],
       };
     }
 
-    const { message, actions } = await this.clientStrategy.handleConversation({
+    const { message } = await this.clientStrategy.handleConversation({
       companyId,
       instanceName,
       remoteJid,
@@ -150,7 +142,6 @@ export class IncomingMessageUseCase {
 
     return {
       message,
-      actions,
     };
   }
 

@@ -1,6 +1,5 @@
 export interface ConversationResponse {
   message: string;
-  actions: string[];
 }
 
 export interface ConversationStrategy {

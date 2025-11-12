@@ -1,10 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LangchainService } from '../../ai/services/langchain.service';
-import { actionDetectionPrompt } from '../prompts/action-detection.prompt';
-import { clientActionDetectionPrompt } from '../prompts/client-action-detection.prompt';
 import { onboardingActionDetectionPrompt } from '../prompts/onboarding-action-detection.prompt';
 import { Memory } from '../../chat/entities/memory.entity';
 import {
@@ -58,14 +55,8 @@ export class ActionDetectionService {
 
       const conversationContext = this.buildConversationContext(messages);
 
-      let prompt: string;
-      if (context === 'owner') {
-        prompt = actionDetectionPrompt();
-      } else if (context === 'client') {
-        prompt = clientActionDetectionPrompt();
-      } else {
-        prompt = onboardingActionDetectionPrompt();
-      }
+      const prompt: string = onboardingActionDetectionPrompt();
+
       const fullPrompt = `${prompt}\n\nCONVERSA:\n${conversationContext}\n\nRESPOSTA JSON:`;
 
       const response = await this.langchainService.chat(fullPrompt);

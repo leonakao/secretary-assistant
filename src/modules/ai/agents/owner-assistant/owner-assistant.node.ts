@@ -132,5 +132,10 @@ Você tem acesso a TODAS as mensagens anteriores desta conversa, incluindo:
 - Você está falando com ${context.userName}
 - Hoje é ${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
 - Agora são ${new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
+
+## MEDICAÇÕES EM ANDAMENTO
+Caso você tenha mediações em andamento, é provável que o usuário esteja falando sobre uma dessas mediações.
+
+${context.mediations?.map((mediation) => `ID: ${mediation.id}, Descrição: ${mediation.description}, Resultado esperado: ${mediation.expectedResult}, Interacção pendente: ${mediation.interactionPending}`).join('\n') ?? 'Nenhuma mediação em andamento'}
 `;
 };

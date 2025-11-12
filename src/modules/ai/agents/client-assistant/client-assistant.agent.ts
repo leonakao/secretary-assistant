@@ -23,14 +23,8 @@ import { createToolNode } from '../../nodes/tool.node';
 
 export const ClientAssistantAgentState = Annotation.Root({
   ...MessagesAnnotation.spec,
-  context: Annotation<{
-    companyId: string;
-    instanceName: string;
-    contactId: string;
-    contactName: string;
-    contactPhone?: string;
-    companyDescription: string;
-  }>(),
+
+  context: Annotation<ClientAgentContext>(),
 });
 
 export interface ClientAgentContext {
@@ -40,6 +34,12 @@ export interface ClientAgentContext {
   contactName: string;
   contactPhone?: string;
   companyDescription: string;
+  mediations?: {
+    id: string;
+    description: string;
+    expectedResult: string;
+    interactionPending: 'user' | 'contact';
+  }[];
 }
 
 @Injectable()
