@@ -21,11 +21,19 @@ import {
 import { createClientAssistantNode } from './client-assistant.node';
 import { createToolNode } from '../../nodes/tool.node';
 import { PendingMediation } from 'src/modules/service-requests/services/mediation.service';
+import { createDetectTransferNode } from './detect-transfer.node';
+import { createRequestHumanNode } from './request-human.node';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 export const ClientAssistantAgentState = Annotation.Root({
   ...MessagesAnnotation.spec,
 
   context: Annotation<ClientAgentContext>(),
+  needsHumanSupport: Annotation<boolean>({
+    reducer: (_, newValue) => newValue ?? false,
+    default: () => false,
+  }),
 });
 
 export interface ClientAgentContext {
@@ -53,6 +61,8 @@ export class ClientAssistantAgent implements OnModuleInit {
     private readonly searchConversationTool: SearchConversationTool,
     private readonly searchUserTool: SearchUserTool,
     private readonly sendMessageTool: SendMessageTool,
+    @InjectRepository(Contact)
+    private readonly contactRepository: Repository<Contact>,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -100,12 +110,17 @@ export class ClientAssistantAgent implements OnModuleInit {
     };
 
     const workflow = new StateGraph(ClientAssistantAgentState)
+      .addNode('detectTransfer', createDetectTransferNode(this.model), {
+        ends: ['requestHuman', 'assistant'],
+      })
+      .addNode('requestHuman', createRequestHumanNode(this.contactRepository))
       .addNode(
         'assistant',
         createClientAssistantNode(this.model.bindTools(this.getTools())),
       )
       .addNode('tools', createToolNode(this.getTools()))
-      .addEdge('__start__', 'assistant')
+      .addEdge('__start__', 'detectTransfer')
+      .addEdge('requestHuman', '__end__')
       .addConditionalEdges('assistant', shouldContinue, {
         tools: 'tools',
         end: '__end__',
@@ -172,46 +187,6 @@ export class ClientAssistantAgent implements OnModuleInit {
     } catch (error) {
       this.logger.error('❌ [CLIENT] Error executing agent:', error);
       throw error;
-    }
-  }
-
-  async *stream(
-    message: string,
-    contact: Contact,
-    context: ClientAgentContext,
-    threadId: string = 'default',
-  ): AsyncGenerator<string> {
-    this.logger.log(
-      `📡 [CLIENT] Streaming agent response for contact ${contact.name}: ${message}`,
-    );
-
-    const config = {
-      configurable: {
-        thread_id: threadId,
-        context,
-      },
-    };
-
-    const stream = await this.graph.stream(
-      {
-        messages: [new HumanMessage(message)],
-        context,
-      },
-      config,
-    );
-
-    for await (const chunk of stream) {
-      if (chunk.agent) {
-        const messages = chunk.agent.messages as BaseMessage[];
-        const lastMessage = messages[messages.length - 1];
-
-        if (lastMessage.type === 'ai') {
-          const content = (lastMessage as AIMessage).content;
-          if (typeof content === 'string') {
-            yield content;
-          }
-        }
-      }
     }
   }
 

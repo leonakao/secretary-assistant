@@ -85,23 +85,23 @@ export class CreateMediations1762482000000 implements MigrationInterface {
     );
 
     await queryRunner.createIndex(
-      'mediation_sessions',
+      'mediations',
       new TableIndex({
-        name: 'IDX_MEDIATION_SESSIONS_COMPANY_USER',
+        name: 'IDX_MEDIATIONS_COMPANY_USER',
         columnNames: ['company_id', 'user_id'],
       }),
     );
 
     await queryRunner.createIndex(
-      'mediation_sessions',
+      'mediations',
       new TableIndex({
-        name: 'IDX_MEDIATION_SESSIONS_CONTACT',
+        name: 'IDX_MEDIATIONS_CONTACT',
         columnNames: ['contact_id'],
       }),
     );
 
     await queryRunner.createForeignKey(
-      'mediation_sessions',
+      'mediations',
       new TableForeignKey({
         columnNames: ['company_id'],
         referencedColumnNames: ['id'],
@@ -111,7 +111,7 @@ export class CreateMediations1762482000000 implements MigrationInterface {
     );
 
     await queryRunner.createForeignKey(
-      'mediation_sessions',
+      'mediations',
       new TableForeignKey({
         columnNames: ['user_id'],
         referencedColumnNames: ['id'],
@@ -121,7 +121,7 @@ export class CreateMediations1762482000000 implements MigrationInterface {
     );
 
     await queryRunner.createForeignKey(
-      'mediation_sessions',
+      'mediations',
       new TableForeignKey({
         columnNames: ['contact_id'],
         referencedColumnNames: ['id'],
@@ -132,23 +132,17 @@ export class CreateMediations1762482000000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    const table = await queryRunner.getTable('mediation_sessions');
+    const table = await queryRunner.getTable('mediations');
     if (table) {
       for (const foreignKey of table.foreignKeys) {
-        await queryRunner.dropForeignKey('mediation_sessions', foreignKey);
+        await queryRunner.dropForeignKey('mediations', foreignKey);
       }
     }
 
-    await queryRunner.dropIndex(
-      'mediation_sessions',
-      'IDX_MEDIATION_SESSIONS_CONTACT',
-    );
+    await queryRunner.dropIndex('mediations', 'IDX_MEDIATIONS_CONTACT');
 
-    await queryRunner.dropIndex(
-      'mediation_sessions',
-      'IDX_MEDIATION_SESSIONS_COMPANY_USER',
-    );
+    await queryRunner.dropIndex('mediations', 'IDX_MEDIATIONS_COMPANY_USER');
 
-    await queryRunner.dropTable('mediation_sessions');
+    await queryRunner.dropTable('mediations');
   }
 }

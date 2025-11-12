@@ -78,6 +78,10 @@ export class ClientConversationStrategy implements ConversationStrategy {
         params.contactId,
       );
 
+      if (!agentResponse) {
+        return { message: '' };
+      }
+
       await this.chatService.addMessageToMemory({
         sessionId: params.contactId,
         companyId: params.companyId,
