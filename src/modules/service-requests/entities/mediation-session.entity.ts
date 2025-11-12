@@ -1,6 +1,7 @@
 import {
   Column,
   CreateDateColumn,
+  DeleteDateColumn,
   Entity,
   Index,
   PrimaryGeneratedColumn,
@@ -53,9 +54,12 @@ export class MediationSession {
   @Column({ type: 'jsonb', nullable: true })
   metadata?: Record<string, unknown> | null;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamptz' })
+  @UpdateDateColumn()
   updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt: Date;
 }
