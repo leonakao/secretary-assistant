@@ -17,9 +17,11 @@ import {
   UpdateServiceRequestTool,
   SearchUserTool,
   SendMessageTool,
-} from '../tools';
+} from '../../tools';
+import { createClientAssistantNode } from './client-assistant.node';
+import { createToolNode } from '../../nodes/tool.node';
 
-const AgentState = Annotation.Root({
+export const ClientAssistantAgentState = Annotation.Root({
   ...MessagesAnnotation.spec,
   context: Annotation<{
     companyId: string;
@@ -90,81 +92,7 @@ export class ClientAssistantAgent implements OnModuleInit {
   }
 
   private initializeGraph(): void {
-    const tools = this.getTools();
-    const toolByName = tools.reduce(
-      (acc, tool) => {
-        acc[tool.name] = tool;
-        return acc;
-      },
-      {} as Record<string, StructuredTool>,
-    );
-
-    const toolNode = async (state: typeof AgentState.State) => {
-      const toolCalls =
-        (state.messages[state.messages.length - 1] as AIMessage).tool_calls ||
-        [];
-
-      const toolMessages = await Promise.all(
-        toolCalls.map(async (toolCall) => {
-          const tool = toolByName[toolCall.name];
-          if (!tool) {
-            return {
-              role: 'tool',
-              content: `Tool ${toolCall.name} not found`,
-              tool_call_id: toolCall.id,
-            };
-          }
-
-          try {
-            this.logger.log(`🔧 [TOOL] Executing tool: ${toolCall.name}`);
-            const result = await tool.invoke(toolCall.args, {
-              configurable: {
-                context: state.context,
-              },
-            });
-
-            return {
-              role: 'tool',
-              content: result,
-              tool_call_id: toolCall.id,
-              name: toolCall.name,
-            };
-          } catch (error) {
-            this.logger.error(`Error executing tool ${toolCall.name}:`, error);
-            return {
-              role: 'tool',
-              content: `Erro: ${error.message}`,
-              tool_call_id: toolCall.id,
-              name: toolCall.name,
-            };
-          }
-        }),
-      );
-
-      return { messages: toolMessages };
-    };
-
-    const modelWithTools = this.model.bindTools(tools);
-
-    const callModel = async (state: typeof AgentState.State) => {
-      this.logger.log('💬 [CLIENT] Invoking model...');
-
-      const systemMessage = this.buildSystemPrompt(state.context);
-      const messages = [
-        { role: 'system', content: systemMessage },
-        ...state.messages,
-      ];
-
-      const response = await modelWithTools.invoke(messages, {
-        configurable: {
-          context: state.context,
-        },
-      });
-
-      return { messages: [response] };
-    };
-
-    const shouldContinue = (state: typeof AgentState.State) => {
+    const shouldContinue = (state: typeof ClientAssistantAgentState.State) => {
       const messages = state.messages;
       const lastMessage = messages[messages.length - 1] as AIMessage;
 
@@ -175,15 +103,18 @@ export class ClientAssistantAgent implements OnModuleInit {
       return 'tools';
     };
 
-    const workflow = new StateGraph(AgentState)
-      .addNode('agent', callModel)
-      .addNode('tools', toolNode)
-      .addEdge('__start__', 'agent')
-      .addConditionalEdges('agent', shouldContinue, {
+    const workflow = new StateGraph(ClientAssistantAgentState)
+      .addNode(
+        'assistant',
+        createClientAssistantNode(this.model.bindTools(this.getTools())),
+      )
+      .addNode('tools', createToolNode(this.getTools()))
+      .addEdge('__start__', 'assistant')
+      .addConditionalEdges('assistant', shouldContinue, {
         tools: 'tools',
         end: '__end__',
       })
-      .addEdge('tools', 'agent');
+      .addEdge('tools', 'assistant');
 
     this.graph = workflow.compile({ checkpointer: this.checkpointer });
   }

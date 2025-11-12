@@ -2,8 +2,8 @@ import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LangchainService } from './services/langchain.service';
 import { AudioTranscriptionService } from './services/audio-transcription.service';
-import { OwnerAssistantAgent } from './agents/owner-assistant.agent';
-import { ClientAssistantAgent } from './agents/client-assistant.agent';
+import { OwnerAssistantAgent } from './agents/owner-assistant/owner-assistant.agent';
+import { ClientAssistantAgent } from './agents/client-assistant/client-assistant.agent';
 import {
   CreateServiceRequestTool,
   SearchServiceRequestTool,

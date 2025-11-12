@@ -1,6 +1,6 @@
 import { RunnableConfig } from '@langchain/core/runnables';
-import { OwnerAgentContext } from '../agents/owner-assistant.agent';
-import { ClientAgentContext } from '../agents/client-assistant.agent';
+import { OwnerAgentContext } from '../agents/owner-assistant/owner-assistant.agent';
+import { ClientAgentContext } from '../agents/client-assistant/client-assistant.agent';
 
 interface MediationContext {
   activeMediations?: {

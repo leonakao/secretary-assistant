@@ -7,7 +7,7 @@ import {
 } from './conversation-strategy.interface';
 import { Contact } from '../../contacts/entities/contact.entity';
 import { Company } from '../../companies/entities/company.entity';
-import { ClientAssistantAgent } from '../../ai/agents/client-assistant.agent';
+import { ClientAssistantAgent } from '../../ai/agents/client-assistant/client-assistant.agent';
 import { ChatService } from '../services/chat.service';
 import { ActionDetectionService } from '../../actions/services/action-detection.service';
 import { ActionExecutorService } from '../../actions/services/action-executor.service';

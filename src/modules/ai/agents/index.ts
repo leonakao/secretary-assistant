@@ -1,2 +1,2 @@
-export { OwnerAssistantAgent } from './owner-assistant.agent';
-export { ClientAssistantAgent } from './client-assistant.agent';
+export { OwnerAssistantAgent } from './owner-assistant/owner-assistant.agent';
+export { ClientAssistantAgent } from './client-assistant/client-assistant.agent';

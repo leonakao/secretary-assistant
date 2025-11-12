@@ -6,7 +6,7 @@ import {
   ConversationStrategy,
 } from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
-import { OwnerAssistantAgent } from '../../ai/agents/owner-assistant.agent';
+import { OwnerAssistantAgent } from '../../ai/agents/owner-assistant/owner-assistant.agent';
 import { User } from '../../users/entities/user.entity';
 import { Company } from '../../companies/entities/company.entity';
 
