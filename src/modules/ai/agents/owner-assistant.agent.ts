@@ -32,7 +32,7 @@ const AgentState = Annotation.Root({
   }>(),
 });
 
-export interface AgentContext {
+export interface OwnerAgentContext {
   companyId: string;
   instanceName: string;
   userId: string;
@@ -202,7 +202,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
   async execute(
     message: string,
     user: User,
-    context: AgentContext,
+    context: OwnerAgentContext,
     threadId: string = 'default',
   ): Promise<string> {
     try {
@@ -273,7 +273,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
   async *stream(
     message: string,
     user: User,
-    context: AgentContext,
+    context: OwnerAgentContext,
     threadId: string = 'default',
   ): AsyncGenerator<string> {
     try {
@@ -330,7 +330,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
   /**
    * Build the system prompt for the agent
    */
-  private buildSystemPrompt(context: AgentContext): string {
+  private buildSystemPrompt(context: OwnerAgentContext): string {
     return `Seu nome é Julia, e você é uma secretária executiva altamente eficiente e proativa. Você representa a empresa durante conversas com os clientes e atende a chamadas dos usuários / funcionários.
 
 ## PERSONA

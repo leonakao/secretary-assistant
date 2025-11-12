@@ -1,5 +1,5 @@
 import { RunnableConfig } from '@langchain/core/runnables';
-import { AgentContext as OwnerAgentContext } from '../agents/owner-assistant.agent';
+import { OwnerAgentContext } from '../agents/owner-assistant.agent';
 import { ClientAgentContext } from '../agents/client-assistant.agent';
 
 interface MediationContext {
@@ -19,8 +19,8 @@ type SupportedAgentContext =
  * Configuration object passed to tool _call methods
  * Extends LangChain's RunnableConfig with our custom context
  */
-export interface ToolConfig extends RunnableConfig {
+export interface ToolConfig<T = SupportedAgentContext> extends RunnableConfig {
   configurable: {
-    context: SupportedAgentContext;
+    context: T;
   };
 }

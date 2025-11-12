@@ -7,6 +7,7 @@ import { Company } from 'src/modules/companies/entities/company.entity';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { LangchainService } from '../services/langchain.service';
 import { ToolConfig } from '../types';
+import { OwnerAgentContext } from '../agents/owner-assistant.agent';
 
 const updateCompanySchema = z.object({
   updateRequest: z
@@ -22,7 +23,7 @@ export class UpdateCompanyTool extends StructuredTool {
 
   name = 'updateCompany';
   description =
-    'Atualiza informações da empresa (descrição, serviços, horários, etc). Use quando o proprietário quiser adicionar, modificar ou remover informações sobre a empresa.';
+    'Atualiza informações da empresa (descrição, serviços, horários, etc). Use quando o proprietário quiser adicionar, modificar ou remover informações sobre a empresa OU sempre que achar que deve armazenar alguma coisa na memória da empresa.';
   schema = updateCompanySchema;
 
   constructor(
@@ -38,14 +39,10 @@ export class UpdateCompanyTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof updateCompanySchema>,
     _,
-    config: ToolConfig,
+    config: ToolConfig<OwnerAgentContext>,
   ): Promise<string> {
     const { updateRequest } = args;
     const { companyId, userId } = config.configurable.context;
-
-    if (!companyId || !userId) {
-      throw new Error('Context missing required fields: companyId, userId');
-    }
 
     const company = await this.companyRepository.findOneByOrFail({
       id: companyId,
