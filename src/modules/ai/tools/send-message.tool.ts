@@ -89,19 +89,7 @@ export class SendMessageTool extends StructuredTool {
       message,
     });
 
-    const result = {
-      success: true,
-      message: 'Mensagem enviada com sucesso',
-      recipient: {
-        id: recipient.id,
-        name: recipient.name,
-        type: recipientType,
-        phone: 'phone' in recipient ? recipient.phone : undefined,
-      },
-      sentMessage: message,
-    };
-
-    return JSON.stringify(result, null, 2);
+    return 'Mensagem enviada com sucesso';
   }
 
   private buildRemoteJid(phone: string): string {

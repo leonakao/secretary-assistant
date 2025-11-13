@@ -113,36 +113,14 @@ export class SearchConversationTool extends StructuredTool {
 
     const memories = await queryBuilder.getMany();
 
-    if (memories.length === 0) {
-      const searchDesc = query
-        ? `com o termo "${query}"`
-        : sessionId
-          ? 'para este contato'
-          : '';
-      const result = {
-        success: true,
-        count: 0,
-        message: `Nenhuma conversa encontrada ${searchDesc} nos últimos ${days} dias`,
-        conversations: [],
-      };
-      return JSON.stringify(result, null, 2);
-    }
-
-    const result = {
-      success: true,
-      count: memories.length,
-      query: query || null,
-      days,
-      conversations: memories.reverse().map((m) => ({
-        id: m.id,
-        role: m.role,
-        content: m.content,
-        sessionId: m.sessionId,
-        createdAt: m.createdAt,
-      })),
-    };
-
-    this.logger.log(`✅ [TOOL] Found ${memories.length} conversation(s)`);
-    return JSON.stringify(result, null, 2);
+    return (
+      `${memories.length} Conversas encontradas: \n` +
+      memories
+        .map(
+          (memory) =>
+            `role: ${memory.role} | content: ${memory.content} | createdAt: ${Intl.DateTimeFormat('pt-BR').format(memory.createdAt)}`,
+        )
+        .join('\n')
+    );
   }
 }

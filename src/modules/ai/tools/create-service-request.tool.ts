@@ -88,25 +88,6 @@ export class CreateServiceRequestTool extends StructuredTool {
 
     await this.serviceRequestRepository.save(serviceRequest);
 
-    const result = {
-      success: true,
-      message: 'Solicitação de serviço criada com sucesso',
-      serviceRequest: {
-        id: serviceRequest.id,
-        contactId: serviceRequest.contactId,
-        requestType: serviceRequest.requestType,
-        title: serviceRequest.title,
-        description: serviceRequest.description,
-        status: serviceRequest.status,
-        scheduledFor: serviceRequest.scheduledFor,
-        clientNotes: serviceRequest.clientNotes,
-        internalNotes: serviceRequest.internalNotes,
-        assignedToUserId: serviceRequest.assignedToUserId,
-        companyId: serviceRequest.companyId,
-      },
-    };
-
-    this.logger.log(`✅ [TOOL] Service request created: ${serviceRequest.id}`);
-    return JSON.stringify(result, null, 2);
+    return `Solicitação de serviço criada com sucesso: ${serviceRequest.id}`;
   }
 }

@@ -110,31 +110,14 @@ export class SearchMediationTool extends StructuredTool {
 
     const sessions = await qb.getMany();
 
-    const limitedSessions = args.limit
-      ? sessions.slice(0, args.limit)
-      : sessions.slice(0, 20);
-
-    return JSON.stringify(
-      {
-        success: true,
-        total: sessions.length,
-        returned: limitedSessions.length,
-        mediations: limitedSessions.map((session) => ({
-          id: session.id,
-          companyId: session.companyId,
-          userId: session.userId,
-          contactId: session.contactId,
-          status: session.status,
-          interactionPending: session.interactionPending,
-          description: session.description,
-          expectedResult: session.expectedResult,
-          metadata: session.metadata,
-          createdAt: session.createdAt,
-          updatedAt: session.updatedAt,
-        })),
-      },
-      null,
-      2,
+    return (
+      `${sessions.length} Mediações encontradas: \n` +
+      sessions
+        .map(
+          (session) =>
+            `id: ${session.id} | userId: ${session.userId} | contactId: ${session.contactId} | status: ${session.status} | interactionPending: ${session.interactionPending} | description: ${session.description} | expectedResult: ${session.expectedResult} | createdAt: ${Intl.DateTimeFormat('pt-BR').format(session.createdAt)}`,
+        )
+        .join('\n')
     );
   }
 }

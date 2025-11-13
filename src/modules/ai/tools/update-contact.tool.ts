@@ -64,20 +64,6 @@ export class UpdateContactTool extends StructuredTool {
 
     await this.contactRepository.save(contact);
 
-    const result = {
-      success: true,
-      message: 'Contato atualizado com sucesso',
-      contact: {
-        id: contact.id,
-        name: contact.name,
-        phone: contact.phone,
-        email: contact.email,
-        instagram: contact.instagram,
-        companyId: contact.companyId,
-        preferredUserId: contact.preferredUserId,
-      },
-    };
-
-    return JSON.stringify(result, null, 2);
+    return 'Contato atualizado com sucesso';
   }
 }

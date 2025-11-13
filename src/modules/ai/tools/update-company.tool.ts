@@ -65,18 +65,7 @@ export class UpdateCompanyTool extends StructuredTool {
     company.description = updatedDescription;
     await this.companyRepository.save(company);
 
-    const result = {
-      success: true,
-      message: 'Informações da empresa atualizadas com sucesso',
-      company: {
-        id: company.id,
-        name: company.name,
-        description: company.description,
-        updatedAt: company.updatedAt,
-      },
-    };
-
-    return JSON.stringify(result, null, 2);
+    return 'Informações da empresa atualizadas com sucesso';
   }
 
   private async generateUpdatedDescription(

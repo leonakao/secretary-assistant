@@ -44,7 +44,6 @@ export class CreateContactTool extends StructuredTool {
       throw new Error('Company ID missing in the context');
     }
 
-    // Check if contact already exists
     if (phone) {
       const existingContact = await this.contactRepository.findOne({
         where: {
@@ -54,19 +53,7 @@ export class CreateContactTool extends StructuredTool {
       });
 
       if (existingContact) {
-        const result = {
-          success: false,
-          error: 'Contact already exists',
-          message: `Já existe um contato com o telefone ${phone}`,
-          existingContact: {
-            id: existingContact.id,
-            name: existingContact.name,
-            phone: existingContact.phone,
-            email: existingContact.email,
-            instagram: existingContact.instagram,
-          },
-        };
-        return JSON.stringify(result, null, 2);
+        return `Já existe um contato com o telefone ${phone}`;
       }
     }
 
@@ -79,19 +66,6 @@ export class CreateContactTool extends StructuredTool {
 
     await this.contactRepository.save(contact);
 
-    const result = {
-      success: true,
-      message: 'Contato criado com sucesso',
-      contact: {
-        id: contact.id,
-        name: contact.name,
-        phone: contact.phone,
-        email: contact.email,
-        instagram: contact.instagram,
-        companyId: contact.companyId,
-      },
-    };
-
-    return JSON.stringify(result, null, 2);
+    return `Contato criado com sucesso: ${contact.id}`;
   }
 }

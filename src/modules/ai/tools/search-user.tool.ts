@@ -58,27 +58,14 @@ export class SearchUserTool extends StructuredTool {
       .take(10)
       .getMany();
 
-    const result = {
-      success: true,
-      count: users.length,
-      users: users.map((user) => ({
-        id: user.id,
-        name: user.name,
-        phone: user.phone,
-        email: user.email,
-        companies: user.userCompanies
-          ?.filter((uc) => uc.companyId === companyId)
-          .map((uc) => ({
-            companyId: uc.companyId,
-            role: uc.role,
-          })),
-      })),
-    };
-
-    this.logger.log(
-      `✅ [TOOL] Found ${users.length} user(s) for query "${query}"`,
+    return (
+      `${users.length} Usuários encontrados: \n` +
+      users
+        .map(
+          (user) =>
+            `id: ${user.id} | name: ${user.name} | phone: ${user.phone}`,
+        )
+        .join('\n')
     );
-
-    return JSON.stringify(result, null, 2);
   }
 }

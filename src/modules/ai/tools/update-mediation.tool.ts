@@ -94,27 +94,6 @@ export class UpdateMediationTool extends StructuredTool {
 
     await this.mediationRepository.save(mediation);
 
-    this.logger.log(`✅ [TOOL] Mediation updated: ${mediation.id}`);
-
-    return JSON.stringify(
-      {
-        success: true,
-        mediation: {
-          id: mediation.id,
-          companyId: mediation.companyId,
-          userId: mediation.userId,
-          contactId: mediation.contactId,
-          status: mediation.status,
-          interactionPending: mediation.interactionPending,
-          description: mediation.description,
-          expectedResult: mediation.expectedResult,
-          metadata: mediation.metadata,
-          createdAt: mediation.createdAt,
-          updatedAt: mediation.updatedAt,
-        },
-      },
-      null,
-      2,
-    );
+    return 'Mediação atualizada com sucesso';
   }
 }

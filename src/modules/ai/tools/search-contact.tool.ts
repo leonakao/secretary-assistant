@@ -52,21 +52,14 @@ export class SearchContactTool extends StructuredTool {
       .take(10)
       .getMany();
 
-    const result = {
-      success: true,
-      count: contacts.length,
-      contacts: contacts.map((c) => ({
-        id: c.id,
-        name: c.name,
-        phone: c.phone,
-        email: c.email,
-        instagram: c.instagram,
-        companyId: c.companyId,
-        preferredUserId: c.preferredUserId,
-        ignoreUntil: c.ignoreUntil,
-      })),
-    };
-
-    return JSON.stringify(result, null, 2);
+    return (
+      `${contacts.length} Contatos encontrados: \n` +
+      contacts
+        .map(
+          (contact) =>
+            `id: ${contact.id} | name: ${contact.name} | phone: ${contact.phone} | preferredUserId: ${contact.preferredUserId}`,
+        )
+        .join('\n')
+    );
   }
 }

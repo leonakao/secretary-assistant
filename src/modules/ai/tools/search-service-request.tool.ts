@@ -85,26 +85,16 @@ export class SearchServiceRequestTool extends StructuredTool {
 
     const serviceRequests = await queryBuilder.getMany();
 
-    const result = {
-      success: true,
-      count: serviceRequests.length,
-      serviceRequests: serviceRequests.map((sr) => ({
-        id: sr.id,
-        contactId: sr.contactId,
-        requestType: sr.requestType,
-        title: sr.title,
-        description: sr.description,
-        status: sr.status,
-        scheduledFor: sr.scheduledFor,
-        clientNotes: sr.clientNotes,
-        internalNotes: sr.internalNotes,
-        assignedToUserId: sr.assignedToUserId,
-        companyId: sr.companyId,
-        createdAt: sr.createdAt,
-        updatedAt: sr.updatedAt,
-      })),
-    };
-
-    return JSON.stringify(result, null, 2);
+    return (
+      `${serviceRequests.length} Requisições de serviço encontradas: \n` +
+      serviceRequests
+        .map(
+          (sr) =>
+            `id: ${sr.id} | title: ${sr.title} | status: ${sr.status} | scheduledFor: ${Intl.DateTimeFormat(
+              'pt-BR',
+            ).format(sr.scheduledFor)}`,
+        )
+        .join('\n')
+    );
   }
 }

@@ -28,6 +28,7 @@ import { Memory } from '../chat/entities/memory.entity';
 import { Mediation } from '../service-requests/entities/mediation.entity';
 import { ChatModule } from '../chat/chat.module';
 import { ExtractAiMessageService } from './services/extract-ai-message.service';
+import { PostgresStore } from './stores/postgres.store';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { ExtractAiMessageService } from './services/extract-ai-message.service';
     LangchainService,
     VectorStoreService,
     AudioTranscriptionService,
+    PostgresStore,
   ],
   exports: [
     OwnerAssistantAgent,

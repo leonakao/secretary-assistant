@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { ServiceRequest } from 'src/modules/service-requests';
 import { AgentState } from '../agents/agent.state';
+import { Command } from '@langchain/langgraph';
 
 const updateServiceRequestSchema = z.object({
   requestId: z.string().describe('O ID da requisição a ser atualizada'),
@@ -44,7 +45,7 @@ export class UpdateServiceRequestTool extends StructuredTool {
     args: z.infer<typeof updateServiceRequestSchema>,
     _,
     state: typeof AgentState.State,
-  ): Promise<string> {
+  ): Promise<string | Command> {
     const {
       requestId,
       status,
@@ -93,25 +94,6 @@ export class UpdateServiceRequestTool extends StructuredTool {
 
     await this.serviceRequestRepository.save(serviceRequest);
 
-    const result = {
-      success: true,
-      message: 'Requisição atualizada com sucesso',
-      serviceRequest: {
-        id: serviceRequest.id,
-        contactId: serviceRequest.contactId,
-        requestType: serviceRequest.requestType,
-        title: serviceRequest.title,
-        description: serviceRequest.description,
-        status: serviceRequest.status,
-        scheduledFor: serviceRequest.scheduledFor,
-        clientNotes: serviceRequest.clientNotes,
-        internalNotes: serviceRequest.internalNotes,
-        assignedToUserId: serviceRequest.assignedToUserId,
-        companyId: serviceRequest.companyId,
-        updatedAt: serviceRequest.updatedAt,
-      },
-    };
-
-    return JSON.stringify(result, null, 2);
+    return 'Solicitação de serviço atualizada com sucesso';
   }
 }
