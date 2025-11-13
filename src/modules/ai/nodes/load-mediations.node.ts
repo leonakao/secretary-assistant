@@ -1,26 +1,27 @@
 import { Repository } from 'typeorm';
-import { ClientAssistantAgentState } from '../agents/client-assistant/client-assistant.agent';
-import { OwnerAssistantAgentState } from '../agents/owner-assistant/owner-assistant.agent';
 import {
   Mediation,
   MediationStatus,
 } from 'src/modules/service-requests/entities/mediation.entity';
+import {
+  AgentState,
+  isClientAgentContext,
+  isOwnerAgentContext,
+} from '../agents/agent.state';
 
 export const createLoadMediationsNode = (
   mediationRepository: Repository<Mediation>,
 ) => {
-  return async (
-    state:
-      | typeof ClientAssistantAgentState.State
-      | typeof OwnerAssistantAgentState.State,
-  ) => {
+  return async (state: typeof AgentState.State) => {
     const companyId = state.context.companyId;
 
-    let contactId;
-    let userId;
-    if (isClientAssistantState(state)) {
+    let contactId: string | undefined;
+    let userId: string | undefined;
+    if (isClientAgentContext(state.context)) {
       contactId = state.context.contactId;
-    } else {
+    }
+
+    if (isOwnerAgentContext(state.context)) {
       userId = state.context.userId;
     }
 
@@ -40,10 +41,4 @@ export const createLoadMediationsNode = (
       },
     };
   };
-};
-
-const isClientAssistantState = (
-  state: any,
-): state is typeof ClientAssistantAgentState.State => {
-  return state.context.contactId !== undefined;
 };

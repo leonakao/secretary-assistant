@@ -7,7 +7,7 @@ import { Company } from 'src/modules/companies/entities/company.entity';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { LangchainService } from '../services/langchain.service';
 import { ToolConfig } from '../types';
-import { OwnerAgentContext } from '../agents/owner-assistant/owner-assistant.agent';
+import { OwnerAgentContext } from '../agents/agent.state';
 
 const updateCompanySchema = z.object({
   updateRequest: z

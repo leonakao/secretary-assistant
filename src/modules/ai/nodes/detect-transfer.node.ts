@@ -1,11 +1,14 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { ClientAssistantAgentState } from './client-assistant.agent';
+import { AgentState, isClientAgentContext } from '../agents/agent.state';
 import z from 'zod';
 import { Command } from '@langchain/langgraph';
 
 export const createDetectTransferNode =
-  (model: ChatGoogleGenerativeAI) =>
-  async (state: typeof ClientAssistantAgentState.State) => {
+  (model: ChatGoogleGenerativeAI) => async (state: typeof AgentState.State) => {
+    if (!isClientAgentContext(state.context)) {
+      throw new Error('Detect transfer node received invalid context');
+    }
+
     const systemMessage = `Você é um analisador de mensagens. Sua única tarefa é determinar se o usuário está solicitando falar com um humano ou suporte humano.
 
 Exemplos de solicitações de humano:

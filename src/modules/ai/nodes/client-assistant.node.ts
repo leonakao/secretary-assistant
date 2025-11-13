@@ -1,11 +1,19 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { ClientAssistantAgentState } from './client-assistant.agent';
+import {
+  AgentState,
+  ClientAgentContext,
+  isClientAgentContext,
+} from '../agents/agent.state';
 import { Runnable } from '@langchain/core/runnables';
 
 export const createClientAssistantNode =
   (modelWithTools: ChatGoogleGenerativeAI | Runnable) =>
-  async (state: typeof ClientAssistantAgentState.State) => {
-    const systemMessage = buildSystemPrompt(state);
+  async (state: typeof AgentState.State) => {
+    if (!isClientAgentContext(state.context)) {
+      throw new Error('Client assistant node received invalid context');
+    }
+
+    const systemMessage = buildSystemPrompt(state, state.context);
     const messages = [
       { role: 'system', content: systemMessage },
       ...state.messages,
@@ -21,12 +29,13 @@ export const createClientAssistantNode =
   };
 
 const buildSystemPrompt = (
-  state: typeof ClientAssistantAgentState.State,
+  state: typeof AgentState.State,
+  context: ClientAgentContext,
 ): string => {
-  return `Você é Julia, secretária virtual da empresa. Você está em uma conversa com o cliente ${state.context.contactName}.
+  return `Você é Julia, secretária virtual da empresa. Você está em uma conversa com o cliente ${context.contactName}.
 
 ## CONTEXTO DA EMPRESA
-${state.context.companyDescription || 'Descrição não disponível'}
+${context.companyDescription || 'Descrição não disponível'}
 
 ## SOBRE O SISTEMA
 - Usuário (user) é um funcionário ou dono da empresa
@@ -78,8 +87,8 @@ Sempre que usar uma ferramenta:
 15. A mediação é um processo interno, o cliente não deve saber que ele existe e você não precisa confirmar ações relacionadas a isso com ele
 
 ## CONTEXTO DO CLIENTE
-- Nome: ${state.context.contactName}
-- ContactId: ${state.context.contactId}
+- Nome: ${context.contactName}
+- ContactId: ${context.contactId}
 - Data atual: ${new Date().toLocaleDateString('pt-BR', {
     timeZone: 'America/Sao_Paulo',
   })}
@@ -93,5 +102,5 @@ Sempre que usar uma ferramenta:
 ## MEDICAÇÕES EM ANDAMENTO
 Caso você tenha mediações em andamento, é provável que o usuário esteja falando sobre uma dessas mediações.
 
-${state.context.mediations?.map((mediation) => `ID: ${mediation.id}, UserId: ${mediation.userId}, Descrição: ${mediation.description}, Resultado esperado: ${mediation.expectedResult}`).join('\n') ?? 'Nenhuma mediação em andamento'}`;
+${context.mediations?.map((mediation) => `ID: ${mediation.id}, UserId: ${mediation.userId}, Descrição: ${mediation.description}, Resultado esperado: ${mediation.expectedResult}`).join('\n') ?? 'Nenhuma mediação em andamento'}`;
 };

@@ -10,7 +10,7 @@ import { Company } from '../../companies/entities/company.entity';
 import {
   ClientAgentContext,
   ClientAssistantAgent,
-} from '../../ai/agents/client-assistant/client-assistant.agent';
+} from '../../ai/agents/client-assistant.agent';
 import { ChatService } from '../services/chat.service';
 import { MediationService } from 'src/modules/service-requests/services/mediation.service';
 
@@ -81,13 +81,6 @@ export class ClientConversationStrategy implements ConversationStrategy {
       if (!agentResponse) {
         return { message: '' };
       }
-
-      await this.chatService.addMessageToMemory({
-        sessionId: params.contactId,
-        companyId: params.companyId,
-        role: 'assistant',
-        content: agentResponse,
-      });
 
       await this.chatService.sendMessageAndSaveToMemory({
         sessionId: params.contactId,

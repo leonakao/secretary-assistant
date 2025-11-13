@@ -1,51 +1,39 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import {
-  StateGraph,
-  MessagesAnnotation,
-  Annotation,
-} from '@langchain/langgraph';
+import { StateGraph } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
-import { BaseMessage, HumanMessage, AIMessage } from '@langchain/core/messages';
+import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
+import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import {
   CreateServiceRequestTool,
+  SearchConversationTool,
   SearchServiceRequestTool,
   UpdateServiceRequestTool,
-  SendMessageTool,
-  SearchConversationTool,
   SearchUserTool,
+  SendMessageTool,
   CreateMediationTool,
   UpdateMediationTool,
   SearchMediationTool,
-} from '../../tools';
-import { createOwnerAssistantNode } from './owner-assistant.node';
-import { createToolNode } from '../../nodes/tool.node';
-import { PendingMediation } from 'src/modules/service-requests/services/mediation.service';
-
-// Define the agent state
-export const OwnerAssistantAgentState = Annotation.Root({
-  ...MessagesAnnotation.spec,
-  context: Annotation<OwnerAgentContext>(),
-});
-
-export interface OwnerAgentContext {
-  companyId: string;
-  instanceName: string;
-  userId: string;
-  userName: string;
-  userPhone?: string;
-  companyDescription: string;
-  mediations: PendingMediation[];
-}
+} from '../tools';
+import { createClientAssistantNode } from '../nodes/client-assistant.node';
+import { createToolNode } from '../nodes/tool.node';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { VectorStoreService } from '../services/vector-store.service';
+import { AgentState, ClientAgentContext } from './agent.state';
+import { createDetectTransferNode } from '../nodes/detect-transfer.node';
+import { createRequestHumanNode } from '../nodes/request-human.node';
 
 @Injectable()
-export class OwnerAssistantAgent implements OnModuleInit {
-  private readonly logger = new Logger(OwnerAssistantAgent.name);
+export class ClientAssistantAgent implements OnModuleInit {
+  private readonly logger = new Logger(ClientAssistantAgent.name);
   private model: ChatGoogleGenerativeAI;
   private checkpointer: PostgresSaver;
+  private vectorStore?: PGVectorStore;
   private graph: any;
 
   constructor(
@@ -53,12 +41,17 @@ export class OwnerAssistantAgent implements OnModuleInit {
     private readonly createServiceRequestTool: CreateServiceRequestTool,
     private readonly searchServiceRequestTool: SearchServiceRequestTool,
     private readonly updateServiceRequestTool: UpdateServiceRequestTool,
-    private readonly sendMessageTool: SendMessageTool,
     private readonly searchConversationTool: SearchConversationTool,
+    private readonly searchUserTool: SearchUserTool,
+    private readonly sendMessageTool: SendMessageTool,
     private readonly createMediationTool: CreateMediationTool,
     private readonly updateMediationTool: UpdateMediationTool,
     private readonly searchMediationTool: SearchMediationTool,
-    private readonly searchUserTool: SearchUserTool,
+    private readonly vectorStoreService: VectorStoreService,
+    @InjectRepository(Contact)
+    private readonly contactRepository: Repository<Contact>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -69,53 +62,71 @@ export class OwnerAssistantAgent implements OnModuleInit {
     this.model = new ChatGoogleGenerativeAI({
       apiKey,
       model: 'gemini-2.5-flash',
-      temperature: 0.7,
+      temperature: 0.6,
       maxOutputTokens: 2048,
     });
   }
 
-  async onModuleInit() {
-    this.logger.log('🔌 Initializing PostgresSaver checkpointer...');
+  async onModuleInit(): Promise<void> {
+    this.logger.log(
+      '🔌 Initializing PostgresSaver checkpointer for client agent...',
+    );
 
     this.checkpointer = PostgresSaver.fromConnString(
       `postgresql://${this.configService.get<string>('DB_USERNAME', 'postgres')}:${this.configService.get<string>('DB_PASSWORD', 'postgres')}@${this.configService.get<string>('DB_HOST', 'localhost')}:${this.configService.get<number>('DB_PORT', 5432)}/${this.configService.get<string>('DB_DATABASE', 'postgres')}`,
-      { schema: 'checkpointer' }, // Schema is passed here as an option
+      { schema: 'checkpointer' },
     );
 
     await this.checkpointer.setup();
 
-    this.logger.log('✅ PostgresSaver initialized with schema: checkpointer');
+    this.logger.log(
+      '✅ Client agent checkpointer ready (schema: checkpointer)',
+    );
+
+    this.logger.log('🧠 Initializing vector store for client agent...');
+    this.vectorStore = await this.vectorStoreService.getVectorStore();
+    this.logger.log(
+      '✅ Client agent vector store ready (schema: vector_store)',
+    );
 
     this.initializeGraph();
   }
 
-  /**
-   * Initialize the LangGraph workflow
-   */
-  private initializeGraph() {
-    const tools = this.getTools();
-
-    const shouldContinue = (state: typeof OwnerAssistantAgentState.State) => {
-      this.logger.log('🔀 [TASK] Evaluating next step...');
+  private initializeGraph(): void {
+    const shouldContinue = (state: typeof AgentState.State) => {
       const messages = state.messages;
       const lastMessage = messages[messages.length - 1] as AIMessage;
 
       if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
-        this.logger.log('🏁 [TASK] No tool calls - ending workflow');
         return 'end';
       }
 
-      this.logger.log('➡️  [TASK] Tool calls detected - routing to tools node');
       return 'tools';
     };
 
-    const workflow = new StateGraph(OwnerAssistantAgentState)
+    const workflow = new StateGraph(AgentState)
+      .addNode('detectTransfer', createDetectTransferNode(this.model), {
+        ends: ['requestHuman', 'assistant'],
+      })
+      .addNode(
+        'requestHuman',
+        createRequestHumanNode(
+          this.contactRepository,
+          this.userRepository,
+          this.sendMessageTool,
+        ),
+      )
       .addNode(
         'assistant',
-        createOwnerAssistantNode(this.model.bindTools(tools)),
+        createClientAssistantNode(this.model.bindTools(this.getTools())),
       )
-      .addNode('tools', createToolNode(this.getTools()))
-      .addEdge('__start__', 'assistant')
+      .addNode('tools', createToolNode(this.getTools()), {
+        retryPolicy: {
+          logWarning: true,
+        },
+      })
+      .addEdge('__start__', 'detectTransfer')
+      .addEdge('requestHuman', '__end__')
       .addConditionalEdges('assistant', shouldContinue, {
         tools: 'tools',
         end: '__end__',
@@ -125,18 +136,15 @@ export class OwnerAssistantAgent implements OnModuleInit {
     this.graph = workflow.compile({ checkpointer: this.checkpointer });
   }
 
-  /**
-   * Execute the agent with the given message and context
-   */
   async execute(
     message: string,
-    user: User,
-    context: OwnerAgentContext,
+    contact: Contact,
+    context: ClientAgentContext,
     threadId: string = 'default',
   ): Promise<string> {
-    try {
-      this.logger.log(`🚀 Executing agent for user ${user.name}: ${message}`);
+    this.logger.log(`🚀 [CLIENT] Executing agent for contact ${contact.name}`);
 
+    try {
       const config = {
         configurable: {
           thread_id: threadId,
@@ -145,12 +153,6 @@ export class OwnerAssistantAgent implements OnModuleInit {
       };
 
       let finalResponse = '';
-      let chunkCount = 0;
-
-      this.logger.log('📡 Starting stream...');
-      this.logger.log(
-        `📝 Sending new message to graph (checkpointer will load history for thread: ${threadId})`,
-      );
 
       const stream = await this.graph.stream(
         {
@@ -161,52 +163,51 @@ export class OwnerAssistantAgent implements OnModuleInit {
       );
 
       for await (const chunk of stream) {
-        chunkCount++;
-        this.logger.log(
-          `📦 Chunk ${chunkCount}:`,
-          JSON.stringify(chunk, null, 2),
-        );
-
         if (chunk.assistant) {
-          this.logger.log('🤖 Assistant node executed');
-          const messages = chunk.assistant.messages as BaseMessage[];
+          const messages = chunk.assistant.messages;
           const lastMessage = messages[messages.length - 1];
 
+          console.log('Messages:', JSON.stringify(messages));
+          console.log('Last Message:', JSON.stringify(lastMessage));
+
           if (lastMessage.type === 'ai') {
-            const content = (lastMessage as AIMessage).content;
+            console.log('IS AI', lastMessage);
+            const content = lastMessage.content;
+
             if (typeof content === 'string') {
               finalResponse = content;
-              this.logger.log(`💬 Assistant response: ${content}`);
             }
           }
+
+          continue;
         }
 
-        if (chunk.tools) {
-          this.logger.log('🔧 Tools node executed');
+        if (chunk.requestHuman) {
+          finalResponse =
+            chunk.requestHuman.messages[chunk.requestHuman.messages.length - 1]
+              .content;
+
+          continue;
         }
       }
 
-      this.logger.log(`✅ Stream completed with ${chunkCount} chunks`);
-      this.logger.log(`📝 Final response: ${finalResponse}`);
+      this.logger.log('✅ [CLIENT] Stream completed');
 
-      return finalResponse || 'Desculpe, não consegui processar sua mensagem.';
+      return finalResponse;
     } catch (error) {
-      this.logger.error('❌ Error executing owner agent:', error);
+      this.logger.error('❌ [CLIENT] Error executing agent:', error);
       throw error;
     }
   }
 
-  /**
-   * Get all available tools for the agent
-   */
   private getTools(): StructuredTool[] {
     return [
       this.createServiceRequestTool,
       this.searchServiceRequestTool,
       this.updateServiceRequestTool,
       this.searchConversationTool,
-      this.sendMessageTool,
       this.searchUserTool,
+      this.sendMessageTool,
       this.createMediationTool,
       this.updateMediationTool,
       this.searchMediationTool,

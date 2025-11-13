@@ -4,8 +4,8 @@ import { AIMessage } from '@langchain/core/messages';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 
-import { SendMessageTool } from '../../tools/send-message.tool';
-import { ClientAssistantAgentState } from './client-assistant.agent';
+import { AgentState, isClientAgentContext } from '../agents/agent.state';
+import { SendMessageTool } from '../tools';
 
 export const createRequestHumanNode =
   (
@@ -13,7 +13,11 @@ export const createRequestHumanNode =
     userRepository: Repository<User>,
     sendMessageTool: SendMessageTool,
   ) =>
-  async (state: typeof ClientAssistantAgentState.State) => {
+  async (state: typeof AgentState.State) => {
+    if (!isClientAgentContext(state.context)) {
+      throw new Error('Request human node received invalid context');
+    }
+
     const { contactId, contactName, companyId } = state.context;
 
     const ignoreUntil = new Date();

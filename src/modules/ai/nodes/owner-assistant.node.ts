@@ -1,14 +1,20 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import {
+  AgentState,
   OwnerAgentContext,
-  OwnerAssistantAgentState,
-} from './owner-assistant.agent';
+  isOwnerAgentContext,
+} from '../agents/agent.state';
 import { Runnable } from '@langchain/core/runnables';
 
 export const createOwnerAssistantNode =
   (modelWithTools: ChatGoogleGenerativeAI | Runnable) =>
-  async (state: typeof OwnerAssistantAgentState.State) => {
-    const systemMessage = buildSystemPrompt(state.context);
+  async (state: typeof AgentState.State) => {
+    if (!isOwnerAgentContext(state.context)) {
+      throw new Error('Owner assistant node received invalid context');
+    }
+
+    const context = state.context;
+    const systemMessage = buildSystemPrompt(context);
     const messages = [
       { role: 'system', content: systemMessage },
       ...state.messages,
@@ -16,7 +22,7 @@ export const createOwnerAssistantNode =
 
     const response = await modelWithTools.invoke(messages, {
       configurable: {
-        context: state.context,
+        context,
       },
     });
 

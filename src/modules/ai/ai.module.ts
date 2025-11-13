@@ -1,9 +1,10 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LangchainService } from './services/langchain.service';
+import { VectorStoreService } from './services/vector-store.service';
 import { AudioTranscriptionService } from './services/audio-transcription.service';
-import { OwnerAssistantAgent } from './agents/owner-assistant/owner-assistant.agent';
-import { ClientAssistantAgent } from './agents/client-assistant/client-assistant.agent';
+import { OwnerAssistantAgent } from './agents/owner-assistant.agent';
+import { ClientAssistantAgent } from './agents/client-assistant.agent';
 import {
   CreateServiceRequestTool,
   SearchServiceRequestTool,
@@ -41,6 +42,7 @@ import { ChatModule } from '../chat/chat.module';
   ],
   providers: [
     LangchainService,
+    VectorStoreService,
     AudioTranscriptionService,
     OwnerAssistantAgent,
     ClientAssistantAgent,
@@ -61,6 +63,7 @@ import { ChatModule } from '../chat/chat.module';
   ],
   exports: [
     LangchainService,
+    VectorStoreService,
     AudioTranscriptionService,
     OwnerAssistantAgent,
     ClientAssistantAgent,

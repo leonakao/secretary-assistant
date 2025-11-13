@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Memory } from '../entities/memory.entity';
 import { LangchainService } from '../../ai/services/langchain.service';
 import type { MessageProvider } from '../interfaces/message-provider.interface';
+import { EvolutionService } from '../../evolution/services/evolution.service';
 
 @Injectable()
 export class ChatService {
@@ -13,6 +14,7 @@ export class ChatService {
     private langchainService: LangchainService,
     @Inject('MESSAGE_PROVIDER')
     private messageProvider: MessageProvider,
+    private readonly evolutionService: EvolutionService,
   ) {}
 
   async sendMessage(params: {
@@ -229,6 +231,20 @@ export class ChatService {
       companyId,
       role: 'assistant',
       content: messageToSave,
+    });
+  }
+
+  async sendPresenceNotification(params: {
+    instanceName: string;
+    remoteJid: string;
+    presence?: 'available' | 'composing' | 'paused' | 'recording' | 'unavailable';
+    delayMs?: number;
+  }): Promise<void> {
+    await this.evolutionService.sendPresence({
+      instanceName: params.instanceName,
+      remoteJid: params.remoteJid,
+      presence: params.presence,
+      delayMs: params.delayMs,
     });
   }
 }
