@@ -1,14 +1,9 @@
 import { StructuredTool } from '@langchain/core/tools';
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { ToolConfig } from '../types';
-import {
-  MediationInteractionPending,
-  Mediation,
-  MediationStatus,
-} from 'src/modules/service-requests/entities/mediation.entity';
+import { CreateMediationService } from 'src/modules/service-requests/services/create-mediation.service';
+import { MediationInteractionPending } from 'src/modules/service-requests/entities/mediation.entity';
 
 const createMediationSchema = z.object({
   description: z
@@ -20,16 +15,12 @@ const createMediationSchema = z.object({
     .min(3)
     .describe('Resultado esperado ou condição para encerrar a mediação'),
   interactionPending: z
-    .enum(['user', 'contact'])
+    .enum(Object.values(MediationInteractionPending))
     .describe(
       'Quem deve interagir a seguir: "user" (proprietário/funcionário) ou "contact" (cliente).',
     ),
-  userId: z
-    .uuid()
-    .describe('ID do proprietário responsável (usa o contexto por padrão)'),
-  contactId: z
-    .uuid()
-    .describe('ID do contato envolvido (usa o contexto do cliente por padrão)'),
+  userId: z.uuid().optional().describe('ID do usuário responsável'),
+  contactId: z.uuid().describe('ID do contato envolvido'),
   metadata: z
     .object({})
     .catchall(z.any())
@@ -46,10 +37,7 @@ export class CreateMediationTool extends StructuredTool {
     'Cria uma nova mediação entre proprietário e cliente. Use quando precisar iniciar um acompanhamento estruturado até que o resultado esperado seja alcançado. Por exemplo: Caso o cliente faça uma pergunta que você não saiba responder, crie uma mediação para que um usuário auxilie na resposta. A mediação será registrada e o fluxo continuará com o acompanhamento. A mediação pode ser atualizada posteriormente com novas interações.';
   schema = createMediationSchema;
 
-  constructor(
-    @InjectRepository(Mediation)
-    private readonly mediationRepository: Repository<Mediation>,
-  ) {
+  constructor(private readonly createMediationService: CreateMediationService) {
     super();
   }
 
@@ -64,25 +52,16 @@ export class CreateMediationTool extends StructuredTool {
       throw new Error('Company ID missing in the context');
     }
 
-    const interactionPending = args.interactionPending
-      ? args.interactionPending === 'user'
-        ? MediationInteractionPending.USER
-        : MediationInteractionPending.CONTACT
-      : undefined;
-
-    const mediation = this.mediationRepository.create({
+    const mediation = await this.createMediationService.execute({
       companyId,
-      userId: args.userId,
       contactId: args.contactId,
       description: args.description,
       expectedResult: args.expectedResult,
-      interactionPending:
-        interactionPending ?? MediationInteractionPending.CONTACT,
-      status: MediationStatus.ACTIVE,
       metadata: args.metadata ?? null,
+      interactionPending:
+        args.interactionPending as MediationInteractionPending,
+      userId: args.userId,
     });
-
-    await this.mediationRepository.save(mediation);
 
     this.logger.log(`✅ [TOOL] Mediation created: ${mediation.id}`);
 
