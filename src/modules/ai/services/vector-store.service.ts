@@ -3,6 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { Embeddings } from '@langchain/core/embeddings';
+import { Document } from '@langchain/core/documents';
+
+export interface SemanticMemoryEntry {
+  content: string;
+  metadata: Record<string, unknown>;
+}
 
 @Injectable()
 export class VectorStoreService implements OnModuleInit {
@@ -32,6 +38,29 @@ export class VectorStoreService implements OnModuleInit {
     }
 
     return this.vectorStore;
+  }
+
+  async similaritySearch(
+    query: string,
+    {
+      filter,
+      limit = 5,
+    }: {
+      filter?: PGVectorStore['FilterType'];
+      limit?: number;
+    } = {},
+  ): Promise<SemanticMemoryEntry[]> {
+    const store = await this.getVectorStore();
+    const results: Document[] = await store.similaritySearch(
+      query,
+      limit,
+      filter,
+    );
+
+    return results.map((doc) => ({
+      content: doc.pageContent,
+      metadata: doc.metadata ?? {},
+    }));
   }
 
   private async initialize(): Promise<void> {

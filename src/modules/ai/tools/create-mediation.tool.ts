@@ -1,9 +1,9 @@
 import { StructuredTool } from '@langchain/core/tools';
 import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
-import { ToolConfig } from '../types';
 import { CreateMediationService } from 'src/modules/service-requests/services/create-mediation.service';
 import { MediationInteractionPending } from 'src/modules/service-requests/entities/mediation.entity';
+import { AgentState } from '../agents/agent.state';
 
 const createMediationSchema = z.object({
   description: z
@@ -44,9 +44,9 @@ export class CreateMediationTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof createMediationSchema>,
     _: unknown,
-    config: ToolConfig,
+    state: typeof AgentState.State,
   ): Promise<string> {
-    const companyId = config.configurable.context.companyId;
+    const companyId = state.context.companyId;
 
     if (!companyId) {
       throw new Error('Company ID missing in the context');

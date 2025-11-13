@@ -1,9 +1,8 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { StateGraph } from '@langchain/langgraph';
+import { END, START, StateGraph } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
-import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
@@ -23,7 +22,6 @@ import { createClientAssistantNode } from '../nodes/client-assistant.node';
 import { createToolNode } from '../nodes/tool.node';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { VectorStoreService } from '../services/vector-store.service';
 import { AgentState, ClientAgentContext } from './agent.state';
 import { createDetectTransferNode } from '../nodes/detect-transfer.node';
 import { createRequestHumanNode } from '../nodes/request-human.node';
@@ -33,8 +31,7 @@ export class ClientAssistantAgent implements OnModuleInit {
   private readonly logger = new Logger(ClientAssistantAgent.name);
   private model: ChatGoogleGenerativeAI;
   private checkpointer: PostgresSaver;
-  private vectorStore?: PGVectorStore;
-  private graph: any;
+  private graph: ReturnType<typeof this.buildGraph>;
 
   constructor(
     private readonly configService: ConfigService,
@@ -47,7 +44,6 @@ export class ClientAssistantAgent implements OnModuleInit {
     private readonly createMediationTool: CreateMediationTool,
     private readonly updateMediationTool: UpdateMediationTool,
     private readonly searchMediationTool: SearchMediationTool,
-    private readonly vectorStoreService: VectorStoreService,
     @InjectRepository(Contact)
     private readonly contactRepository: Repository<Contact>,
     @InjectRepository(User)
@@ -68,10 +64,6 @@ export class ClientAssistantAgent implements OnModuleInit {
   }
 
   async onModuleInit(): Promise<void> {
-    this.logger.log(
-      '🔌 Initializing PostgresSaver checkpointer for client agent...',
-    );
-
     this.checkpointer = PostgresSaver.fromConnString(
       `postgresql://${this.configService.get<string>('DB_USERNAME', 'postgres')}:${this.configService.get<string>('DB_PASSWORD', 'postgres')}@${this.configService.get<string>('DB_HOST', 'localhost')}:${this.configService.get<number>('DB_PORT', 5432)}/${this.configService.get<string>('DB_DATABASE', 'postgres')}`,
       { schema: 'checkpointer' },
@@ -79,20 +71,10 @@ export class ClientAssistantAgent implements OnModuleInit {
 
     await this.checkpointer.setup();
 
-    this.logger.log(
-      '✅ Client agent checkpointer ready (schema: checkpointer)',
-    );
-
-    this.logger.log('🧠 Initializing vector store for client agent...');
-    this.vectorStore = await this.vectorStoreService.getVectorStore();
-    this.logger.log(
-      '✅ Client agent vector store ready (schema: vector_store)',
-    );
-
-    this.initializeGraph();
+    this.graph = this.buildGraph();
   }
 
-  private initializeGraph(): void {
+  private buildGraph() {
     const shouldContinue = (state: typeof AgentState.State) => {
       const messages = state.messages;
       const lastMessage = messages[messages.length - 1] as AIMessage;
@@ -125,79 +107,38 @@ export class ClientAssistantAgent implements OnModuleInit {
           logWarning: true,
         },
       })
-      .addEdge('__start__', 'detectTransfer')
-      .addEdge('requestHuman', '__end__')
+      .addEdge(START, 'detectTransfer')
+      .addEdge('requestHuman', END)
       .addConditionalEdges('assistant', shouldContinue, {
         tools: 'tools',
-        end: '__end__',
+        end: END,
       })
       .addEdge('tools', 'assistant');
 
-    this.graph = workflow.compile({ checkpointer: this.checkpointer });
+    return workflow.compile({
+      checkpointer: this.checkpointer,
+    });
   }
 
-  async execute(
+  async streamConversation(
     message: string,
-    contact: Contact,
     context: ClientAgentContext,
     threadId: string = 'default',
-  ): Promise<string> {
-    this.logger.log(`🚀 [CLIENT] Executing agent for contact ${contact.name}`);
+  ) {
+    const config = {
+      configurable: {
+        thread_id: threadId,
+        context,
+      },
+    };
 
-    try {
-      const config = {
-        configurable: {
-          thread_id: threadId,
-          context,
-        },
-      };
-
-      let finalResponse = '';
-
-      const stream = await this.graph.stream(
-        {
-          messages: [new HumanMessage(message)],
-          context,
-        },
-        config,
-      );
-
-      for await (const chunk of stream) {
-        if (chunk.assistant) {
-          const messages = chunk.assistant.messages;
-          const lastMessage = messages[messages.length - 1];
-
-          console.log('Messages:', JSON.stringify(messages));
-          console.log('Last Message:', JSON.stringify(lastMessage));
-
-          if (lastMessage.type === 'ai') {
-            console.log('IS AI', lastMessage);
-            const content = lastMessage.content;
-
-            if (typeof content === 'string') {
-              finalResponse = content;
-            }
-          }
-
-          continue;
-        }
-
-        if (chunk.requestHuman) {
-          finalResponse =
-            chunk.requestHuman.messages[chunk.requestHuman.messages.length - 1]
-              .content;
-
-          continue;
-        }
-      }
-
-      this.logger.log('✅ [CLIENT] Stream completed');
-
-      return finalResponse;
-    } catch (error) {
-      this.logger.error('❌ [CLIENT] Error executing agent:', error);
-      throw error;
-    }
+    return await this.graph.stream(
+      {
+        messages: [new HumanMessage(message)],
+        context,
+      },
+      config,
+    );
   }
 
   private getTools(): StructuredTool[] {

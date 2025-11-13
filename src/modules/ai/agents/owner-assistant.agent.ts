@@ -1,13 +1,11 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { StateGraph } from '@langchain/langgraph';
+import { END, START, StateGraph } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
-import { PGVectorStore } from '@langchain/community/vectorstores/pgvector';
-import { BaseMessage, HumanMessage, AIMessage } from '@langchain/core/messages';
+import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { User } from 'src/modules/users/entities/user.entity';
-import { VectorStoreService } from '../services/vector-store.service';
 import {
   CreateServiceRequestTool,
   SearchServiceRequestTool,
@@ -28,8 +26,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
   private readonly logger = new Logger(OwnerAssistantAgent.name);
   private model: ChatGoogleGenerativeAI;
   private checkpointer: PostgresSaver;
-  private vectorStore?: PGVectorStore;
-  private graph: any;
+  private graph: ReturnType<typeof this.buildGraph>;
 
   constructor(
     private readonly configService: ConfigService,
@@ -42,7 +39,6 @@ export class OwnerAssistantAgent implements OnModuleInit {
     private readonly updateMediationTool: UpdateMediationTool,
     private readonly searchMediationTool: SearchMediationTool,
     private readonly searchUserTool: SearchUserTool,
-    private readonly vectorStoreService: VectorStoreService,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -68,32 +64,23 @@ export class OwnerAssistantAgent implements OnModuleInit {
 
     await this.checkpointer.setup();
 
-    this.logger.log('✅ PostgresSaver initialized with schema: checkpointer');
-
-    this.logger.log('🧠 Initializing vector store...');
-    this.vectorStore = await this.vectorStoreService.getVectorStore();
-    this.logger.log('✅ Vector store ready (schema: vector_store)');
-
-    this.initializeGraph();
+    this.graph = this.buildGraph();
   }
 
   /**
-   * Initialize the LangGraph workflow
+   * Build the LangGraph workflow
    */
-  private initializeGraph() {
+  private buildGraph() {
     const tools = this.getTools();
 
     const shouldContinue = (state: typeof AgentState.State) => {
-      this.logger.log('🔀 [TASK] Evaluating next step...');
       const messages = state.messages;
       const lastMessage = messages[messages.length - 1] as AIMessage;
 
       if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
-        this.logger.log('🏁 [TASK] No tool calls - ending workflow');
         return 'end';
       }
 
-      this.logger.log('➡️  [TASK] Tool calls detected - routing to tools node');
       return 'tools';
     };
 
@@ -103,25 +90,24 @@ export class OwnerAssistantAgent implements OnModuleInit {
         createOwnerAssistantNode(this.model.bindTools(tools)),
       )
       .addNode('tools', createToolNode(this.getTools()))
-      .addEdge('__start__', 'assistant')
+      .addEdge(START, 'assistant')
       .addConditionalEdges('assistant', shouldContinue, {
         tools: 'tools',
-        end: '__end__',
+        end: END,
       })
       .addEdge('tools', 'assistant');
 
-    this.graph = workflow.compile({ checkpointer: this.checkpointer });
+    return workflow.compile({
+      checkpointer: this.checkpointer,
+    });
   }
 
-  /**
-   * Execute the agent with the given message and context
-   */
-  async execute(
+  async streamConversation(
     message: string,
     user: User,
     context: OwnerAgentContext,
     threadId: string = 'default',
-  ): Promise<string> {
+  ) {
     try {
       this.logger.log(`🚀 Executing agent for user ${user.name}: ${message}`);
 
@@ -132,54 +118,20 @@ export class OwnerAssistantAgent implements OnModuleInit {
         },
       };
 
-      let finalResponse = '';
-      let chunkCount = 0;
-
       this.logger.log('📡 Starting stream...');
       this.logger.log(
         `📝 Sending new message to graph (checkpointer will load history for thread: ${threadId})`,
       );
 
-      const stream = await this.graph.stream(
+      return await this.graph.stream(
         {
           messages: [new HumanMessage(message)],
           context,
         },
         config,
       );
-
-      for await (const chunk of stream) {
-        chunkCount++;
-        this.logger.log(
-          `📦 Chunk ${chunkCount}:`,
-          JSON.stringify(chunk, null, 2),
-        );
-
-        if (chunk.assistant) {
-          this.logger.log('🤖 Assistant node executed');
-          const messages = chunk.assistant.messages as BaseMessage[];
-          const lastMessage = messages[messages.length - 1];
-
-          if (lastMessage.type === 'ai') {
-            const content = (lastMessage as AIMessage).content;
-            if (typeof content === 'string') {
-              finalResponse = content;
-              this.logger.log(`💬 Assistant response: ${content}`);
-            }
-          }
-        }
-
-        if (chunk.tools) {
-          this.logger.log('🔧 Tools node executed');
-        }
-      }
-
-      this.logger.log(`✅ Stream completed with ${chunkCount} chunks`);
-      this.logger.log(`📝 Final response: ${finalResponse}`);
-
-      return finalResponse || 'Desculpe, não consegui processar sua mensagem.';
     } catch (error) {
-      this.logger.error('❌ Error executing owner agent:', error);
+      this.logger.error('❌ Error creating owner stream:', error);
       throw error;
     }
   }

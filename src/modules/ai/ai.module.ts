@@ -27,6 +27,7 @@ import { Company } from '../companies/entities/company.entity';
 import { Memory } from '../chat/entities/memory.entity';
 import { Mediation } from '../service-requests/entities/mediation.entity';
 import { ChatModule } from '../chat/chat.module';
+import { ExtractAiMessageService } from './services/extract-ai-message.service';
 
 @Module({
   imports: [
@@ -41,9 +42,6 @@ import { ChatModule } from '../chat/chat.module';
     forwardRef(() => ChatModule),
   ],
   providers: [
-    LangchainService,
-    VectorStoreService,
-    AudioTranscriptionService,
     OwnerAssistantAgent,
     ClientAssistantAgent,
     // Tools
@@ -60,13 +58,18 @@ import { ChatModule } from '../chat/chat.module';
     CreateMediationTool,
     SearchMediationTool,
     UpdateMediationTool,
-  ],
-  exports: [
+    // Services
+    ExtractAiMessageService,
     LangchainService,
     VectorStoreService,
     AudioTranscriptionService,
+  ],
+  exports: [
     OwnerAssistantAgent,
     ClientAssistantAgent,
+    // Services
+    AudioTranscriptionService,
+    ExtractAiMessageService,
   ],
 })
 export class AiModule {}

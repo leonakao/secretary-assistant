@@ -7,12 +7,11 @@ import {
 } from './conversation-strategy.interface';
 import { Contact } from '../../contacts/entities/contact.entity';
 import { Company } from '../../companies/entities/company.entity';
-import {
-  ClientAgentContext,
-  ClientAssistantAgent,
-} from '../../ai/agents/client-assistant.agent';
+import { ClientAssistantAgent } from '../../ai/agents/client-assistant.agent';
 import { ChatService } from '../services/chat.service';
+import { ExtractAiMessageService } from '../../ai/services/extract-ai-message.service';
 import { MediationService } from 'src/modules/service-requests/services/mediation.service';
+import { ClientAgentContext } from 'src/modules/ai/agents/agent.state';
 
 @Injectable()
 export class ClientConversationStrategy implements ConversationStrategy {
@@ -25,6 +24,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
     private readonly companyRepository: Repository<Company>,
     private readonly chatService: ChatService,
     private readonly clientAssistantAgent: ClientAssistantAgent,
+    private readonly extractAiMessageService: ExtractAiMessageService,
     private readonly mediationService: MediationService,
   ) {}
 
@@ -53,10 +53,6 @@ export class ClientConversationStrategy implements ConversationStrategy {
       content: params.message,
     });
 
-    this.logger.log(
-      `Processing client message from ${contact.name}: ${params.message}`,
-    );
-
     const agentContext: ClientAgentContext = {
       companyId: params.companyId,
       instanceName: params.instanceName,
@@ -70,53 +66,47 @@ export class ClientConversationStrategy implements ConversationStrategy {
       }),
     };
 
-    try {
-      const agentResponse = await this.clientAssistantAgent.execute(
-        params.message,
-        contact,
-        agentContext,
-        params.contactId,
-      );
+    const messages: string[] = [];
 
-      if (!agentResponse) {
-        return { message: '' };
+    const stream = await this.clientAssistantAgent.streamConversation(
+      params.message,
+      agentContext,
+      params.contactId,
+    );
+
+    for await (const chunk of stream) {
+      if (chunk.assistant) {
+        const message = this.extractAiMessageService.extractFromChunkMessages(
+          chunk.assistant.messages,
+        );
+        if (message) {
+          messages.push(message);
+        }
       }
 
-      await this.chatService.sendMessageAndSaveToMemory({
-        sessionId: params.contactId,
-        companyId: params.companyId,
+      await this.chatService.sendPresenceNotification({
         instanceName: params.instanceName,
         remoteJid: params.remoteJid,
-        message: agentResponse,
+        presence: 'available',
       });
-
-      return {
-        message: agentResponse,
-      };
-    } catch (error) {
-      this.logger.error('Error executing client agent:', error);
-
-      const errorMessage =
-        'Desculpe, ocorreu um erro ao processar sua mensagem. Vou pedir ajuda humana e retornaremos em breve.';
-
-      await this.chatService.addMessageToMemory({
-        sessionId: params.contactId,
-        companyId: params.companyId,
-        role: 'assistant',
-        content: errorMessage,
-      });
-
-      await this.chatService.sendMessageAndSaveToMemory({
-        sessionId: params.contactId,
-        companyId: params.companyId,
-        instanceName: params.instanceName,
-        remoteJid: params.remoteJid,
-        message: errorMessage,
-      });
-
-      return {
-        message: errorMessage,
-      };
     }
+
+    const finalMessage = messages.join('\n');
+
+    if (!finalMessage) {
+      return { message: '' };
+    }
+
+    await this.chatService.sendMessageAndSaveToMemory({
+      sessionId: params.contactId,
+      companyId: params.companyId,
+      instanceName: params.instanceName,
+      remoteJid: params.remoteJid,
+      message: finalMessage,
+    });
+
+    return {
+      message: finalMessage,
+    };
   }
 }

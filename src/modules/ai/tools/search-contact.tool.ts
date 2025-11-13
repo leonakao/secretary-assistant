@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
-import { ToolConfig } from '../types';
+import { AgentState } from '../agents/agent.state';
 
 const searchContactSchema = z.object({
   query: z
@@ -31,10 +31,10 @@ export class SearchContactTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof searchContactSchema>,
     _,
-    config: ToolConfig,
+    state: typeof AgentState.State,
   ): Promise<string> {
     const { query } = args;
-    const { companyId } = config.configurable.context;
+    const { companyId } = state.context;
 
     if (!companyId) {
       throw new Error('Company ID missing in the context');
