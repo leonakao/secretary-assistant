@@ -17,6 +17,9 @@ import {
   SendMessageTool,
   SearchConversationTool,
   SearchUserTool,
+  CreateMediationTool,
+  UpdateMediationTool,
+  SearchMediationTool,
 } from '../../tools';
 import { createOwnerAssistantNode } from './owner-assistant.node';
 import { createToolNode } from '../../nodes/tool.node';
@@ -46,13 +49,16 @@ export class OwnerAssistantAgent implements OnModuleInit {
   private graph: any;
 
   constructor(
-    private configService: ConfigService,
-    private createServiceRequestTool: CreateServiceRequestTool,
-    private searchServiceRequestTool: SearchServiceRequestTool,
-    private updateServiceRequestTool: UpdateServiceRequestTool,
-    private sendMessageTool: SendMessageTool,
-    private searchConversationTool: SearchConversationTool,
-    private searchUserTool: SearchUserTool,
+    private readonly configService: ConfigService,
+    private readonly createServiceRequestTool: CreateServiceRequestTool,
+    private readonly searchServiceRequestTool: SearchServiceRequestTool,
+    private readonly updateServiceRequestTool: UpdateServiceRequestTool,
+    private readonly sendMessageTool: SendMessageTool,
+    private readonly searchConversationTool: SearchConversationTool,
+    private readonly createMediationTool: CreateMediationTool,
+    private readonly updateMediationTool: UpdateMediationTool,
+    private readonly searchMediationTool: SearchMediationTool,
+    private readonly searchUserTool: SearchUserTool,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -161,16 +167,16 @@ export class OwnerAssistantAgent implements OnModuleInit {
           JSON.stringify(chunk, null, 2),
         );
 
-        if (chunk.agent) {
-          this.logger.log('🤖 Agent node executed');
-          const messages = chunk.agent.messages as BaseMessage[];
+        if (chunk.assistant) {
+          this.logger.log('🤖 Assistant node executed');
+          const messages = chunk.assistant.messages as BaseMessage[];
           const lastMessage = messages[messages.length - 1];
 
           if (lastMessage.type === 'ai') {
             const content = (lastMessage as AIMessage).content;
             if (typeof content === 'string') {
               finalResponse = content;
-              this.logger.log(`💬 Agent response: ${content}`);
+              this.logger.log(`💬 Assistant response: ${content}`);
             }
           }
         }
@@ -201,6 +207,9 @@ export class OwnerAssistantAgent implements OnModuleInit {
       this.searchConversationTool,
       this.sendMessageTool,
       this.searchUserTool,
+      this.createMediationTool,
+      this.updateMediationTool,
+      this.searchMediationTool,
     ];
   }
 }

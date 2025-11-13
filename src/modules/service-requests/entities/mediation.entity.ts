@@ -18,7 +18,7 @@ export enum MediationInteractionPending {
   CONTACT = 'contact',
 }
 
-@Entity('mediation')
+@Entity('mediations')
 export class Mediation {
   @PrimaryGeneratedColumn('uuid')
   id: string;

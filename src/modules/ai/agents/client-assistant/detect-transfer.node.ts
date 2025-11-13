@@ -39,6 +39,7 @@ Responda APENAS com "SIM" se o usuário está pedindo suporte humano, ou "NÃO" 
     const modelWithStructuredOutput = model.withStructuredOutput(
       z.object({
         needsHumanSupport: z.boolean(),
+        reason: z.string().describe('Breve explicação da decisão'),
       }),
     );
 
@@ -47,6 +48,8 @@ Responda APENAS com "SIM" se o usuário está pedindo suporte humano, ou "NÃO" 
     const needsHumanSupport = response.needsHumanSupport;
 
     if (needsHumanSupport) {
+      console.log('Transfer request detected:', response.reason);
+
       return new Command({
         goto: 'requestHuman',
       });

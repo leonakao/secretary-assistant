@@ -1,5 +1,5 @@
 import { StructuredTool } from '@langchain/core/tools';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import {
   MediationInteractionPending,
@@ -10,10 +10,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ToolConfig } from '../types';
 
-const mediationStatusValues: [
-  MediationStatus,
-  ...MediationStatus[],
-] = [MediationStatus.ACTIVE, MediationStatus.CLOSED];
+const mediationStatusValues: [MediationStatus, ...MediationStatus[]] = [
+  MediationStatus.ACTIVE,
+  MediationStatus.CLOSED,
+];
 
 const mediationInteractionValues: [
   MediationInteractionPending,
@@ -21,6 +21,7 @@ const mediationInteractionValues: [
 ] = [MediationInteractionPending.USER, MediationInteractionPending.CONTACT];
 
 const searchMediationSchema = z.object({
+  id: z.uuid().optional().describe('ID específico da mediação a buscar'),
   userId: z
     .uuid()
     .optional()
@@ -40,17 +41,15 @@ const searchMediationSchema = z.object({
   limit: z
     .number()
     .int()
-    .positive()
+    .min(1)
     .max(50)
     .optional()
     .describe('Número máximo de mediações a retornar (padrão: 20)'),
 });
 
 @Injectable()
-export class SearchMediationsTool extends StructuredTool {
-  private readonly logger = new Logger(SearchMediationsTool.name);
-
-  name = 'searchMediations';
+export class SearchMediationTool extends StructuredTool {
+  name = 'searchMediation';
   description =
     'Busca mediações existentes utilizando filtros como status, responsável pendente ou contato. Use para entender o estado atual das mediações.';
   schema = searchMediationSchema;
@@ -83,6 +82,10 @@ export class SearchMediationsTool extends StructuredTool {
         companyId: context.companyId,
       });
 
+    if (args.id) {
+      qb.andWhere('session.id = :id', { id: args.id });
+    }
+
     if (args.userId) {
       qb.andWhere('session.userId = :userId', { userId: args.userId });
     }
@@ -110,10 +113,6 @@ export class SearchMediationsTool extends StructuredTool {
     const limitedSessions = args.limit
       ? sessions.slice(0, args.limit)
       : sessions.slice(0, 20);
-
-    this.logger.log(
-      `✅ [TOOL] Found ${limitedSessions.length} mediation(s) (requested limit: ${args.limit ?? 20})`,
-    );
 
     return JSON.stringify(
       {

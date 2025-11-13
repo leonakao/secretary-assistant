@@ -30,7 +30,9 @@ const updateMediationSchema = z.object({
     .optional()
     .describe('Atualiza o status da mediação'),
   metadata: z
-    .union([z.record(z.string(), z.any()), z.null()])
+    .object({})
+    .catchall(z.any())
+    .nullable()
     .optional()
     .describe('Metadados adicionais a serem definidos na mediação'),
 });

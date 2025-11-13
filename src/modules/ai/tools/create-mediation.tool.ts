@@ -31,7 +31,8 @@ const createMediationSchema = z.object({
     .uuid()
     .describe('ID do contato envolvido (usa o contexto do cliente por padrão)'),
   metadata: z
-    .record(z.string(), z.any())
+    .object({})
+    .catchall(z.any())
     .optional()
     .describe('Metadados adicionais em formato JSON'),
 });
@@ -42,7 +43,7 @@ export class CreateMediationTool extends StructuredTool {
 
   name = 'createMediation';
   description =
-    'Cria uma nova mediação entre proprietário e cliente. Use quando precisar iniciar um acompanhamento estruturado até que o resultado esperado seja alcançado.';
+    'Cria uma nova mediação entre proprietário e cliente. Use quando precisar iniciar um acompanhamento estruturado até que o resultado esperado seja alcançado. Por exemplo: Caso o cliente faça uma pergunta que você não saiba responder, crie uma mediação para que um usuário auxilie na resposta. A mediação será registrada e o fluxo continuará com o acompanhamento. A mediação pode ser atualizada posteriormente com novas interações.';
   schema = createMediationSchema;
 
   constructor(

@@ -16,7 +16,7 @@ import {
   UpdateCompanyTool,
   SearchUserTool,
   CreateMediationTool,
-  SearchMediationsTool,
+  SearchMediationTool,
   UpdateMediationTool,
 } from './tools';
 import { ServiceRequest } from '../service-requests';
@@ -56,7 +56,7 @@ import { ChatModule } from '../chat/chat.module';
     UpdateCompanyTool,
     SearchUserTool,
     CreateMediationTool,
-    SearchMediationsTool,
+    SearchMediationTool,
     UpdateMediationTool,
   ],
   exports: [

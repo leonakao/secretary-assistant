@@ -1,6 +1,7 @@
 import { Repository } from 'typeorm';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { ClientAssistantAgentState } from './client-assistant.agent';
+import { AIMessage } from '@langchain/core/messages';
 
 export const createRequestHumanNode =
   (contactRepository: Repository<Contact>) =>
@@ -15,5 +16,7 @@ export const createRequestHumanNode =
       { ignoreUntil: ignoreUntil },
     );
 
-    return;
+    return {
+      messages: [new AIMessage('Só um momento.')],
+    };
   };
