@@ -187,6 +187,12 @@ export class ClientAssistantAgent implements OnModuleInit {
           }
         }
 
+        if (chunk.requestHuman) {
+          finalResponse =
+            chunk.requestHuman.messages[chunk.requestHuman.messages.length - 1]
+              .content;
+        }
+
         if (chunk.tools) {
           this.logger.log(
             `🔄 [CLIENT] Tools node executed (chunk ${chunkIndex})`,

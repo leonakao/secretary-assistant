@@ -18,7 +18,8 @@ Exemplos de solicitações de humano:
 
 Xingamentos e ofensas também devem ser considerados como solicitação de suporte humano.
 
-Responda APENAS com "SIM" se o usuário está pedindo suporte humano, ou "NÃO" caso contrário.`;
+Somente direcione para o humano se você tiver certeza que o agente não vai conseguir auxiliar o usuário. Caso o usuário só esteja com dúvidas, o agente deve continuar interagindo e auxiliando o usuário.
+`;
 
     const lastThreeMessages = state.messages.slice(-3);
 
