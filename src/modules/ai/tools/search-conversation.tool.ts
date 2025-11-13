@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
-import { ToolConfig } from '../types';
+import { AgentState } from '../agents/agent.state';
 
 const searchConversationSchema = z.object({
   contactName: z
@@ -46,10 +46,10 @@ export class SearchConversationTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof searchConversationSchema>,
     _,
-    config: ToolConfig,
+    state: typeof AgentState.State,
   ): Promise<string> {
     const { contactName, contactPhone, query, days = 3 } = args;
-    const { companyId } = config.configurable.context;
+    const { companyId } = state.context;
 
     if (!companyId) {
       throw new Error('Company ID missing in the context');

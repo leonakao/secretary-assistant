@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { ChatService } from 'src/modules/chat/services/chat.service';
-import { ToolConfig } from '../types';
+import { AgentState } from '../agents/agent.state';
 
 const sendMessageSchema = z.object({
   recipientId: z.string().describe('ID do destinatário (contactId ou userId)'),
@@ -36,10 +36,10 @@ export class SendMessageTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof sendMessageSchema>,
     _,
-    config: ToolConfig,
+    state: typeof AgentState.State,
   ): Promise<string> {
     const { recipientId, recipientType, message } = args;
-    const { companyId, instanceName } = config.configurable.context;
+    const { companyId, instanceName } = state.context;
 
     if (!companyId || !instanceName) {
       throw new Error(

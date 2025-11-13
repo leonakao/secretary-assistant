@@ -6,8 +6,8 @@ import { z } from 'zod';
 import { Company } from 'src/modules/companies/entities/company.entity';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { LangchainService } from '../services/langchain.service';
-import { ToolConfig } from '../types';
-import { OwnerAgentContext } from '../agents/agent.state';
+import { AgentState } from '../agents/agent.state';
+import { BaseMessage } from '@langchain/core/messages';
 
 const updateCompanySchema = z.object({
   updateRequest: z
@@ -39,10 +39,10 @@ export class UpdateCompanyTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof updateCompanySchema>,
     _,
-    config: ToolConfig<OwnerAgentContext>,
+    state: typeof AgentState.State,
   ): Promise<string> {
     const { updateRequest } = args;
-    const { companyId, userId } = config.configurable.context;
+    const { companyId } = state.context;
 
     const company = await this.companyRepository.findOneByOrFail({
       id: companyId,
@@ -51,7 +51,12 @@ export class UpdateCompanyTool extends StructuredTool {
     const currentDescription = company.description || '';
 
     const updatedDescription = await this.generateUpdatedDescription(
-      userId,
+      state.messages
+        .filter(
+          (m): m is BaseMessage & { content: string } =>
+            typeof m.content === 'string',
+        )
+        .map((m) => `${m.type}: ${m.content}`),
       currentDescription,
       updateRequest,
       company.name,
@@ -75,25 +80,11 @@ export class UpdateCompanyTool extends StructuredTool {
   }
 
   private async generateUpdatedDescription(
-    sessionId: string,
+    messages: string[],
     currentDescription: string,
     updateRequest: string,
     companyName: string,
   ): Promise<string> {
-    const recentMemories = await this.memoryRepository.find({
-      where: { sessionId },
-      order: { createdAt: 'DESC' },
-      take: 10,
-    });
-
-    const recentConversation = recentMemories
-      .reverse()
-      .map((m) => {
-        const role = m.role === 'user' ? 'Human' : 'AI';
-        return `${role}: ${m.content}`;
-      })
-      .join('\n');
-
     const prompt = `Você é um assistente que atualiza informações de empresas.
 
 Você receberá:
@@ -124,7 +115,7 @@ SOLICITAÇÃO DE ATUALIZAÇÃO:
 ${updateRequest}
 
 CONTEXTO DA CONVERSA RECENTE:
-${recentConversation}
+${messages.join('\n')}
 
 NOVA DESCRIÇÃO COMPLETA EM MARKDOWN:`;
 

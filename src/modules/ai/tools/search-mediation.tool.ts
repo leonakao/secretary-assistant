@@ -8,7 +8,7 @@ import {
 } from 'src/modules/service-requests/entities/mediation.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ToolConfig } from '../types';
+import { AgentState } from '../agents/agent.state';
 
 const mediationStatusValues: [MediationStatus, ...MediationStatus[]] = [
   MediationStatus.ACTIVE,
@@ -64,13 +64,13 @@ export class SearchMediationTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof searchMediationSchema>,
     _runManager?: unknown,
-    config?: ToolConfig,
+    state?: typeof AgentState.State,
   ): Promise<string> {
-    if (!config) {
+    if (!state) {
       throw new Error('Configuração não fornecida para a ferramenta');
     }
 
-    const context = config.configurable.context as { companyId?: string };
+    const context = state.context as { companyId?: string };
 
     if (!context.companyId) {
       throw new Error('Company ID missing in the context');

@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { z } from 'zod';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
-import { ToolConfig } from '../types';
+import { AgentState } from '../agents/agent.state';
 
 const updateContactSchema = z.object({
   contactId: z.string().describe('ID do contato a ser atualizado'),
@@ -32,10 +32,10 @@ export class UpdateContactTool extends StructuredTool {
   protected async _call(
     args: z.infer<typeof updateContactSchema>,
     _,
-    config: ToolConfig,
+    state: typeof AgentState.State,
   ): Promise<string> {
     const { contactId, newName, newPhone, newEmail } = args;
-    const { companyId } = config.configurable.context;
+    const { companyId } = state.context;
 
     if (!companyId) {
       throw new Error('Company ID missing in the context');
