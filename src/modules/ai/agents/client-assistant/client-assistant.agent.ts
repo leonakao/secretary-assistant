@@ -10,6 +10,7 @@ import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { AIMessage, BaseMessage, HumanMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
+import { User } from 'src/modules/users/entities/user.entity';
 import {
   CreateServiceRequestTool,
   SearchConversationTool,
@@ -73,6 +74,8 @@ export class ClientAssistantAgent implements OnModuleInit {
     private readonly searchMediationTool: SearchMediationTool,
     @InjectRepository(Contact)
     private readonly contactRepository: Repository<Contact>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -123,7 +126,14 @@ export class ClientAssistantAgent implements OnModuleInit {
       .addNode('detectTransfer', createDetectTransferNode(this.model), {
         ends: ['requestHuman', 'assistant'],
       })
-      .addNode('requestHuman', createRequestHumanNode(this.contactRepository))
+      .addNode(
+        'requestHuman',
+        createRequestHumanNode(
+          this.contactRepository,
+          this.userRepository,
+          this.sendMessageTool,
+        ),
+      )
       .addNode(
         'assistant',
         createClientAssistantNode(this.model.bindTools(this.getTools())),
