@@ -237,14 +237,14 @@ export class ChatService {
   async sendPresenceNotification(params: {
     instanceName: string;
     remoteJid: string;
-    presence?: 'available' | 'composing' | 'paused' | 'recording' | 'unavailable';
+    presence?: 'composing' | 'recording';
     delayMs?: number;
   }): Promise<void> {
     await this.evolutionService.sendPresence({
       instanceName: params.instanceName,
       remoteJid: params.remoteJid,
       presence: params.presence,
-      delayMs: params.delayMs,
+      delayMs: params.delayMs ?? 1000,
     });
   }
 }

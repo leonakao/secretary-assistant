@@ -111,12 +111,7 @@ export class EvolutionService {
   async sendPresence(params: {
     instanceName: string;
     remoteJid: string;
-    presence?:
-      | 'available'
-      | 'composing'
-      | 'paused'
-      | 'recording'
-      | 'unavailable';
+    presence?: 'composing' | 'recording';
     delayMs?: number;
   }): Promise<void> {
     const { instanceName, remoteJid, presence = 'composing', delayMs } = params;
@@ -131,9 +126,12 @@ export class EvolutionService {
         },
         body: JSON.stringify({
           number: remoteJid,
+          presence,
+          delay: delayMs ?? 0,
           options: {
-            presence,
             delay: delayMs ?? 0,
+            presence,
+            number: remoteJid,
           },
         }),
       },

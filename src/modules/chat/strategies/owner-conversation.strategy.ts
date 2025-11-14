@@ -92,7 +92,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
         await this.chatService.sendPresenceNotification({
           instanceName: params.instanceName,
           remoteJid: params.remoteJid,
-          presence: 'available',
+          presence: 'composing',
         });
       }
 

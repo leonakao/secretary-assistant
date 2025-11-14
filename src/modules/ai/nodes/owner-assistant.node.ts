@@ -140,7 +140,7 @@ Você tem acesso a TODAS as mensagens anteriores desta conversa, incluindo:
 - Agora são ${new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}
 
 ## MEDICAÇÕES EM ANDAMENTO
-Caso você tenha mediações em andamento, é provável que o usuário esteja falando sobre uma dessas mediações.
+Caso você tenha mediações em andamento, é provável que o usuário esteja falando sobre uma dessas mediações. Você deve lembrar o usuário dessas mediações pendentes.
 
 ${context.mediations?.map((mediation) => `ID: ${mediation.id}, ContactId: ${mediation.contactId}, Descrição: ${mediation.description}, Resultado esperado: ${mediation.expectedResult}`).join('\n') ?? 'Nenhuma mediação em andamento'}
 `;

@@ -66,6 +66,12 @@ export class ClientConversationStrategy implements ConversationStrategy {
       }),
     };
 
+    await this.chatService.sendPresenceNotification({
+      instanceName: params.instanceName,
+      remoteJid: params.remoteJid,
+      presence: 'composing',
+    });
+
     const messages: string[] = [];
 
     const stream = await this.clientAssistantAgent.streamConversation(
@@ -87,7 +93,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
       await this.chatService.sendPresenceNotification({
         instanceName: params.instanceName,
         remoteJid: params.remoteJid,
-        presence: 'available',
+        presence: 'composing',
       });
     }
 
