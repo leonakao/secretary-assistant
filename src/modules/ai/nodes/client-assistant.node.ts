@@ -1,18 +1,10 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import {
-  AgentState,
-  ClientAgentContext,
-  isClientAgentContext,
-} from '../agents/agent.state';
+import { AgentContext, AgentState } from '../agents/agent.state';
 import { Runnable } from '@langchain/core/runnables';
 
 export const createClientAssistantNode =
   (modelWithTools: ChatGoogleGenerativeAI | Runnable) =>
   async (state: typeof AgentState.State) => {
-    if (!isClientAgentContext(state.context)) {
-      throw new Error('Client assistant node received invalid context');
-    }
-
     const systemMessage = buildSystemPrompt(state, state.context);
     const messages = [
       { role: 'system', content: systemMessage },
@@ -30,7 +22,7 @@ export const createClientAssistantNode =
 
 const buildSystemPrompt = (
   state: typeof AgentState.State,
-  context: ClientAgentContext,
+  context: AgentContext,
 ): string => {
   return `Você é Julia, secretária virtual da empresa. Você está em uma conversa com o cliente ${context.contactName}.
 

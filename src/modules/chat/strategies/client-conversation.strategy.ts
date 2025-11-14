@@ -10,7 +10,7 @@ import { Company } from '../../companies/entities/company.entity';
 import { ClientAssistantAgent } from '../../ai/agents/client-assistant.agent';
 import { ChatService } from '../services/chat.service';
 import { ExtractAiMessageService } from '../../ai/services/extract-ai-message.service';
-import { ClientAgentContext } from 'src/modules/ai/agents/agent.state';
+import { AgentContext } from 'src/modules/ai/agents/agent.state';
 import { FindPendingConfirmationsService } from 'src/modules/service-requests/services/find-pending-confirmations.service';
 
 @Injectable()
@@ -55,7 +55,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
 
     this.logger.log(`Processing owner message: ${params.message}`);
 
-    const agentContext: ClientAgentContext = {
+    const agentContext: AgentContext = {
       companyId: params.companyId,
       instanceName: params.instanceName,
       contactId: params.contactId,

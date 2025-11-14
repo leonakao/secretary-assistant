@@ -18,7 +18,7 @@ import {
   SearchConfirmationTool,
 } from '../tools';
 import { createToolNode } from '../nodes/tool.node';
-import { AgentState, OwnerAgentContext } from './agent.state';
+import { AgentContext, AgentState } from './agent.state';
 import { createOwnerAssistantNode } from '../nodes/owner-assistant.node';
 import { PostgresStore } from '../stores/postgres.store';
 
@@ -108,7 +108,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
   async streamConversation(
     message: string,
     user: User,
-    context: OwnerAgentContext,
+    context: AgentContext,
     threadId: string = 'default',
   ) {
     try {

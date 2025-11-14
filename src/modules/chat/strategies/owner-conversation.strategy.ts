@@ -8,7 +8,7 @@ import {
 } from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
 import { OwnerAssistantAgent } from '../../ai/agents/owner-assistant.agent';
-import { OwnerAgentContext } from 'src/modules/ai/agents/agent.state';
+import { AgentContext } from 'src/modules/ai/agents/agent.state';
 import { User } from '../../users/entities/user.entity';
 import { Company } from '../../companies/entities/company.entity';
 import { FindPendingConfirmationsService } from '../../service-requests/services/find-pending-confirmations.service';
@@ -57,7 +57,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     this.logger.log(`Processing owner message: ${params.message}`);
 
     try {
-      const agentContext: OwnerAgentContext = {
+      const agentContext: AgentContext = {
         companyId: params.companyId,
         instanceName: params.instanceName,
         userId: params.userId,

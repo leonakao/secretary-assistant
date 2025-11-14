@@ -1,18 +1,10 @@
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import {
-  AgentState,
-  OwnerAgentContext,
-  isOwnerAgentContext,
-} from '../agents/agent.state';
+import { AgentContext, AgentState } from '../agents/agent.state';
 import { Runnable } from '@langchain/core/runnables';
 
 export const createOwnerAssistantNode =
   (modelWithTools: ChatGoogleGenerativeAI | Runnable) =>
   async (state: typeof AgentState.State) => {
-    if (!isOwnerAgentContext(state.context)) {
-      throw new Error('Owner assistant node received invalid context');
-    }
-
     const context = state.context;
     const systemMessage = buildSystemPrompt(context);
     const messages = [
@@ -29,7 +21,7 @@ export const createOwnerAssistantNode =
     return { messages: [response] };
   };
 
-const buildSystemPrompt = (context: OwnerAgentContext): string => {
+const buildSystemPrompt = (context: AgentContext): string => {
   return `Seu nome é Julia, e você é uma secretária executiva altamente eficiente e proativa. Você representa a empresa durante conversas com os clientes e atende a chamadas dos usuários / funcionários.
 
 ## PERSONA
