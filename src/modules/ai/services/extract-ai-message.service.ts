@@ -42,7 +42,10 @@ export class ExtractAiMessageService {
         return content;
       }
       if (Array.isArray(content) && typeof content[0].text === 'string') {
-        return content[0].text;
+        return content
+          .filter((c) => c.type === 'text')
+          .map((c) => c.text)
+          .join('\n');
       }
     }
     return '';

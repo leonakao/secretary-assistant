@@ -24,5 +24,7 @@ export const createAssistantNode =
       },
     });
 
+    console.log('Assistant response:', response);
+
     return { messages: [response] };
   };

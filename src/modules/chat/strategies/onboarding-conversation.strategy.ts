@@ -9,6 +9,7 @@ import { ChatService } from '../services/chat.service';
 import { User } from '../../users/entities/user.entity';
 import { OnboardingAssistantAgent } from '../../ai/agents/onboarding-assistant.agent';
 import { AgentContext } from '../../ai/agents/agent.state';
+import { ExtractAiMessageService } from 'src/modules/ai/services/extract-ai-message.service';
 
 @Injectable()
 export class OnboardingConversationStrategy implements ConversationStrategy {
@@ -19,6 +20,7 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     private userRepository: Repository<User>,
     private chatService: ChatService,
     private onboardingAssistantAgent: OnboardingAssistantAgent,
+    private extractAiMessageService: ExtractAiMessageService,
   ) {}
 
   async handleConversation(params: {
@@ -72,13 +74,13 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     );
 
     for await (const chunk of stream) {
+      console.log('Assistant chunk:', chunk);
       if (chunk.assistant) {
-        const messageChunk = chunk.assistant.messages
-          .map((m: { content: string }) => m.content)
-          .join('\n');
-
-        if (messageChunk) {
-          messages.push(messageChunk);
+        const message = this.extractAiMessageService.extractFromChunkMessages(
+          chunk.assistant.messages,
+        );
+        if (message) {
+          messages.push(message);
         }
       }
 
