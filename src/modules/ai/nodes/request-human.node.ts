@@ -5,7 +5,7 @@ import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 
 import { AgentState } from '../agents/agent.state';
-import { SendMessageTool } from '../tools';
+import { SendMessageTool } from '../tools/send-message.tool';
 
 export const createRequestHumanNode =
   (

@@ -7,19 +7,17 @@ import { AIMessage, HumanMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { User } from 'src/modules/users/entities/user.entity';
-import {
-  CreateServiceRequestTool,
-  SearchConversationTool,
-  SearchServiceRequestTool,
-  UpdateServiceRequestTool,
-  SearchUserTool,
-  SendMessageTool,
-  CreateConfirmationTool,
-  UpdateConfirmationTool,
-  SearchConfirmationTool,
-  UpdateMemoryTool,
-  SearchMemoryTool,
-} from '../tools';
+import { CreateServiceRequestTool } from '../tools/create-service-request.tool';
+import { SearchConversationTool } from '../tools/search-conversation.tool';
+import { SearchServiceRequestTool } from '../tools/search-service-request.tool';
+import { UpdateServiceRequestTool } from '../tools/update-service-request.tool';
+import { SearchUserTool } from '../tools/search-user.tool';
+import { SendMessageTool } from '../tools/send-message.tool';
+import { CreateConfirmationTool } from '../tools/create-confirmation.tool';
+import { UpdateConfirmationTool } from '../tools/update-confirmation.tool';
+import { SearchConfirmationTool } from '../tools/search-confirmation.tool';
+import { UpdateMemoryTool } from '../tools/update-memory.tool';
+import { SearchMemoryTool } from '../tools/search-memory.tool';
 import { createToolNode } from '../nodes/tool.node';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';

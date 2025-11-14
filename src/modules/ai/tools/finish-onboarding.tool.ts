@@ -114,6 +114,7 @@ MARKDOWN:`;
       {
         description,
         step: 'running',
+        isClientsSupportEnabled: true,
       },
     );
 

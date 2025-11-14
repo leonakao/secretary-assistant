@@ -7,9 +7,6 @@ import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { ChatService } from 'src/modules/chat/services/chat.service';
 import { AgentState } from '../agents/agent.state';
-import { ClientAssistantAgent } from '../agents/client-assistant.agent';
-import { OwnerAssistantAgent } from '../agents/owner-assistant.agent';
-import { AIMessage } from '@langchain/core/messages';
 
 const sendMessageSchema = z.object({
   recipientId: z.string().describe('ID do destinatário (contactId ou userId)'),
@@ -32,8 +29,6 @@ export class SendMessageTool extends StructuredTool {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly chatService: ChatService,
-    private readonly clientAssistantAgent: ClientAssistantAgent,
-    private readonly ownerAssistantAgent: OwnerAssistantAgent,
   ) {
     super();
   }
@@ -75,8 +70,6 @@ export class SendMessageTool extends StructuredTool {
       message,
     });
 
-    await this.updateRecipientState(recipientId, recipientType, message);
-
     return 'Mensagem enviada com sucesso';
   }
 
@@ -110,30 +103,6 @@ export class SendMessageTool extends StructuredTool {
       name: user.name,
       phone: user.phone,
     };
-  }
-
-  private async updateRecipientState(
-    recipientId: string,
-    recipientType: 'contact' | 'user',
-    message: string,
-  ): Promise<void> {
-    if (recipientType === 'contact') {
-      await this.clientAssistantAgent.updateState(
-        {
-          messages: [new AIMessage(message)],
-        },
-        recipientId,
-      );
-
-      return;
-    }
-
-    await this.ownerAssistantAgent.updateState(
-      {
-        messages: [new AIMessage(message)],
-      },
-      recipientId,
-    );
   }
 
   private buildRemoteJid(phone: string): string {

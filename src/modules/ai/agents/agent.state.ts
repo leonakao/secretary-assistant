@@ -27,3 +27,5 @@ export const AgentState = Annotation.Root({
     default: () => new Date(),
   }),
 });
+
+export type AgentStateType = typeof AgentState.State;
