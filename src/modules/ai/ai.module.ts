@@ -1,7 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LangchainService } from './services/langchain.service';
-import { VectorStoreService } from './services/vector-store.service';
 import { AudioTranscriptionService } from './services/audio-transcription.service';
 import { OwnerAssistantAgent } from './agents/owner-assistant.agent';
 import { ClientAssistantAgent } from './agents/client-assistant.agent';
@@ -67,7 +66,6 @@ import { ExtractAiMessageService } from './services/extract-ai-message.service';
     // Services
     ExtractAiMessageService,
     LangchainService,
-    VectorStoreService,
     AudioTranscriptionService,
     // PostgresStore,
   ],
