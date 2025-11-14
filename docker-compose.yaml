@@ -61,7 +61,7 @@ services:
       - CACHE_LOCAL_ENABLED=true
       - QRCODE_LIMIT=30
       - WEBHOOK_GLOBAL_URL=http://app:3000/webhooks/evolution
-      - WEBHOOK_GLOBAL_ENABLED=true
+      - WEBHOOK_GLOBAL_ENABLED=false
       - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
       - CONFIG_SESSION_PHONE_VERSION=2.3000.1026080446
       - CONFIG_SESSION_PHONE_CLIENT="Secretary Assistant"
