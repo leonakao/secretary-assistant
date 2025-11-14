@@ -3,36 +3,30 @@ import { ConfigService } from '@nestjs/config';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { END, START, StateGraph } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
-import { AIMessage, HumanMessage } from '@langchain/core/messages';
+import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
-import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import {
   CreateServiceRequestTool,
-  SearchConversationTool,
   SearchServiceRequestTool,
   UpdateServiceRequestTool,
-  SearchUserTool,
   SendMessageTool,
+  SearchConversationTool,
+  SearchUserTool,
   CreateConfirmationTool,
   UpdateConfirmationTool,
   SearchConfirmationTool,
-  UpdateMemoryTool,
-  SearchMemoryTool,
+  FinishOnboardingTool,
 } from '../tools';
 import { createToolNode } from '../nodes/tool.node';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { AgentContext, AgentState } from './agent.state';
-import { createDetectTransferNode } from '../nodes/detect-transfer.node';
-import { createRequestHumanNode } from '../nodes/request-human.node';
 import { PostgresStore } from '../stores/postgres.store';
 import { createAssistantNode } from '../nodes/assistant.node';
-import { buildClientPromptFromState } from '../agent-prompts/assistant-client-node';
+import { buildOnboardingPromptFromState } from '../agent-prompts/assistant-onboarding-node';
 
 @Injectable()
-export class ClientAssistantAgent implements OnModuleInit {
-  private readonly logger = new Logger(ClientAssistantAgent.name);
+export class OnboardingAssistantAgent implements OnModuleInit {
+  private readonly logger = new Logger(OnboardingAssistantAgent.name);
   private model: ChatGoogleGenerativeAI;
   private checkpointer: PostgresSaver;
   private graph: ReturnType<typeof this.buildGraph>;
@@ -42,18 +36,13 @@ export class ClientAssistantAgent implements OnModuleInit {
     private readonly createServiceRequestTool: CreateServiceRequestTool,
     private readonly searchServiceRequestTool: SearchServiceRequestTool,
     private readonly updateServiceRequestTool: UpdateServiceRequestTool,
-    private readonly searchConversationTool: SearchConversationTool,
-    private readonly searchUserTool: SearchUserTool,
     private readonly sendMessageTool: SendMessageTool,
+    private readonly searchConversationTool: SearchConversationTool,
     private readonly createConfirmationTool: CreateConfirmationTool,
     private readonly updateConfirmationTool: UpdateConfirmationTool,
     private readonly searchConfirmationTool: SearchConfirmationTool,
-    private readonly updateMemoryTool: UpdateMemoryTool,
-    private readonly searchMemoryTool: SearchMemoryTool,
-    @InjectRepository(Contact)
-    private readonly contactRepository: Repository<Contact>,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly searchUserTool: SearchUserTool,
+    private readonly finishOnboardingTool: FinishOnboardingTool,
     private readonly postgresStore: PostgresStore,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
@@ -70,7 +59,7 @@ export class ClientAssistantAgent implements OnModuleInit {
     });
   }
 
-  async onModuleInit(): Promise<void> {
+  async onModuleInit() {
     this.checkpointer = PostgresSaver.fromConnString(
       `postgresql://${this.configService.get<string>('DB_USERNAME', 'postgres')}:${this.configService.get<string>('DB_PASSWORD', 'postgres')}@${this.configService.get<string>('DB_HOST', 'localhost')}:${this.configService.get<number>('DB_PORT', 5432)}/${this.configService.get<string>('DB_DATABASE', 'postgres')}`,
       { schema: 'checkpointer' },
@@ -82,6 +71,8 @@ export class ClientAssistantAgent implements OnModuleInit {
   }
 
   private buildGraph() {
+    const tools = this.getTools();
+
     const shouldContinue = (state: typeof AgentState.State) => {
       const messages = state.messages;
       const lastMessage = messages[messages.length - 1] as AIMessage;
@@ -94,31 +85,15 @@ export class ClientAssistantAgent implements OnModuleInit {
     };
 
     const workflow = new StateGraph(AgentState)
-      .addNode('detectTransfer', createDetectTransferNode(this.model), {
-        ends: ['requestHuman', 'assistant'],
-      })
-      .addNode(
-        'requestHuman',
-        createRequestHumanNode(
-          this.contactRepository,
-          this.userRepository,
-          this.sendMessageTool,
-        ),
-      )
       .addNode(
         'assistant',
         createAssistantNode(
-          this.model.bindTools(this.getTools()),
-          buildClientPromptFromState,
+          this.model.bindTools(tools),
+          buildOnboardingPromptFromState,
         ),
       )
-      .addNode('tools', createToolNode(this.getTools()), {
-        retryPolicy: {
-          logWarning: true,
-        },
-      })
-      .addEdge(START, 'detectTransfer')
-      .addEdge('requestHuman', END)
+      .addNode('tools', createToolNode(this.getTools()))
+      .addEdge(START, 'assistant')
       .addConditionalEdges('assistant', shouldContinue, {
         tools: 'tools',
         end: END,
@@ -133,9 +108,14 @@ export class ClientAssistantAgent implements OnModuleInit {
 
   async streamConversation(
     message: string,
+    user: User,
     context: AgentContext,
     threadId: string = 'default',
   ) {
+    this.logger.log(
+      `Executing onboarding assistant for user ${user.name}: ${message}`,
+    );
+
     const config = {
       configurable: {
         thread_id: threadId,
@@ -169,13 +149,12 @@ export class ClientAssistantAgent implements OnModuleInit {
       this.searchServiceRequestTool,
       this.updateServiceRequestTool,
       this.searchConversationTool,
-      this.searchUserTool,
       this.sendMessageTool,
+      this.searchUserTool,
       this.createConfirmationTool,
       this.updateConfirmationTool,
       this.searchConfirmationTool,
-      this.updateMemoryTool,
-      this.searchMemoryTool,
+      this.finishOnboardingTool,
     ];
   }
 }

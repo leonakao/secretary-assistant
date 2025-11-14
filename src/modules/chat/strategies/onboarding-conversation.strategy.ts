@@ -8,8 +8,8 @@ import {
 import { ChatService } from '../services/chat.service';
 import { User } from '../../users/entities/user.entity';
 import { assistantOnboardingPrompt } from '../../ai/agent-prompts/assistant-onboarding';
-import { ActionDetectionService } from '../../actions/services/action-detection.service';
-import { ActionExecutorService } from '../../actions/services/action-executor.service';
+import { OnboardingAssistantAgent } from '../../ai/agents/onboarding-assistant.agent';
+import { AgentContext } from '../../ai/agents/agent.state';
 
 @Injectable()
 export class OnboardingConversationStrategy implements ConversationStrategy {
@@ -19,8 +19,7 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private chatService: ChatService,
-    private actionDetectionService: ActionDetectionService,
-    private actionExecutorService: ActionExecutorService,
+    private onboardingAssistantAgent: OnboardingAssistantAgent,
   ) {}
 
   async handleConversation(params: {
@@ -37,82 +36,61 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
       `Handling onboarding conversation for user ${params.userId}`,
     );
 
-    // Get user to build prompt
+    // Get user to build prompt and context
     const user = await this.userRepository.findOneByOrFail({
       id: params.userId,
     });
 
     const systemPrompt = assistantOnboardingPrompt(user);
 
-    // Process and reply to user during onboarding
-    const { message } = await this.chatService.processAndReply({
+    await this.chatService.addMessageToMemory({
       sessionId: params.userId,
       companyId: params.companyId,
-      instanceName: params.instanceName,
-      remoteJid: params.remoteJid,
-      message: params.message,
-      systemPrompt,
+      role: 'user',
+      content: params.message,
     });
 
-    // Detect and execute onboarding actions (e.g., FINISH_ONBOARDING)
-    await this.detectAndExecuteOnboardingActions({
-      sessionId: params.userId,
+    const agentContext: AgentContext = {
       companyId: params.companyId,
       instanceName: params.instanceName,
       userId: params.userId,
-    });
+      userName: user.name,
+      userPhone: user.phone,
+      companyDescription: systemPrompt,
+      confirmations: [],
+    };
+
+    const messages: string[] = [];
+
+    const stream = await this.onboardingAssistantAgent.streamConversation(
+      params.message,
+      user,
+      agentContext,
+      params.userId,
+    );
+
+    for await (const chunk of stream) {
+      if (chunk.assistant) {
+        const messageChunk = chunk.assistant.messages
+          .map((m: { content: string }) => m.content)
+          .join('\n');
+
+        if (messageChunk) {
+          messages.push(messageChunk);
+        }
+      }
+
+      await this.chatService.sendPresenceNotification({
+        instanceName: params.instanceName,
+        remoteJid: params.remoteJid,
+        presence: 'composing',
+      });
+    }
+
+    const message = messages.join('\n');
 
     return {
       message,
     };
-  }
-
-  private async detectAndExecuteOnboardingActions(params: {
-    sessionId: string;
-    companyId: string;
-    instanceName: string;
-    userId: string;
-  }): Promise<string[]> {
-    try {
-      const detectionResult =
-        await this.actionDetectionService.detectActionsFromSession(
-          params.sessionId,
-          'onboarding',
-        );
-
-      this.logger.debug('Onboarding action detection result:', detectionResult);
-
-      if (
-        detectionResult.requiresAction &&
-        detectionResult.actions.length > 0
-      ) {
-        const results = await this.actionExecutorService.executeActions(
-          detectionResult.actions,
-          {
-            companyId: params.companyId,
-            instanceName: params.instanceName,
-            userId: params.userId,
-          },
-        );
-
-        results.forEach((result) => {
-          if (result.success) {
-            this.logger.log(
-              `✓ Onboarding action executed: ${result.action.type}`,
-            );
-          } else {
-            this.logger.log(
-              `✗ Onboarding action failed: ${result.action.type} - ${result.error || result.message}`,
-            );
-          }
-        });
-
-        return results.map((result) => result.action.type);
-      }
-    } catch (error) {
-      this.logger.error('Error in detectAndExecuteOnboardingActions:', error);
-    }
-
-    return [];
   }
 }

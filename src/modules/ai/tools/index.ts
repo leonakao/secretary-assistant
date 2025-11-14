@@ -13,3 +13,4 @@ export { SearchConfirmationTool } from './search-confirmation.tool';
 export { UpdateConfirmationTool } from './update-confirmation.tool';
 export { UpdateMemoryTool } from './update-memory.tool';
 export { SearchMemoryTool } from './search-memory.tool';
+export { FinishOnboardingTool } from './finish-onboarding.tool';

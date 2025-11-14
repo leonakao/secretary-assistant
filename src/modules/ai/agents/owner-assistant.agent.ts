@@ -19,8 +19,9 @@ import {
 } from '../tools';
 import { createToolNode } from '../nodes/tool.node';
 import { AgentContext, AgentState } from './agent.state';
-import { createOwnerAssistantNode } from '../nodes/owner-assistant.node';
 import { PostgresStore } from '../stores/postgres.store';
+import { createAssistantNode } from '../nodes/assistant.node';
+import { buildOwnerPromptFromState } from '../agent-prompts/assistant-owner-node';
 
 @Injectable()
 export class OwnerAssistantAgent implements OnModuleInit {
@@ -89,7 +90,10 @@ export class OwnerAssistantAgent implements OnModuleInit {
     const workflow = new StateGraph(AgentState)
       .addNode(
         'assistant',
-        createOwnerAssistantNode(this.model.bindTools(tools)),
+        createAssistantNode(
+          this.model.bindTools(tools),
+          buildOwnerPromptFromState,
+        ),
       )
       .addNode('tools', createToolNode(this.getTools()))
       .addEdge(START, 'assistant')

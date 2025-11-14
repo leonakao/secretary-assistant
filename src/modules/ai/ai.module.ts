@@ -4,6 +4,7 @@ import { LangchainService } from './services/langchain.service';
 import { AudioTranscriptionService } from './services/audio-transcription.service';
 import { OwnerAssistantAgent } from './agents/owner-assistant.agent';
 import { ClientAssistantAgent } from './agents/client-assistant.agent';
+import { OnboardingAssistantAgent } from './agents/onboarding-assistant.agent';
 import {
   CreateServiceRequestTool,
   SearchServiceRequestTool,
@@ -20,6 +21,7 @@ import {
   UpdateConfirmationTool,
   UpdateMemoryTool,
   SearchMemoryTool,
+  FinishOnboardingTool,
 } from './tools';
 import { ServiceRequest, ServiceRequestsModule } from '../service-requests';
 import { Contact } from '../contacts/entities/contact.entity';
@@ -47,6 +49,7 @@ import { PostgresStore } from '@langchain/langgraph-checkpoint-postgres/store';
   providers: [
     OwnerAssistantAgent,
     ClientAssistantAgent,
+    OnboardingAssistantAgent,
     // Tools
     CreateServiceRequestTool,
     SearchServiceRequestTool,
@@ -63,6 +66,7 @@ import { PostgresStore } from '@langchain/langgraph-checkpoint-postgres/store';
     UpdateConfirmationTool,
     UpdateMemoryTool,
     SearchMemoryTool,
+    FinishOnboardingTool,
     // Services
     ExtractAiMessageService,
     LangchainService,
@@ -72,6 +76,7 @@ import { PostgresStore } from '@langchain/langgraph-checkpoint-postgres/store';
   exports: [
     OwnerAssistantAgent,
     ClientAssistantAgent,
+    OnboardingAssistantAgent,
     // Services
     AudioTranscriptionService,
     ExtractAiMessageService,

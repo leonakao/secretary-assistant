@@ -6,7 +6,6 @@ import { User } from '../users/entities/user.entity';
 import { UserCompany } from '../companies/entities/user-company.entity';
 import { AiModule } from '../ai/ai.module';
 import { EvolutionModule } from '../evolution/evolution.module';
-import { ActionsModule } from '../actions/actions.module';
 import { ChatService } from './services/chat.service';
 import { EvolutionMessageProvider } from './providers/evolution-message.provider';
 import { IncomingMessageUseCase } from './use-cases/incoming-message.use-case';
@@ -30,7 +29,6 @@ import { ServiceRequestsModule } from '../service-requests';
     ]),
     forwardRef(() => AiModule),
     EvolutionModule,
-    forwardRef(() => ActionsModule),
     ServiceRequestsModule,
   ],
   controllers: [EvolutionWebhookController],
