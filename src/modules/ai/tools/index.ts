@@ -11,3 +11,5 @@ export { SearchUserTool } from './search-user.tool';
 export { CreateMediationTool } from './create-mediation.tool';
 export { SearchMediationTool } from './search-mediation.tool';
 export { UpdateMediationTool } from './update-mediation.tool';
+export { UpdateMemoryTool } from './update-memory.tool';
+export { SearchMemoryTool } from './search-memory.tool';

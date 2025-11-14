@@ -19,8 +19,10 @@ import {
   CreateMediationTool,
   SearchMediationTool,
   UpdateMediationTool,
+  // UpdateMemoryTool,
+  // SearchMemoryTool,
 } from './tools';
-import { ServiceRequest } from '../service-requests';
+import { ServiceRequest, ServiceRequestsModule } from '../service-requests';
 import { Contact } from '../contacts/entities/contact.entity';
 import { User } from '../users/entities/user.entity';
 import { Company } from '../companies/entities/company.entity';
@@ -28,7 +30,7 @@ import { Memory } from '../chat/entities/memory.entity';
 import { Mediation } from '../service-requests/entities/mediation.entity';
 import { ChatModule } from '../chat/chat.module';
 import { ExtractAiMessageService } from './services/extract-ai-message.service';
-import { PostgresStore } from './stores/postgres.store';
+// import { PostgresStore } from './stores/postgres.store';
 
 @Module({
   imports: [
@@ -41,6 +43,7 @@ import { PostgresStore } from './stores/postgres.store';
       Mediation,
     ]),
     forwardRef(() => ChatModule),
+    ServiceRequestsModule,
   ],
   providers: [
     OwnerAssistantAgent,
@@ -59,12 +62,14 @@ import { PostgresStore } from './stores/postgres.store';
     CreateMediationTool,
     SearchMediationTool,
     UpdateMediationTool,
+    // UpdateMemoryTool,
+    // SearchMemoryTool,
     // Services
     ExtractAiMessageService,
     LangchainService,
     VectorStoreService,
     AudioTranscriptionService,
-    PostgresStore,
+    // PostgresStore,
   ],
   exports: [
     OwnerAssistantAgent,
@@ -72,6 +77,7 @@ import { PostgresStore } from './stores/postgres.store';
     // Services
     AudioTranscriptionService,
     ExtractAiMessageService,
+    LangchainService,
   ],
 })
 export class AiModule {}

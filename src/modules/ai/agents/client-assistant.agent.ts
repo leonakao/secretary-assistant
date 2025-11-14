@@ -25,7 +25,7 @@ import { Repository } from 'typeorm';
 import { AgentState, ClientAgentContext } from './agent.state';
 import { createDetectTransferNode } from '../nodes/detect-transfer.node';
 import { createRequestHumanNode } from '../nodes/request-human.node';
-import { PostgresStore } from '../stores/postgres.store';
+// import { PostgresStore } from '../stores/postgres.store';
 
 @Injectable()
 export class ClientAssistantAgent implements OnModuleInit {
@@ -49,7 +49,9 @@ export class ClientAssistantAgent implements OnModuleInit {
     private readonly contactRepository: Repository<Contact>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly postgresStore: PostgresStore,
+    // private readonly updateMemoryTool: UpdateMemoryTool,
+    // private readonly searchMemoryTool: SearchMemoryTool,
+    // private readonly postgresStore: PostgresStore,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -119,7 +121,7 @@ export class ClientAssistantAgent implements OnModuleInit {
 
     return workflow.compile({
       checkpointer: this.checkpointer,
-      store: this.postgresStore,
+      // store: this.postgresStore,
     });
   }
 

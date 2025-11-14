@@ -20,7 +20,7 @@ import {
 import { createToolNode } from '../nodes/tool.node';
 import { AgentState, OwnerAgentContext } from './agent.state';
 import { createOwnerAssistantNode } from '../nodes/owner-assistant.node';
-import { PostgresStore } from '../stores/postgres.store';
+// import { PostgresStore } from '../stores/postgres.store';
 
 @Injectable()
 export class OwnerAssistantAgent implements OnModuleInit {
@@ -40,7 +40,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
     private readonly updateMediationTool: UpdateMediationTool,
     private readonly searchMediationTool: SearchMediationTool,
     private readonly searchUserTool: SearchUserTool,
-    private readonly postgresStore: PostgresStore,
+    // private readonly postgresStore: PostgresStore,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -101,7 +101,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
 
     return workflow.compile({
       checkpointer: this.checkpointer,
-      store: this.postgresStore,
+      // store: this.postgresStore,
     });
   }
 

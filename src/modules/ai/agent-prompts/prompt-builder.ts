@@ -6,22 +6,46 @@ interface PromptComponents {
   variables: string;
 }
 
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 /**
  * Builds a complete prompt from modular components
  */
 export function buildPrompt(components: PromptComponents): string {
-  const sections: string[] = ['[INSTRUÇÃO MESTRA]', components.persona];
+  const { persona, context, instructions, rules, variables } = components;
 
-  if (components.instructions) {
-    sections.push('[INSTRUÇÕES]', components.instructions);
+  const parts: string[] = [];
+
+  parts.push('<prompt>');
+  parts.push('  <persona>');
+  parts.push(escapeXml(persona));
+  parts.push('  </persona>');
+
+  if (instructions && instructions.trim().length > 0) {
+    parts.push('  <instructions>');
+    parts.push(escapeXml(instructions));
+    parts.push('  </instructions>');
   }
 
-  sections.push('[CONTEXTO]', components.context);
-  sections.push('[REGRAS]', components.rules);
-  sections.push('[VARIAVEIS]', components.variables);
-  sections.push('[FINAL_INSTRUÇÃO MESTRA]');
+  parts.push('  <context>');
+  parts.push(escapeXml(context));
+  parts.push('  </context>');
 
-  return sections.join('\n\n');
+  parts.push('  <rules>');
+  parts.push(escapeXml(rules));
+  parts.push('  </rules>');
+
+  parts.push('  <variables>');
+  parts.push(escapeXml(variables));
+  parts.push('  </variables>');
+  parts.push('</prompt>');
+
+  return parts.join('\n');
 }
 
 /**
