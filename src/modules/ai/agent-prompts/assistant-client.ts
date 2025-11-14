@@ -1,43 +1,39 @@
-import { Contact } from 'src/modules/contacts/entities/contact.entity';
+import { AgentState } from '../agents/agent.state';
 import {
   buildPrompt,
   getClientPersona,
-  getBaseRules,
   getBaseVariables,
 } from './prompt-builder';
 
 /**
- * Standard prompt for client interactions
+ * Standard prompt for client interactions, built from AgentState
  */
-export const assistantClientPrompt = (
-  contact: Contact,
-  companyDescription: string,
+export const buildClientPromptFromState = (
+  state: typeof AgentState.State,
 ): string => {
-  const instructions = `Você vai atender os clientes e responder perguntas sobre a empresa.
-- Sempre termine sua resposta perguntando se o cliente precisa de ajuda com algo mais, exceto quando o cliente terminar sua mensagem com "obrigado" ou "obrigada".`;
+  const { context } = state;
+
+  const instructions = `Você deve:
+- Responder dúvidas sobre produtos, serviços, horários e políticas da empresa
+- Coletar informações necessárias para ajudar o cliente
+- Registrar solicitações ou atualizações usando as ferramentas disponíveis
+- Participar de confirmações em andamento, atualizando proprietários sobre propostas e respostas
+- Informar o cliente quando acionar um humano ou quando precisar de mais informações
+- Fazer follow-up natural sobre próximos passos
+
+Se o cliente fazer uma pergunta da qual você não tem certeza, diga que vai confirmar e inicie uma confirmação.
+Sempre que estiver aguardando alguma confirmação, verifique se o processo de confirmação realmente foi iniciado. 
+
+Caso você tenha confirmações em andamento, é provável que o usuário esteja falando sobre uma dessas confirmações.
+${context.confirmations?.map((confirmation) => `ID: ${confirmation.id}, UserId: ${confirmation.userId}, Descrição: ${confirmation.description}, Resultado esperado: ${confirmation.expectedResult}`).join('\n') ?? 'Nenhuma confirmação em andamento'}`;
 
   return buildPrompt({
     persona: getClientPersona(),
-    context: companyDescription,
+    context: '',
     instructions,
-    rules: getBaseRules(),
-    variables: getBaseVariables({ name: contact.name }),
-  });
-};
-
-/**
- * Custom prompt for client interactions with specific instructions
- */
-export const assistantClientPromptWithInstructions = (
-  contact: Contact,
-  customInstructions: string,
-  companyDescription: string,
-): string => {
-  return buildPrompt({
-    persona: getClientPersona(),
-    context: companyDescription,
-    instructions: customInstructions,
-    rules: getBaseRules(),
-    variables: getBaseVariables({ name: contact.name }),
+    variables: getBaseVariables({
+      name: context.contactName ?? 'Cliente',
+      lastInteractionDate: state.lastInteraction,
+    }),
   });
 };

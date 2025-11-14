@@ -1,53 +1,33 @@
-import { User } from 'src/modules/users/entities/user.entity';
+import { AgentState } from '../agents/agent.state';
 import {
   buildPrompt,
   getOwnerPersona,
-  getBaseRules,
   getBaseVariables,
 } from './prompt-builder';
 
-/**
- * Standard prompt for owner interactions
- */
-export const assistantOwnerPrompt = (
-  user: User,
-  companyDescription: string,
+export const buildOwnerPromptFromState = (
+  state: typeof AgentState.State,
 ): string => {
-  const instructions = `Você vai auxiliar o proprietário da empresa com informações sobre agendamentos, clientes, status de tarefas e outras operações do negócio.
-Você também é capaz de realizar ações que estão descritas no bloco de ações. Caso o usuário peça alguma dessas ações, confirme que vai realizar em seguida.
+  const { context } = state;
 
-[AÇÕES DISPONÍVEIS]
-- Enviar mensagens para clientes ou funcionários
+  const instructions = `Você auxilia o usuário com:
+- Informações sobre agendamentos, confirmações e requisições de serviço
+- Condução de confirmações entre usuário e cliente antes de executar ações definitivas
+- Busca de dados de clientes, conversas e confirmações abertas
+- Envio de mensagens para clientes ou funcionários
+- Gerenciamento de informações da empresa
+- Criação e atualização de contatos, confirmações e requisições
+- Gerenciar compromissos
 
-[ORIENTAÇÕES ESPECÍFICAS]
-- Forneça informações precisas e relevantes sobre o status da empresa
-- Seja proativa em destacar informações importantes ou urgentes
-- Organize as informações de forma clara e estruturada
-- Priorize eficiência e clareza nas respostas
-- Sugira ações quando apropriado`;
+`;
 
   return buildPrompt({
     persona: getOwnerPersona(),
-    context: companyDescription,
+    context: 'Busque informações sobre a empresa na sua memória',
     instructions,
-    rules: getBaseRules(),
-    variables: getBaseVariables({ name: user.name }),
-  });
-};
-
-/**
- * Custom prompt for owner interactions with specific instructions
- */
-export const assistantOwnerPromptWithInstructions = (
-  user: User,
-  customInstructions: string,
-  companyDescription: string,
-): string => {
-  return buildPrompt({
-    persona: getOwnerPersona(),
-    context: companyDescription,
-    instructions: customInstructions,
-    rules: getBaseRules(),
-    variables: getBaseVariables({ name: user.name }),
+    variables: getBaseVariables({
+      name: context.userName ?? 'Proprietário',
+      lastInteractionDate: state.lastInteraction,
+    }),
   });
 };

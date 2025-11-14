@@ -22,7 +22,7 @@ import { createToolNode } from '../nodes/tool.node';
 import { AgentContext, AgentState } from './agent.state';
 import { PostgresStore } from '../stores/postgres.store';
 import { createAssistantNode } from '../nodes/assistant.node';
-import { buildOnboardingPromptFromState } from '../agent-prompts/assistant-onboarding-node';
+import { buildOnboardingPromptFromState } from '../agent-prompts/assistant-onboarding';
 
 @Injectable()
 export class OnboardingAssistantAgent implements OnModuleInit {

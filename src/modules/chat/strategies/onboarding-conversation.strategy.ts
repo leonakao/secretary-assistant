@@ -7,7 +7,6 @@ import {
 } from './conversation-strategy.interface';
 import { ChatService } from '../services/chat.service';
 import { User } from '../../users/entities/user.entity';
-import { assistantOnboardingPrompt } from '../../ai/agent-prompts/assistant-onboarding';
 import { OnboardingAssistantAgent } from '../../ai/agents/onboarding-assistant.agent';
 import { AgentContext } from '../../ai/agents/agent.state';
 
@@ -41,8 +40,6 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
       id: params.userId,
     });
 
-    const systemPrompt = assistantOnboardingPrompt(user);
-
     await this.chatService.addMessageToMemory({
       sessionId: params.userId,
       companyId: params.companyId,
@@ -56,7 +53,7 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
       userId: params.userId,
       userName: user.name,
       userPhone: user.phone,
-      companyDescription: systemPrompt,
+      companyDescription: '',
       confirmations: [],
     };
 

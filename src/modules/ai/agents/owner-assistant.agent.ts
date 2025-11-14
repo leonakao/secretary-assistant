@@ -21,7 +21,7 @@ import { createToolNode } from '../nodes/tool.node';
 import { AgentContext, AgentState } from './agent.state';
 import { PostgresStore } from '../stores/postgres.store';
 import { createAssistantNode } from '../nodes/assistant.node';
-import { buildOwnerPromptFromState } from '../agent-prompts/assistant-owner-node';
+import { buildOwnerPromptFromState } from '../agent-prompts/assistant-owner';
 
 @Injectable()
 export class OwnerAssistantAgent implements OnModuleInit {

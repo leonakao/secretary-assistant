@@ -28,7 +28,7 @@ import { createDetectTransferNode } from '../nodes/detect-transfer.node';
 import { createRequestHumanNode } from '../nodes/request-human.node';
 import { PostgresStore } from '../stores/postgres.store';
 import { createAssistantNode } from '../nodes/assistant.node';
-import { buildClientPromptFromState } from '../agent-prompts/assistant-client-node';
+import { buildClientPromptFromState } from '../agent-prompts/assistant-client';
 
 @Injectable()
 export class ClientAssistantAgent implements OnModuleInit {
