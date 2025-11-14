@@ -96,6 +96,8 @@ export class OwnerConversationStrategy implements ConversationStrategy {
         });
       }
 
+      console.log('Final message:', messages.join('\n'));
+
       const finalMessage = messages.join('\n');
 
       if (!finalMessage) {

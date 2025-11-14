@@ -35,7 +35,6 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
       `Handling onboarding conversation for user ${params.userId}`,
     );
 
-    // Get user to build prompt and context
     const user = await this.userRepository.findOneByOrFail({
       id: params.userId,
     });
@@ -58,6 +57,12 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     };
 
     const messages: string[] = [];
+
+    await this.chatService.sendPresenceNotification({
+      instanceName: params.instanceName,
+      remoteJid: params.remoteJid,
+      presence: 'composing',
+    });
 
     const stream = await this.onboardingAssistantAgent.streamConversation(
       params.message,
@@ -85,6 +90,14 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
     }
 
     const message = messages.join('\n');
+
+    await this.chatService.sendMessageAndSaveToMemory({
+      sessionId: params.userId,
+      companyId: params.companyId,
+      instanceName: params.instanceName,
+      remoteJid: params.remoteJid,
+      message,
+    });
 
     return {
       message,
