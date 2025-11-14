@@ -10,8 +10,8 @@ import { Company } from '../../companies/entities/company.entity';
 import { ClientAssistantAgent } from '../../ai/agents/client-assistant.agent';
 import { ChatService } from '../services/chat.service';
 import { ExtractAiMessageService } from '../../ai/services/extract-ai-message.service';
-import { MediationService } from 'src/modules/service-requests/services/mediation.service';
 import { ClientAgentContext } from 'src/modules/ai/agents/agent.state';
+import { FindPendingConfirmationsService } from 'src/modules/service-requests/services/find-pending-confirmations.service';
 
 @Injectable()
 export class ClientConversationStrategy implements ConversationStrategy {
@@ -25,7 +25,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
     private readonly chatService: ChatService,
     private readonly clientAssistantAgent: ClientAssistantAgent,
     private readonly extractAiMessageService: ExtractAiMessageService,
-    private readonly mediationService: MediationService,
+    private readonly findPendingConfirmations: FindPendingConfirmationsService,
   ) {}
 
   async handleConversation(params: {
@@ -53,6 +53,8 @@ export class ClientConversationStrategy implements ConversationStrategy {
       content: params.message,
     });
 
+    this.logger.log(`Processing owner message: ${params.message}`);
+
     const agentContext: ClientAgentContext = {
       companyId: params.companyId,
       instanceName: params.instanceName,
@@ -60,7 +62,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
       contactName: contact.name,
       contactPhone: contact.phone ?? undefined,
       companyDescription: company.description,
-      mediations: await this.mediationService.findPendingMediations({
+      confirmations: await this.findPendingConfirmations.execute({
         companyId: params.companyId,
         contactId: params.contactId,
       }),

@@ -1,4 +1,10 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex, TableForeignKey } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableIndex,
+  TableForeignKey,
+} from 'typeorm';
 
 export class AddServiceRequests1731165000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -169,9 +175,18 @@ export class AddServiceRequests1731165000000 implements MigrationInterface {
     }
 
     // Drop indexes
-    await queryRunner.dropIndex('service_requests', 'IDX_SERVICE_REQUESTS_COMPANY_STATUS');
-    await queryRunner.dropIndex('service_requests', 'IDX_SERVICE_REQUESTS_COMPANY_CONTACT');
-    await queryRunner.dropIndex('service_requests', 'IDX_SERVICE_REQUESTS_COMPANY_TYPE');
+    await queryRunner.dropIndex(
+      'service_requests',
+      'IDX_SERVICE_REQUESTS_COMPANY_STATUS',
+    );
+    await queryRunner.dropIndex(
+      'service_requests',
+      'IDX_SERVICE_REQUESTS_COMPANY_CONTACT',
+    );
+    await queryRunner.dropIndex(
+      'service_requests',
+      'IDX_SERVICE_REQUESTS_COMPANY_TYPE',
+    );
 
     // Drop table
     await queryRunner.dropTable('service_requests');

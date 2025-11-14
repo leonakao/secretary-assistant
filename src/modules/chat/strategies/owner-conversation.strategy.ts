@@ -11,7 +11,7 @@ import { OwnerAssistantAgent } from '../../ai/agents/owner-assistant.agent';
 import { OwnerAgentContext } from 'src/modules/ai/agents/agent.state';
 import { User } from '../../users/entities/user.entity';
 import { Company } from '../../companies/entities/company.entity';
-import { MediationService } from 'src/modules/service-requests/services/mediation.service';
+import { FindPendingConfirmationsService } from '../../service-requests/services/find-pending-confirmations.service';
 
 @Injectable()
 export class OwnerConversationStrategy implements ConversationStrategy {
@@ -25,7 +25,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
     private readonly chatService: ChatService,
     private readonly ownerAssistantAgent: OwnerAssistantAgent,
     private readonly extractAiMessageService: ExtractAiMessageService,
-    private readonly mediationService: MediationService,
+    private readonly findPendingConfirmations: FindPendingConfirmationsService,
   ) {}
 
   async handleConversation(params: {
@@ -64,7 +64,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
         userName: user.name,
         userPhone: user.phone,
         companyDescription: company.description,
-        mediations: await this.mediationService.findPendingMediations({
+        confirmations: await this.findPendingConfirmations.execute({
           companyId: params.companyId,
           userId: params.userId,
         }),

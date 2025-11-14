@@ -1,12 +1,12 @@
 import { Annotation, MessagesAnnotation } from '@langchain/langgraph';
 
-import { PendingMediation } from 'src/modules/service-requests/services/mediation.service';
+import { PendingConfirmation } from 'src/modules/service-requests/services/find-pending-confirmations.service';
 
 export interface BaseAgentContext {
   companyId: string;
   instanceName: string;
   companyDescription: string;
-  mediations: PendingMediation[];
+  confirmations: PendingConfirmation[];
 }
 
 export interface ClientAgentContext extends BaseAgentContext {

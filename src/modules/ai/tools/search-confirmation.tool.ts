@@ -2,39 +2,40 @@ import { StructuredTool } from '@langchain/core/tools';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import {
-  MediationInteractionPending,
-  MediationStatus,
-  Mediation,
-} from 'src/modules/service-requests/entities/mediation.entity';
+  ConfirmationInteractionPending,
+  ConfirmationStatus,
+  Confirmation,
+} from 'src/modules/service-requests/entities/confirmation.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AgentState } from '../agents/agent.state';
 
-const mediationStatusValues: [MediationStatus, ...MediationStatus[]] = [
-  MediationStatus.ACTIVE,
-  MediationStatus.CLOSED,
+const confirmationStatusValues: [ConfirmationStatus, ...ConfirmationStatus[]] =
+  [ConfirmationStatus.ACTIVE, ConfirmationStatus.CLOSED];
+
+const confirmationInteractionValues: [
+  ConfirmationInteractionPending,
+  ...ConfirmationInteractionPending[],
+] = [
+  ConfirmationInteractionPending.USER,
+  ConfirmationInteractionPending.CONTACT,
 ];
 
-const mediationInteractionValues: [
-  MediationInteractionPending,
-  ...MediationInteractionPending[],
-] = [MediationInteractionPending.USER, MediationInteractionPending.CONTACT];
-
-const searchMediationSchema = z.object({
-  id: z.uuid().optional().describe('ID específico da mediação a buscar'),
+const searchConfirmationSchema = z.object({
+  id: z.uuid().optional().describe('ID específico da confirmação a buscar'),
   userId: z
     .uuid()
     .optional()
-    .describe('Filtra mediações pelo proprietário responsável'),
+    .describe('Filtra confirmações pelo proprietário responsável'),
   contactId: z
     .uuid()
     .optional()
-    .describe('Filtra mediações pelo contato envolvido'),
+    .describe('Filtra confirmações pelo contato envolvido'),
   status: z
-    .optional(z.enum(mediationStatusValues))
-    .describe('Status das mediações (active ou closed)'),
+    .optional(z.enum(confirmationStatusValues))
+    .describe('Status das confirmações (active ou closed)'),
   interactionPending: z
-    .optional(z.enum(mediationInteractionValues))
+    .optional(z.enum(confirmationInteractionValues))
     .describe(
       'Quem deve interagir: "user" (proprietário) ou "contact" (cliente)',
     ),
@@ -44,25 +45,25 @@ const searchMediationSchema = z.object({
     .min(1)
     .max(50)
     .optional()
-    .describe('Número máximo de mediações a retornar (padrão: 20)'),
+    .describe('Número máximo de confirmações a retornar (padrão: 20)'),
 });
 
 @Injectable()
-export class SearchMediationTool extends StructuredTool {
-  name = 'searchMediation';
+export class SearchConfirmationTool extends StructuredTool {
+  name = 'searchConfirmation';
   description =
-    'Busca mediações existentes utilizando filtros como status, responsável pendente ou contato. Use para entender o estado atual das mediações.';
-  schema = searchMediationSchema;
+    'Busca confirmações existentes utilizando filtros como status, responsável pendente ou contato. Use para entender o estado atual das confirmações.';
+  schema = searchConfirmationSchema;
 
   constructor(
-    @InjectRepository(Mediation)
-    private readonly mediationRepository: Repository<Mediation>,
+    @InjectRepository(Confirmation)
+    private readonly confirmationRepository: Repository<Confirmation>,
   ) {
     super();
   }
 
   protected async _call(
-    args: z.infer<typeof searchMediationSchema>,
+    args: z.infer<typeof searchConfirmationSchema>,
     _runManager?: unknown,
     state?: typeof AgentState.State,
   ): Promise<string> {
@@ -76,7 +77,7 @@ export class SearchMediationTool extends StructuredTool {
       throw new Error('Company ID missing in the context');
     }
 
-    const qb = this.mediationRepository
+    const qb = this.confirmationRepository
       .createQueryBuilder('session')
       .where('session.companyId = :companyId', {
         companyId: context.companyId,
@@ -111,7 +112,7 @@ export class SearchMediationTool extends StructuredTool {
     const sessions = await qb.getMany();
 
     return (
-      `${sessions.length} Mediações encontradas: \n` +
+      `${sessions.length} Confirmações encontradas: \n` +
       sessions
         .map(
           (session) =>

@@ -3,29 +3,29 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import {
-  Mediation,
-  MediationInteractionPending,
-  MediationStatus,
-} from '../entities/mediation.entity';
+  Confirmation,
+  ConfirmationInteractionPending,
+  ConfirmationStatus,
+} from '../entities/confirmation.entity';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { FindResponsibleUserService } from './find-responsible-user.service';
 
-export interface CreateMediationInput {
+export interface CreateConfirmationInput {
   companyId: string;
   contactId: string;
   description: string;
   expectedResult: string;
   metadata?: Record<string, unknown> | null;
-  interactionPending: MediationInteractionPending;
+  interactionPending: ConfirmationInteractionPending;
   userId?: string;
 }
 
 @Injectable()
-export class CreateMediationService {
+export class CreateConfirmationService {
   constructor(
-    @InjectRepository(Mediation)
-    private readonly mediationRepository: Repository<Mediation>,
+    @InjectRepository(Confirmation)
+    private readonly confirmationRepository: Repository<Confirmation>,
     @InjectRepository(Contact)
     private readonly contactRepository: Repository<Contact>,
     @InjectRepository(User)
@@ -33,7 +33,7 @@ export class CreateMediationService {
     private readonly findResponsibleUserService: FindResponsibleUserService,
   ) {}
 
-  async execute(input: CreateMediationInput): Promise<Mediation> {
+  async execute(input: CreateConfirmationInput): Promise<Confirmation> {
     const {
       companyId,
       contactId,
@@ -56,21 +56,23 @@ export class CreateMediationService {
     });
 
     if (!responsibleUser) {
-      throw new Error('Unable to find a responsible user for this mediation');
+      throw new Error(
+        'Unable to find a responsible user for this confirmation',
+      );
     }
 
-    const mediation = this.mediationRepository.create({
+    const confirmation = this.confirmationRepository.create({
       companyId,
       userId: responsibleUser.id,
       contactId,
       description,
       expectedResult,
       interactionPending,
-      status: MediationStatus.ACTIVE,
+      status: ConfirmationStatus.ACTIVE,
       metadata: metadata ?? null,
     });
 
-    return await this.mediationRepository.save(mediation);
+    return await this.confirmationRepository.save(confirmation);
   }
 
   private async resolveUser(params: {

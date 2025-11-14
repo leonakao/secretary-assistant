@@ -14,9 +14,11 @@ import {
   UpdateServiceRequestTool,
   SearchUserTool,
   SendMessageTool,
-  CreateMediationTool,
-  UpdateMediationTool,
-  SearchMediationTool,
+  CreateConfirmationTool,
+  UpdateConfirmationTool,
+  SearchConfirmationTool,
+  UpdateMemoryTool,
+  SearchMemoryTool,
 } from '../tools';
 import { createClientAssistantNode } from '../nodes/client-assistant.node';
 import { createToolNode } from '../nodes/tool.node';
@@ -25,7 +27,7 @@ import { Repository } from 'typeorm';
 import { AgentState, ClientAgentContext } from './agent.state';
 import { createDetectTransferNode } from '../nodes/detect-transfer.node';
 import { createRequestHumanNode } from '../nodes/request-human.node';
-// import { PostgresStore } from '../stores/postgres.store';
+import { PostgresStore } from '../stores/postgres.store';
 
 @Injectable()
 export class ClientAssistantAgent implements OnModuleInit {
@@ -42,16 +44,16 @@ export class ClientAssistantAgent implements OnModuleInit {
     private readonly searchConversationTool: SearchConversationTool,
     private readonly searchUserTool: SearchUserTool,
     private readonly sendMessageTool: SendMessageTool,
-    private readonly createMediationTool: CreateMediationTool,
-    private readonly updateMediationTool: UpdateMediationTool,
-    private readonly searchMediationTool: SearchMediationTool,
+    private readonly createConfirmationTool: CreateConfirmationTool,
+    private readonly updateConfirmationTool: UpdateConfirmationTool,
+    private readonly searchConfirmationTool: SearchConfirmationTool,
     @InjectRepository(Contact)
     private readonly contactRepository: Repository<Contact>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    // private readonly updateMemoryTool: UpdateMemoryTool,
-    // private readonly searchMemoryTool: SearchMemoryTool,
-    // private readonly postgresStore: PostgresStore,
+    private readonly updateMemoryTool: UpdateMemoryTool,
+    private readonly searchMemoryTool: SearchMemoryTool,
+    private readonly postgresStore: PostgresStore,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -121,7 +123,7 @@ export class ClientAssistantAgent implements OnModuleInit {
 
     return workflow.compile({
       checkpointer: this.checkpointer,
-      // store: this.postgresStore,
+      store: this.postgresStore,
     });
   }
 
@@ -146,6 +148,17 @@ export class ClientAssistantAgent implements OnModuleInit {
     );
   }
 
+  async updateState(state: Partial<typeof AgentState.State>, threadId: string) {
+    await this.graph.updateState(
+      {
+        configurable: {
+          thread_id: threadId,
+        },
+      },
+      state,
+    );
+  }
+
   private getTools(): StructuredTool[] {
     return [
       this.createServiceRequestTool,
@@ -154,9 +167,11 @@ export class ClientAssistantAgent implements OnModuleInit {
       this.searchConversationTool,
       this.searchUserTool,
       this.sendMessageTool,
-      this.createMediationTool,
-      this.updateMediationTool,
-      this.searchMediationTool,
+      this.createConfirmationTool,
+      this.updateConfirmationTool,
+      this.searchConfirmationTool,
+      this.updateMemoryTool,
+      this.searchMemoryTool,
     ];
   }
 }

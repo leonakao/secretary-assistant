@@ -13,14 +13,14 @@ import {
   SendMessageTool,
   SearchConversationTool,
   SearchUserTool,
-  CreateMediationTool,
-  UpdateMediationTool,
-  SearchMediationTool,
+  CreateConfirmationTool,
+  UpdateConfirmationTool,
+  SearchConfirmationTool,
 } from '../tools';
 import { createToolNode } from '../nodes/tool.node';
 import { AgentState, OwnerAgentContext } from './agent.state';
 import { createOwnerAssistantNode } from '../nodes/owner-assistant.node';
-// import { PostgresStore } from '../stores/postgres.store';
+import { PostgresStore } from '../stores/postgres.store';
 
 @Injectable()
 export class OwnerAssistantAgent implements OnModuleInit {
@@ -36,11 +36,11 @@ export class OwnerAssistantAgent implements OnModuleInit {
     private readonly updateServiceRequestTool: UpdateServiceRequestTool,
     private readonly sendMessageTool: SendMessageTool,
     private readonly searchConversationTool: SearchConversationTool,
-    private readonly createMediationTool: CreateMediationTool,
-    private readonly updateMediationTool: UpdateMediationTool,
-    private readonly searchMediationTool: SearchMediationTool,
+    private readonly createConfirmationTool: CreateConfirmationTool,
+    private readonly updateConfirmationTool: UpdateConfirmationTool,
+    private readonly searchConfirmationTool: SearchConfirmationTool,
     private readonly searchUserTool: SearchUserTool,
-    // private readonly postgresStore: PostgresStore,
+    private readonly postgresStore: PostgresStore,
   ) {
     const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
 
@@ -101,7 +101,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
 
     return workflow.compile({
       checkpointer: this.checkpointer,
-      // store: this.postgresStore,
+      store: this.postgresStore,
     });
   }
 
@@ -139,6 +139,17 @@ export class OwnerAssistantAgent implements OnModuleInit {
     }
   }
 
+  async updateState(state: Partial<typeof AgentState.State>, threadId: string) {
+    await this.graph.updateState(
+      {
+        configurable: {
+          thread_id: threadId,
+        },
+      },
+      state,
+    );
+  }
+
   /**
    * Get all available tools for the agent
    */
@@ -150,9 +161,9 @@ export class OwnerAssistantAgent implements OnModuleInit {
       this.searchConversationTool,
       this.sendMessageTool,
       this.searchUserTool,
-      this.createMediationTool,
-      this.updateMediationTool,
-      this.searchMediationTool,
+      this.createConfirmationTool,
+      this.updateConfirmationTool,
+      this.searchConfirmationTool,
     ];
   }
 }

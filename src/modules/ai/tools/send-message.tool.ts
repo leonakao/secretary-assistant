@@ -7,6 +7,9 @@ import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { ChatService } from 'src/modules/chat/services/chat.service';
 import { AgentState } from '../agents/agent.state';
+import { ClientAssistantAgent } from '../agents/client-assistant.agent';
+import { OwnerAssistantAgent } from '../agents/owner-assistant.agent';
+import { AIMessage } from '@langchain/core/messages';
 
 const sendMessageSchema = z.object({
   recipientId: z.string().describe('ID do destinatário (contactId ou userId)'),
@@ -29,6 +32,8 @@ export class SendMessageTool extends StructuredTool {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly chatService: ChatService,
+    private readonly clientAssistantAgent: ClientAssistantAgent,
+    private readonly ownerAssistantAgent: OwnerAssistantAgent,
   ) {
     super();
   }
@@ -47,36 +52,17 @@ export class SendMessageTool extends StructuredTool {
       );
     }
 
-    let recipient: Contact | User | null = null;
-
-    if (recipientType === 'contact') {
-      recipient = await this.contactRepository.findOne({
-        where: { id: recipientId, companyId },
-      });
-    }
-
-    if (!recipient && recipientType === 'user') {
-      recipient = await this.userRepository.findOne({
-        where: { id: recipientId },
-      });
-    }
+    const recipient =
+      recipientType === 'contact'
+        ? await this.findContactRecipient(recipientId, companyId)
+        : await this.findUserRecipient(recipientId);
 
     if (!recipient) {
-      const result = {
-        success: false,
-        error: 'Recipient not found',
-        message: `Destinatário com ID ${recipientId} não encontrado`,
-      };
-      return JSON.stringify(result, null, 2);
+      return `${recipientType === 'user' ? 'O usuário' : 'O contato'} "${recipientId}" não encontrado`;
     }
 
     if (!recipient.phone) {
-      const result = {
-        success: false,
-        error: 'Phone number missing',
-        message: `${recipientType === 'user' ? 'O funcionário' : 'O contato'} "${recipient.name}" não possui telefone cadastrado`,
-      };
-      return JSON.stringify(result, null, 2);
+      return `${recipientType === 'user' ? 'O usuário' : 'O contato'} "${recipient?.name}" não possui telefone cadastrado`;
     }
 
     const remoteJid = this.buildRemoteJid(recipient.phone);
@@ -89,7 +75,65 @@ export class SendMessageTool extends StructuredTool {
       message,
     });
 
+    await this.updateRecipientState(recipientId, recipientType, message);
+
     return 'Mensagem enviada com sucesso';
+  }
+
+  private async findContactRecipient(recipientId: string, companyId: string) {
+    const contact = await this.contactRepository.findOne({
+      where: { id: recipientId, companyId },
+    });
+
+    if (!contact) {
+      return null;
+    }
+
+    return {
+      id: contact.id,
+      name: contact.name,
+      phone: contact.phone,
+    };
+  }
+
+  private async findUserRecipient(recipientId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: recipientId },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      phone: user.phone,
+    };
+  }
+
+  private async updateRecipientState(
+    recipientId: string,
+    recipientType: 'contact' | 'user',
+    message: string,
+  ): Promise<void> {
+    if (recipientType === 'contact') {
+      await this.clientAssistantAgent.updateState(
+        {
+          messages: [new AIMessage(message)],
+        },
+        recipientId,
+      );
+
+      return;
+    }
+
+    await this.ownerAssistantAgent.updateState(
+      {
+        messages: [new AIMessage(message)],
+      },
+      recipientId,
+    );
   }
 
   private buildRemoteJid(phone: string): string {

@@ -8,18 +8,18 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-export enum MediationStatus {
+export enum ConfirmationStatus {
   ACTIVE = 'active',
   CLOSED = 'closed',
 }
 
-export enum MediationInteractionPending {
+export enum ConfirmationInteractionPending {
   USER = 'user',
   CONTACT = 'contact',
 }
 
-@Entity('mediations')
-export class Mediation {
+@Entity('confirmations')
+export class Confirmation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -36,14 +36,14 @@ export class Mediation {
   contactId: string;
 
   @Column({
-    default: MediationStatus.ACTIVE,
+    default: ConfirmationStatus.ACTIVE,
   })
-  status: MediationStatus;
+  status: ConfirmationStatus;
 
   @Column({
-    default: MediationInteractionPending.USER,
+    default: ConfirmationInteractionPending.USER,
   })
-  interactionPending: MediationInteractionPending;
+  interactionPending: ConfirmationInteractionPending;
 
   @Column({ type: 'text' })
   description: string;

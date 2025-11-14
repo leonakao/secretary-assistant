@@ -15,7 +15,7 @@ import { ClientConversationStrategy } from './strategies/client-conversation.str
 import { OwnerConversationStrategy } from './strategies/owner-conversation.strategy';
 import { OnboardingConversationStrategy } from './strategies/onboarding-conversation.strategy';
 import { Company } from '../companies/entities/company.entity';
-import { Mediation } from '../service-requests/entities/mediation.entity';
+import { Confirmation } from '../service-requests/entities/confirmation.entity';
 import { ServiceRequestsModule } from '../service-requests';
 
 @Module({
@@ -26,7 +26,7 @@ import { ServiceRequestsModule } from '../service-requests';
       User,
       UserCompany,
       Company,
-      Mediation,
+      Confirmation,
     ]),
     forwardRef(() => AiModule),
     EvolutionModule,

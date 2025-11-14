@@ -2,12 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
-  Mediation,
-  MediationInteractionPending,
-  MediationStatus,
-} from '../entities/mediation.entity';
+  Confirmation,
+  ConfirmationInteractionPending,
+  ConfirmationStatus,
+} from '../entities/confirmation.entity';
 
-export class PendingMediation {
+export class PendingConfirmation {
   id: string;
   contactId: string;
   userId: string;
@@ -16,27 +16,27 @@ export class PendingMediation {
 }
 
 @Injectable()
-export class MediationService {
+export class FindPendingConfirmationsService {
   constructor(
-    @InjectRepository(Mediation)
-    private readonly mediationRepository: Repository<Mediation>,
+    @InjectRepository(Confirmation)
+    private readonly confirmationRepository: Repository<Confirmation>,
   ) {}
 
-  async findPendingMediations(params: {
+  async execute(params: {
     companyId: string;
     userId?: string;
     contactId?: string;
-  }): Promise<PendingMediation[]> {
-    return await this.mediationRepository.find({
+  }): Promise<PendingConfirmation[]> {
+    return await this.confirmationRepository.find({
       select: ['id', 'contactId', 'userId', 'description', 'expectedResult'],
       where: {
-        status: MediationStatus.ACTIVE,
+        status: ConfirmationStatus.ACTIVE,
         companyId: params.companyId,
         userId: params.userId,
         contactId: params.contactId,
         interactionPending: params.userId
-          ? MediationInteractionPending.USER
-          : MediationInteractionPending.CONTACT,
+          ? ConfirmationInteractionPending.USER
+          : ConfirmationInteractionPending.CONTACT,
       },
     });
   }

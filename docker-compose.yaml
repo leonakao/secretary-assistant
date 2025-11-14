@@ -24,7 +24,7 @@ services:
         condition: service_healthy
 
   db:
-    image: postgres:18.0
+    image: pgvector/pgvector:pg17
     container_name: db
     shm_size: 128mb
     environment:
@@ -34,7 +34,7 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

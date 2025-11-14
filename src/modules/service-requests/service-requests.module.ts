@@ -1,26 +1,26 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServiceRequest } from './entities/service-request.entity';
-import { MediationService } from './services/mediation.service';
-import { Mediation } from './entities/mediation.entity';
+import { FindPendingConfirmationsService } from './services/find-pending-confirmations.service';
+import { Confirmation } from './entities/confirmation.entity';
 import { Contact } from '../contacts/entities/contact.entity';
 import { User } from '../users/entities/user.entity';
 import { FindResponsibleUserService } from './services/find-responsible-user.service';
-import { CreateMediationService } from './services/create-mediation.service';
+import { CreateConfirmationService } from './services/create-confirmation.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ServiceRequest, Mediation, Contact, User]),
+    TypeOrmModule.forFeature([ServiceRequest, Confirmation, Contact, User]),
   ],
   providers: [
-    MediationService,
+    FindPendingConfirmationsService,
     FindResponsibleUserService,
-    CreateMediationService,
+    CreateConfirmationService,
   ],
   exports: [
-    MediationService,
+    FindPendingConfirmationsService,
     FindResponsibleUserService,
-    CreateMediationService,
+    CreateConfirmationService,
   ],
 })
 export class ServiceRequestsModule {}

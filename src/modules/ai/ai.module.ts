@@ -15,21 +15,21 @@ import {
   UpdateContactTool,
   UpdateCompanyTool,
   SearchUserTool,
-  CreateMediationTool,
-  SearchMediationTool,
-  UpdateMediationTool,
-  // UpdateMemoryTool,
-  // SearchMemoryTool,
+  CreateConfirmationTool,
+  SearchConfirmationTool,
+  UpdateConfirmationTool,
+  UpdateMemoryTool,
+  SearchMemoryTool,
 } from './tools';
 import { ServiceRequest, ServiceRequestsModule } from '../service-requests';
 import { Contact } from '../contacts/entities/contact.entity';
 import { User } from '../users/entities/user.entity';
 import { Company } from '../companies/entities/company.entity';
 import { Memory } from '../chat/entities/memory.entity';
-import { Mediation } from '../service-requests/entities/mediation.entity';
+import { Confirmation } from '../service-requests/entities/confirmation.entity';
 import { ChatModule } from '../chat/chat.module';
 import { ExtractAiMessageService } from './services/extract-ai-message.service';
-// import { PostgresStore } from './stores/postgres.store';
+import { PostgresStore } from '@langchain/langgraph-checkpoint-postgres/store';
 
 @Module({
   imports: [
@@ -39,7 +39,7 @@ import { ExtractAiMessageService } from './services/extract-ai-message.service';
       User,
       Company,
       Memory,
-      Mediation,
+      Confirmation,
     ]),
     forwardRef(() => ChatModule),
     ServiceRequestsModule,
@@ -58,16 +58,16 @@ import { ExtractAiMessageService } from './services/extract-ai-message.service';
     UpdateContactTool,
     UpdateCompanyTool,
     SearchUserTool,
-    CreateMediationTool,
-    SearchMediationTool,
-    UpdateMediationTool,
-    // UpdateMemoryTool,
-    // SearchMemoryTool,
+    CreateConfirmationTool,
+    SearchConfirmationTool,
+    UpdateConfirmationTool,
+    UpdateMemoryTool,
+    SearchMemoryTool,
     // Services
     ExtractAiMessageService,
     LangchainService,
     AudioTranscriptionService,
-    // PostgresStore,
+    PostgresStore,
   ],
   exports: [
     OwnerAssistantAgent,
