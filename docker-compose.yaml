@@ -1,13 +1,13 @@
 services:
   app:
     build:
-      context: .
+      context: ./api
       target: build
     container_name: app
     user: 1000:1000
     command: 'pnpm run start:dev'
     volumes:
-      - .:/usr/src/app
+      - ./api:/usr/src/app
       - /usr/src/app/node_modules
     ports:
       - 3000:3000
