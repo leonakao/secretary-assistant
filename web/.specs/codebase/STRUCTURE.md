@@ -1,6 +1,6 @@
 # Project Structure
 
-**Status:** Planned (web/ not yet scaffolded)
+**Status:** Active — minimal scaffold with home module
 **Root:** `secretary-assistant/web/`
 
 ## Directory Tree

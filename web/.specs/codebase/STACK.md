@@ -1,6 +1,6 @@
 # Tech Stack
 
-**Status:** Planned (web/ not yet scaffolded)
+**Status:** Active — minimal scaffold with home module
 **Pattern:** Follows reference project conventions
 
 ## Core
