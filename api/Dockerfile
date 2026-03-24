@@ -1,4 +1,4 @@
-FROM node:22.11-alpine AS base
+FROM node:24-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN npm install -g pnpm@10.17
@@ -25,7 +25,7 @@ RUN pnpm install --frozen-lockfile --offline
 
 RUN pnpm build
 
-FROM node:22.11-alpine AS production
+FROM node:24-alpine AS production
 
 WORKDIR /usr/src/app
 
