@@ -4,10 +4,8 @@ import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended'
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-export default tseslint.config(
-  {
-    ignores: ['eslint.config.mjs'],
-  },
+export default [
+  { ignores: ['eslint.config.mjs'] },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   eslintPluginPrettierRecommended,
@@ -36,4 +34,4 @@ export default tseslint.config(
       '@typescript-eslint/require-await': 'off',
     },
   },
-);
+];
