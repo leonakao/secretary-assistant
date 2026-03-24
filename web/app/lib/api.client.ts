@@ -5,6 +5,16 @@ type FetchOptions = RequestInit & {
   skipCredentials?: boolean;
 };
 
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly statusText: string,
+  ) {
+    super(`API error: ${status} ${statusText}`);
+    this.name = 'ApiError';
+  }
+}
+
 export async function fetchApi<T>(
   path: string,
   options: FetchOptions = {},
@@ -12,7 +22,7 @@ export async function fetchApi<T>(
   const response = await fetchApiResponse(path, options);
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    throw new ApiError(response.status, response.statusText);
   }
 
   return response.json() as Promise<T>;

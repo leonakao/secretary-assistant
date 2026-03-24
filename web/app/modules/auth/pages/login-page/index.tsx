@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { LoaderCircle, LogIn, UserRoundPlus } from 'lucide-react';
+import { AlertTriangle, LoaderCircle, LogIn, UserRoundPlus } from 'lucide-react';
 import { Button, buttonVariants } from '~/components/ui/base/button';
 import { getAuth0RedirectUri } from '~/lib/runtime-config.client';
+import { isUnauthorizedSessionRecovery } from '~/modules/auth/session-recovery';
 import { useAppAuth } from '~/modules/auth/auth-provider';
 
 type AuthMode = 'signin' | 'signup';
@@ -24,6 +25,7 @@ export function LoginPage() {
   const mode: AuthMode =
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
   const redirectTo = getSafeRedirectTarget(searchParams.get('redirectTo'));
+  const isUnauthorizedRecovery = isUnauthorizedSessionRecovery(searchParams);
 
   const headline =
     mode === 'signup' ? 'Create your owner account' : 'Sign in to your dashboard';
@@ -39,15 +41,18 @@ export function LoginPage() {
       },
       authorizationParams: {
         redirect_uri: getAuth0RedirectUri(),
+        ...(isUnauthorizedRecovery && nextMode === 'signin'
+          ? { prompt: 'login' }
+          : {}),
         ...(nextMode === 'signup' ? { screen_hint: 'signup' } : {}),
       },
     });
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    if (!isLoading && isAuthenticated && !isUnauthorizedRecovery) {
       void navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate, redirectTo]);
+  }, [isAuthenticated, isLoading, isUnauthorizedRecovery, navigate, redirectTo]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.12),_transparent_35%),linear-gradient(180deg,_var(--color-background),_var(--color-muted))] px-6 py-10">
@@ -105,7 +110,7 @@ export function LoginPage() {
               <LoaderCircle className="h-4 w-4 animate-spin" />
               Checking your session...
             </div>
-          ) : isAuthenticated ? (
+          ) : isAuthenticated && !isUnauthorizedRecovery ? (
             <div className="space-y-4">
               <p className="text-sm font-semibold text-brand">
                 Active session detected
@@ -138,9 +143,25 @@ export function LoginPage() {
                   Dedicated auth page
                 </p>
                 <h2 className="text-2xl font-semibold text-foreground">
-                  Choose how you want to enter
+                  {isUnauthorizedRecovery
+                    ? 'Your dashboard session was rejected'
+                    : 'Choose how you want to enter'}
                 </h2>
               </div>
+
+              {isUnauthorizedRecovery ? (
+                <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>
+                      Auth0 still recognizes your browser session, but the API rejected
+                      it with <strong>401 Unauthorized</strong>. Automatic redirect is
+                      paused here to avoid a login loop. Sign in again to retry with a
+                      fresh session.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
 
               {error ? (
                 <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -169,8 +190,9 @@ export function LoginPage() {
               </div>
 
               <p className="text-sm leading-6 text-muted-foreground">
-                New users can start with sign up. Existing owners can sign in and
-                continue straight to the dashboard.
+                {isUnauthorizedRecovery
+                  ? 'Use sign in to force a fresh Auth0 login before trying the dashboard again.'
+                  : 'New users can start with sign up. Existing owners can sign in and continue straight to the dashboard.'}
               </p>
             </div>
           )}

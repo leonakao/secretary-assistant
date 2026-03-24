@@ -2,20 +2,34 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router';
 import { LoaderCircle, LogOut } from 'lucide-react';
 import { Button, buttonVariants } from '~/components/ui/base/button';
-import { bootstrapAuthSession } from '~/modules/auth/session';
+import {
+  bootstrapAuthSession,
+  isUnauthorizedSessionError,
+} from '~/modules/auth/session';
+import { buildUnauthorizedSessionRecoveryPath } from '~/modules/auth/session-recovery';
 import type { SessionUser } from '~/modules/auth/api/get-current-user';
-import { getAuth0LogoutReturnTo } from '~/lib/runtime-config.client';
+import { getAuth0AppOrigin, getAuth0LogoutReturnTo } from '~/lib/runtime-config.client';
 import { useAppAuth } from '~/modules/auth/auth-provider';
+
+function getExpiredSessionReturnTo(): string {
+  return new URL(
+    buildUnauthorizedSessionRecoveryPath('/dashboard'),
+    getAuth0AppOrigin(),
+  ).toString();
+}
 
 export function DashboardPage() {
   const { getIdTokenClaims, isAuthenticated, isLoading, logout, user } =
     useAppAuth();
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isRecoveringSession, setIsRecoveringSession] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       setSessionUser(null);
+      setError(null);
+      setIsRecoveringSession(false);
       return;
     }
 
@@ -26,10 +40,25 @@ export function DashboardPage() {
         if (!cancelled) {
           setSessionUser(nextUser);
           setError(null);
+          setIsRecoveringSession(false);
         }
       },
       (cause: unknown) => {
         if (!cancelled) {
+          if (isUnauthorizedSessionError(cause)) {
+            setSessionUser(null);
+            setError(null);
+            setIsRecoveringSession(true);
+            logout({
+              logoutParams: {
+                returnTo: getExpiredSessionReturnTo(),
+              },
+            });
+            return;
+          }
+
+          setSessionUser(null);
+          setIsRecoveringSession(false);
           setError(
             cause instanceof Error
               ? cause.message
@@ -101,7 +130,12 @@ export function DashboardPage() {
       <section className="mx-auto mt-10 grid max-w-6xl gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
           <p className="text-sm font-semibold text-brand">Session status</p>
-          {error ? (
+          {isRecoveringSession ? (
+            <div className="mt-6 flex items-center gap-3 text-sm text-muted-foreground">
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+              Your session expired. Redirecting to sign in...
+            </div>
+          ) : error ? (
             <p className="mt-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}
             </p>

@@ -1,4 +1,5 @@
 import { getCurrentUser, type SessionUser } from './api/get-current-user';
+import { ApiError } from '~/lib/api.client';
 
 interface IdTokenClaims {
   __raw?: string;
@@ -22,4 +23,8 @@ export async function bootstrapAuthSession(
 ): Promise<SessionUser> {
   const token = await getSessionToken(loadIdTokenClaims);
   return getCurrentUser(token);
+}
+
+export function isUnauthorizedSessionError(cause: unknown): boolean {
+  return cause instanceof ApiError && cause.status === 401;
 }

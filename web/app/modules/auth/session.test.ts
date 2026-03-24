@@ -1,5 +1,10 @@
-import { bootstrapAuthSession, getSessionToken } from './session';
+import {
+  bootstrapAuthSession,
+  getSessionToken,
+  isUnauthorizedSessionError,
+} from './session';
 import { getCurrentUser } from './api/get-current-user';
+import { ApiError } from '~/lib/api.client';
 
 vi.mock('./api/get-current-user', () => ({
   getCurrentUser: vi.fn(),
@@ -52,5 +57,20 @@ describe('bootstrapAuthSession', () => {
     });
 
     expect(getCurrentUser).toHaveBeenCalledWith('token-123');
+  });
+});
+
+describe('isUnauthorizedSessionError', () => {
+  it('returns true for protected API 401 failures', () => {
+    expect(isUnauthorizedSessionError(new ApiError(401, 'Unauthorized'))).toBe(
+      true,
+    );
+  });
+
+  it('returns false for non-401 failures', () => {
+    expect(isUnauthorizedSessionError(new ApiError(500, 'Server Error'))).toBe(
+      false,
+    );
+    expect(isUnauthorizedSessionError(new Error('boom'))).toBe(false);
   });
 });
