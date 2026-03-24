@@ -16,6 +16,7 @@ import { OnboardingConversationStrategy } from './strategies/onboarding-conversa
 import { Company } from '../companies/entities/company.entity';
 import { Confirmation } from '../service-requests/entities/confirmation.entity';
 import { ServiceRequestsModule } from '../service-requests';
+import { OnboardingModule } from '../onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ServiceRequestsModule } from '../service-requests';
       Confirmation,
     ]),
     forwardRef(() => AiModule),
+    forwardRef(() => OnboardingModule),
     EvolutionModule,
     ServiceRequestsModule,
   ],

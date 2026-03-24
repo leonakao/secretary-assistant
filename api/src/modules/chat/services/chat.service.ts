@@ -78,6 +78,21 @@ export class ChatService {
     });
   }
 
+  async sendTextMessage(params: {
+    instanceName: string;
+    remoteJid: string;
+    message: string;
+  }): Promise<void> {
+    const messageToSend = params.message.trim();
+    if (!messageToSend) return;
+
+    await this.messageProvider.sendTextMessage({
+      instanceName: params.instanceName,
+      remoteJid: params.remoteJid,
+      text: messageToSend,
+    });
+  }
+
   async sendPresenceNotification(params: {
     instanceName: string;
     remoteJid: string;

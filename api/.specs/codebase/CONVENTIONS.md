@@ -31,6 +31,7 @@
 
 ### Controllers
 - REST controllers + **Single Action Controllers** for specific actions.
+- **Controllers only invoke use-cases** — never call services directly.
 - **Controller naming by scope**:
   - `/me` endpoints → `{entity}-me.controller.ts`
   - `/internal` endpoints → `{entity}-internal.controller.ts`
@@ -41,7 +42,8 @@
 - Only invoked by controllers.
 - 1:1 relationship with a controller action.
 - Each use-case exposes a single public method: `execute()`.
-- Use cases are domain-specific, not prefixed with "internal" unless necessary
+- Use cases are domain-specific, not prefixed with "internal" unless necessary.
+- File naming: `*.use-case.ts`, located in a `use-cases/` folder within the module.
 
 ### Repositories
 - Usar repositórios do TypeORM diretamente (sem classes de repository customizadas)
@@ -65,6 +67,7 @@
 
 ## File Naming
 - Nest modules/controllers/services follow `*.module.ts`, `*.controller.ts`, `*.service.ts`.
+- Use cases: `*.use-case.ts`, located in `{module}/use-cases/`.
 - TypeORM entities: `*.entity.ts`.
 - Migrations in `src/database/migrations`.
 - Guards: `*.guard.ts`.

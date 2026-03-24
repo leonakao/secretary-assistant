@@ -10,6 +10,7 @@ import { ChatModule } from './modules/chat/chat.module';
 import { EvolutionModule } from './modules/evolution/evolution.module';
 import { MonitorModule } from './modules/monitor/monitor.module';
 import { ServiceRequestsModule } from './modules/service-requests/service-requests.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ServiceRequestsModule } from './modules/service-requests/service-reques
     ChatModule,
     EvolutionModule,
     ServiceRequestsModule,
+    OnboardingModule,
   ],
 })
 export class AppModule {}
