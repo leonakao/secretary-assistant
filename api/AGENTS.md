@@ -1,9 +1,9 @@
 ## Documentation Instructions
 
 - Read [README.md](README.md) for project overview and setup instructions
-- Read [.specs/project/PROJECT.md](.specs/project/PROJECT.md) for project specifications and guidelines
-- Read [.specs/project/STATE.md](.specs/project/STATE.md) for project state and technical decisions
-- Read [.specs/project/ROADMAP.md](.specs/project/ROADMAP.md) for project roadmap and milestones
+- Read [../.specs/project/PROJECT.md](../.specs/project/PROJECT.md) for project specifications and guidelines
+- Read [../.specs/project/STATE.md](../.specs/project/STATE.md) for project state and technical decisions
+- Read [../.specs/project/ROADMAP.md](../.specs/project/ROADMAP.md) for project roadmap and milestones
 - Read [.specs/codebase/ARCHITECTURE.md](.specs/codebase/ARCHITECTURE.md) for project architecture decisions
 - Read [.specs/codebase/STRUCTURE.md](.specs/codebase/STRUCTURE.md) for project codebase structure
 - Read [.specs/codebase/CONVENTIONS.md](.specs/codebase/CONVENTIONS.md) for project coding style and conventions
