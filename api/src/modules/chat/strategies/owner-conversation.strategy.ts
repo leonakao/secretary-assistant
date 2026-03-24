@@ -62,7 +62,7 @@ export class OwnerConversationStrategy implements ConversationStrategy {
         instanceName: params.instanceName,
         userId: params.userId,
         userName: user.name,
-        userPhone: user.phone,
+        userPhone: user.phone ?? undefined,
         companyDescription: company.description,
         confirmations: await this.findPendingConfirmations.execute({
           companyId: params.companyId,

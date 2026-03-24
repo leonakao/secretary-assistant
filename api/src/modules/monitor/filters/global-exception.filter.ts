@@ -65,7 +65,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         return response;
       }
       if (typeof response === 'object' && 'message' in response) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const message = (response as any).message;
         return Array.isArray(message) ? message.join(', ') : message;
       }

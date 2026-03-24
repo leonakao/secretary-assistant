@@ -59,7 +59,7 @@ docker compose up -d
 Then run database migrations:
 
 ```bash
-docker compose exec app pnpm migration:run
+docker compose exec api pnpm migration:run
 ```
 
 | Service | URL |

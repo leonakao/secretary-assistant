@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { ContactsModule } from './modules/contacts/contacts.module';
@@ -18,6 +19,7 @@ import { ServiceRequestsModule } from './modules/service-requests/service-reques
     }),
     MonitorModule,
     DatabaseModule,
+    AuthModule,
     UsersModule,
     CompaniesModule,
     ContactsModule,

@@ -53,7 +53,7 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
       instanceName: params.instanceName,
       userId: params.userId,
       userName: user.name,
-      userPhone: user.phone,
+      userPhone: user.phone ?? undefined,
       companyDescription: '',
       confirmations: [],
     };

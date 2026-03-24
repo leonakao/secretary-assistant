@@ -1,6 +1,9 @@
 import { getApiBaseUrl } from './runtime-config.client';
 
-type FetchOptions = RequestInit & { skipCredentials?: boolean };
+type FetchOptions = RequestInit & {
+  authToken?: string;
+  skipCredentials?: boolean;
+};
 
 export async function fetchApi<T>(
   path: string,
@@ -19,7 +22,7 @@ export async function fetchApiResponse(
   path: string,
   options: FetchOptions = {},
 ): Promise<Response> {
-  const { skipCredentials, ...init } = options;
+  const { authToken, skipCredentials, ...init } = options;
   const base = getApiBaseUrl();
   const url = `${base}${path}`;
 
@@ -28,6 +31,7 @@ export async function fetchApiResponse(
     credentials: skipCredentials ? 'omit' : 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...init.headers,
     },
   });

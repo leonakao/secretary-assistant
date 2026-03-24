@@ -47,6 +47,9 @@ importers:
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
+      jose:
+        specifier: ^6.2.2
+        version: 6.2.2
       langchain:
         specifier: ^1.0.3
         version: 1.0.3(@langchain/core@1.0.3(openai@6.9.0(ws@8.18.3)(zod@4.1.12)))(openai@6.9.0(ws@8.18.3)(zod@4.1.12))(zod-to-json-schema@3.24.6(zod@4.1.12))
@@ -2860,6 +2863,9 @@ packages:
   jest-worker@27.5.1:
     resolution: {integrity: sha512-7vuh85V5cdDofPyxn58nrPjBktZo0u9x1g8WtjQol+jZDaE+fhN+cIvTj11GndBnMnyfrUOG1sZQxCdjKh+DKg==}
     engines: {node: '>= 10.13.0'}
+
+  jose@6.2.2:
+    resolution: {integrity: sha512-d7kPDd34KO/YnzaDOlikGpOurfF0ByC2sEV4cANCtdqLlTfBlw2p14O/5d/zv40gJPbIQxfES3nSx1/oYNyuZQ==}
 
   js-tiktoken@1.0.21:
     resolution: {integrity: sha512-biOj/6M5qdgx5TKjDnFT1ymSpM5tbd3ylwDtrQvFQSu0Z7bBYko2dF+W/aUkXUPuk6IVpRxk/3Q2sHOzGlS36g==}
@@ -6748,6 +6754,8 @@ snapshots:
       '@types/node': 22.18.8
       merge-stream: 2.0.0
       supports-color: 8.1.1
+
+  jose@6.2.2: {}
 
   js-tiktoken@1.0.21:
     dependencies:

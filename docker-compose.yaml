@@ -1,9 +1,9 @@
 services:
-  app:
+  api:
     build:
       context: ./api
       target: build
-    container_name: app
+    container_name: api
     user: 1000:1000
     command: 'pnpm run start:dev'
     volumes:
@@ -39,22 +39,23 @@ services:
     image: node:24-alpine
     container_name: web
     working_dir: /usr/src/app
-    command: sh -c "corepack enable && pnpm install && pnpm dev --host"
+    command: sh -c "corepack enable && pnpm install && VITE_DEV_PROXY_TARGET=http://api:3000 pnpm dev --host"
     volumes:
       - ./web:/usr/src/app
       - /usr/src/app/node_modules
     ports:
       - 5173:5173
-    env_file:
-      - ./web/.env
 
   evolution-api:
     image: atendai/evolution-api:v2.1.1
     container_name: evolution_api
     ports:
       - 8080:8080
+    env_file:
+      - path: ./api/.env
+        required: false
     environment:
-      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-change-me}
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_URI=postgresql://postgres:postgres@db:5432/postgres?schema=evolution
@@ -67,7 +68,7 @@ services:
       - CACHE_REDIS_URI=
       - CACHE_LOCAL_ENABLED=true
       - QRCODE_LIMIT=30
-      - WEBHOOK_GLOBAL_URL=http://app:3000/webhooks/evolution
+      - WEBHOOK_GLOBAL_URL=http://api:3000/webhooks/evolution
       - WEBHOOK_GLOBAL_ENABLED=false
       - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
       - CONFIG_SESSION_PHONE_VERSION=2.3000.1026080446

@@ -1,7 +1,7 @@
 # Architecture
 
 **Pattern:** Modular SPA with a thin route layer and feature modules
-**Status:** Planned — follows reference project conventions
+**Status:** Active
 
 ## High-Level Structure
 
@@ -63,24 +63,25 @@ Shared UI is further split:
 
 ### Session Bootstrap
 
-**Location:** `app/modules/auth/session.ts` + protected route loaders
-**Purpose:** Keep auth state consistent when parent/child loaders run concurrently.
-**Implementation:** `bootstrapAuthSession()` deduplicates in-flight requests with a shared promise; supports forced refresh.
+**Location:** `app/modules/auth/session.ts` + protected page components
+**Purpose:** Resolve the authenticated backend user from the Auth0 browser session.
+**Implementation:** `bootstrapAuthSession()` reads the Auth0 ID token from the SDK and calls `GET /users/me`.
 
 ## Data Flow
 
 ### Authentication Flow
 
-1. Login UI collects credentials.
-2. Token exchanged with backend API (`POST /auth/login`).
-3. Session bootstrap (`GET /users/me`) resolves authenticated state.
-4. Protected routes check session and redirect to `/login?redirectTo=...` when unauthenticated.
+1. Login UI opens Auth0 Universal Login from `/login`.
+2. Auth0 redirects back to `/login`.
+3. `Auth0Provider` forwards authenticated users to `/dashboard`.
+4. The dashboard bootstraps server-side user data from `GET /users/me`.
+5. Unauthenticated access to `/dashboard` redirects to `/login?mode=signin&redirectTo=...`.
 
 ### Protected Page Flow
 
-1. Protected layout loader validates session.
-2. Page-specific loader fetches initial data via module use-cases.
-3. Use-cases map backend payloads to view models before rendering.
+1. Protected page checks the Auth0 browser session.
+2. The page requests `GET /users/me` with the Auth0 ID token.
+3. The page renders from the resolved session user or redirects to `/login`.
 
 ### Planned Feature Flows
 

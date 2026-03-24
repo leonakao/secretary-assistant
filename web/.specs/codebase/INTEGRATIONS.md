@@ -1,6 +1,6 @@
 # Integrations
 
-**Status:** Planned
+**Status:** Active
 
 ## Backend API — Secretary Assistant API
 
@@ -15,12 +15,12 @@
 - `vite.config.ts` proxies `/api` to `http://localhost:3000` during local development.
 - `.env.example` sets `VITE_API_BASE_URL=/api`.
 
-**Planned endpoints:**
+**Current auth/session endpoint:**
 
 - Auth/session:
-  - `POST /auth/login`
-  - `POST /auth/logout`
   - `GET /users/me`
+
+**Planned endpoints:**
 - Agent configuration:
   - `GET /companies/:id` — load company/agent config
   - `PATCH /companies/:id` — update agent settings
@@ -38,10 +38,10 @@
 
 ## Authentication Flow
 
-1. Login UI collects owner credentials (TBD — email/password or Google).
-2. Backend authenticates and sets HTTP cookie session.
-3. Frontend bootstraps session with `GET /users/me`.
-4. Protected routes redirect to `/login?redirectTo=...` when session is absent.
+1. `/login` triggers Auth0 Universal Login for sign in or sign up.
+2. Auth0 redirects back to `/login`, then the SPA forwards authenticated users to `/dashboard`.
+3. The protected dashboard bootstraps the backend session view with `GET /users/me`, sending the Auth0 ID token as a bearer token.
+4. Unauthenticated visits to `/dashboard` redirect to `/login?mode=signin&redirectTo=...`.
 
 ## Integration Boundaries in Code
 

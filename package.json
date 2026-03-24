@@ -1,7 +1,4 @@
 {
-  "devDependencies": {
-    "shadcn": "^4.1.0"
-  },
   "volta": {
     "node": "24.14.0"
   }

@@ -1,6 +1,6 @@
 # Project Structure
 
-**Status:** Active — minimal scaffold with home module
+**Status:** Active — home, auth, and dashboard routes available
 **Root:** `secretary-assistant/web/`
 
 ## Directory Tree
@@ -17,13 +17,16 @@ web/
 │   │   └── api.client.ts
 │   ├── modules/                 # feature modules
 │   │   ├── auth/
+│   │   │   ├── api/
+│   │   │   ├── pages/login-page/
+│   │   │   └── session.ts
 │   │   ├── agent/
 │   │   ├── conversations/
 │   │   ├── contacts/
+│   │   ├── dashboard/
 │   │   └── service-requests/
 │   ├── routes/                  # React Router route modules/layouts
-│   │   ├── _auth.tsx
-│   │   ├── _protected.tsx
+│   │   ├── login.tsx
 │   │   └── dashboard.tsx
 │   ├── test/                    # shared test bootstrap
 │   │   └── setup.ts
@@ -44,18 +47,20 @@ web/
 ### Routes Layer (`app/routes`)
 
 **Purpose:** URL mapping, loader/action orchestration, auth gating, layout wrappers.
-**Key files (planned):**
-- `app/routes/_auth.tsx` — unauthenticated layout
-- `app/routes/_protected.tsx` — session validation + redirect guard
-- `app/routes/dashboard.tsx` — main dashboard after login
+**Key files:**
+- `app/routes/login.tsx` — dedicated sign in / sign up route
+- `app/routes/dashboard.tsx` — protected dashboard after login
 - `app/routes/agent/index.tsx` — agent configuration page
 
 ### Feature Modules (`app/modules`)
 
 **Purpose:** Business features split by domain.
 
+**Active modules:**
+- `auth` — login page, Auth0 token bootstrap, session API wrapper
+- `dashboard` — protected owner landing page
+
 **Planned modules:**
-- `auth` — login, session bootstrap, auth state
 - `agent` — agent configuration (personality, WhatsApp connection)
 - `conversations` — conversation history per contact
 - `contacts` — WhatsApp contact management
@@ -88,7 +93,11 @@ web/
 **Auth/session:**
 - API wrappers: `app/modules/auth/api/`
 - Session state: `app/modules/auth/session.ts`
-- Login page: `app/modules/auth/pages/login/`
+- Login page: `app/modules/auth/pages/login-page/`
+
+**Dashboard:**
+- Route: `app/routes/dashboard.tsx`
+- Page UI: `app/modules/dashboard/pages/dashboard-page/`
 
 **Agent configuration:**
 - API wrappers: `app/modules/agent/api/`

@@ -18,6 +18,7 @@ Configured in:
 pnpm test        # vitest run
 pnpm test:watch  # watch mode
 pnpm test:cov    # coverage
+pnpm test:e2e    # playwright smoke tests
 ```
 
 ## What to Test
@@ -42,6 +43,12 @@ pnpm test:cov    # coverage
 - Environment variable handling and URL composition
 - Example: `app/lib/runtime-config.client.test.ts`
 
+### Browser E2E smoke tests
+- Dedicated auth page navigation
+- Protected dashboard redirect behavior
+- Happy-path sign in and sign up redirects
+- Prefer deterministic auth mocks over real third-party login in CI/local smoke runs
+
 ## Testing Conventions
 
 - Tests colocated with source files as `*.test.ts` / `*.test.tsx`.
@@ -51,6 +58,7 @@ pnpm test:cov    # coverage
 
 ## Gaps / Recommendations
 
-- No E2E test suite planned for v1 — add smoke tests once core flows are stable.
+- Keep Playwright focused on route-level smoke tests and protected navigation.
+- Avoid real Auth0 automation in CI; use the test-only mock auth mode.
 - Add route-level integration tests for protected navigation and redirect behavior.
 - Add CI coverage thresholds once test suite is established.

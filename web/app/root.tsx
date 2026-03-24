@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
+import { AppAuthProvider } from '~/modules/auth/auth-provider';
 import './app.css';
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -21,5 +22,9 @@ export function Layout({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <AppAuthProvider>
+      <Outlet />
+    </AppAuthProvider>
+  );
 }

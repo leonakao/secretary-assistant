@@ -22,7 +22,8 @@ Incoming WhatsApp message
 - **AiModule** — LLM agents, tools, LangGraph graphs, LangChain services
 - **ChatModule** — webhook controller, conversation strategies, chat service, memory entity
 - **EvolutionModule** — HTTP client wrapper around Evolution API
-- **UsersModule** — User entity
+- **AuthModule** — Auth0 token verification, request session resolution, `SessionGuard`
+- **UsersModule** — User entity + protected `GET /users/me`
 - **CompaniesModule** — Company + UserCompany entities; multi-tenant owner support
 - **ContactsModule** — Contact entity (WhatsApp contacts / clients)
 - **ServiceRequestsModule** — ServiceRequest + Confirmation entities and services
@@ -53,7 +54,7 @@ START → detectTransfer → assistant ↔ tools → END
 
 - `src/database/database.config.ts` — shared `DataSourceOptions` (SnakeCaseNamingStrategy, auto-discovers `*.entity.ts`)
 - `src/database/data-source.ts` — exported `DataSource` instance for TypeORM CLI
-- `src/database/migrations/` — 11 migration files, timestamped
+- `src/database/migrations/` — timestamped schema changes, including auth-backed user identity fields
 - Migrations run with: `docker compose exec api sh` → `pnpm migration:run`
 
 ## Module Dependency Flow
