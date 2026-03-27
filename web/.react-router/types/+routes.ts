@@ -20,12 +20,15 @@ type Pages = {
   "/dashboard": {
     params: {};
   };
+  "/onboarding": {
+    params: {};
+  };
 };
 
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/login" | "/dashboard";
+    page: "/" | "/login" | "/dashboard" | "/onboarding";
   };
   "routes/home.tsx": {
     id: "routes/home";
@@ -39,6 +42,10 @@ type RouteFiles = {
     id: "routes/dashboard";
     page: "/dashboard";
   };
+  "routes/onboarding.tsx": {
+    id: "routes/onboarding";
+    page: "/onboarding";
+  };
 };
 
 type RouteModules = {
@@ -46,4 +53,5 @@ type RouteModules = {
   "routes/home": typeof import("./app/routes/home.tsx");
   "routes/login": typeof import("./app/routes/login.tsx");
   "routes/dashboard": typeof import("./app/routes/dashboard.tsx");
+  "routes/onboarding": typeof import("./app/routes/onboarding.tsx");
 };

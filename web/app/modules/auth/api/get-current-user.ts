@@ -8,6 +8,16 @@ export interface SessionUser {
   phone: string | null;
   createdAt: string;
   updatedAt: string;
+  company: {
+    id: string;
+    name: string;
+    step: 'onboarding' | 'running';
+    role: 'owner' | 'admin' | 'employee';
+  } | null;
+  onboarding: {
+    requiresOnboarding: boolean;
+    step: 'company-bootstrap' | 'assistant-chat' | 'complete';
+  };
 }
 
 export async function getCurrentUser(authToken: string): Promise<SessionUser> {

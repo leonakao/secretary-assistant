@@ -8,6 +8,7 @@ import {
 } from '~/modules/auth/session';
 import { buildUnauthorizedSessionRecoveryPath } from '~/modules/auth/session-recovery';
 import type { SessionUser } from '~/modules/auth/api/get-current-user';
+import { resolveAuthenticatedEntryTarget } from '~/modules/auth/use-cases/resolve-authenticated-entry-target';
 import { getAuth0AppOrigin, getAuth0LogoutReturnTo } from '~/lib/runtime-config.client';
 import { useAppAuth } from '~/modules/auth/auth-provider';
 
@@ -24,12 +25,15 @@ export function DashboardPage() {
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRecoveringSession, setIsRecoveringSession] = useState(false);
+  const [shouldRedirectToOnboarding, setShouldRedirectToOnboarding] =
+    useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
       setSessionUser(null);
       setError(null);
       setIsRecoveringSession(false);
+      setShouldRedirectToOnboarding(false);
       return;
     }
 
@@ -38,9 +42,20 @@ export function DashboardPage() {
     void bootstrapAuthSession(() => getIdTokenClaims()).then(
       (nextUser) => {
         if (!cancelled) {
+          const target = resolveAuthenticatedEntryTarget(nextUser);
+
+          if (target === '/onboarding') {
+            setShouldRedirectToOnboarding(true);
+            setSessionUser(null);
+            setError(null);
+            setIsRecoveringSession(false);
+            return;
+          }
+
           setSessionUser(nextUser);
           setError(null);
           setIsRecoveringSession(false);
+          setShouldRedirectToOnboarding(false);
         }
       },
       (cause: unknown) => {
@@ -49,6 +64,7 @@ export function DashboardPage() {
             setSessionUser(null);
             setError(null);
             setIsRecoveringSession(true);
+            setShouldRedirectToOnboarding(false);
             logout({
               logoutParams: {
                 returnTo: getExpiredSessionReturnTo(),
@@ -59,6 +75,7 @@ export function DashboardPage() {
 
           setSessionUser(null);
           setIsRecoveringSession(false);
+          setShouldRedirectToOnboarding(false);
           setError(
             cause instanceof Error
               ? cause.message
@@ -89,6 +106,10 @@ export function DashboardPage() {
         to="/login?mode=signin&redirectTo=%2Fdashboard"
       />
     );
+  }
+
+  if (shouldRedirectToOnboarding) {
+    return <Navigate replace to="/onboarding" />;
   }
 
   return (

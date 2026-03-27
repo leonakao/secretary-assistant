@@ -1,10 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { AlertTriangle, LoaderCircle, LogIn, UserRoundPlus } from 'lucide-react';
-import { Button, buttonVariants } from '~/components/ui/base/button';
+import { Button } from '~/components/ui/base/button';
 import { getAuth0RedirectUri } from '~/lib/runtime-config.client';
 import { isUnauthorizedSessionRecovery } from '~/modules/auth/session-recovery';
 import { useAppAuth } from '~/modules/auth/auth-provider';
+import {
+  bootstrapAuthSession,
+  isUnauthorizedSessionError,
+} from '~/modules/auth/session';
+import { resolveAuthenticatedEntryTarget } from '~/modules/auth/use-cases/resolve-authenticated-entry-target';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -17,10 +22,11 @@ function getSafeRedirectTarget(value: string | null): string {
 }
 
 export function LoginPage() {
-  const { error, isAuthenticated, isLoading, loginWithRedirect } =
+  const { error, isAuthenticated, isLoading, loginWithRedirect, getIdTokenClaims } =
     useAppAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [isResolvingSession, setIsResolvingSession] = useState(false);
 
   const mode: AuthMode =
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
@@ -49,10 +55,32 @@ export function LoginPage() {
     });
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && !isUnauthorizedRecovery) {
-      void navigate(redirectTo, { replace: true });
-    }
-  }, [isAuthenticated, isLoading, isUnauthorizedRecovery, navigate, redirectTo]);
+    if (isLoading || !isAuthenticated || isUnauthorizedRecovery) return;
+
+    let cancelled = false;
+    setIsResolvingSession(true);
+
+    void bootstrapAuthSession(() => getIdTokenClaims()).then(
+      (sessionUser) => {
+        if (!cancelled) {
+          const target = resolveAuthenticatedEntryTarget(sessionUser);
+          void navigate(target, { replace: true });
+        }
+      },
+      (cause: unknown) => {
+        if (!cancelled) {
+          setIsResolvingSession(false);
+          if (!isUnauthorizedSessionError(cause)) {
+            void navigate(redirectTo, { replace: true });
+          }
+        }
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, isLoading, isUnauthorizedRecovery, navigate, redirectTo, getIdTokenClaims]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.12),_transparent_35%),linear-gradient(180deg,_var(--color-background),_var(--color-muted))] px-6 py-10">
@@ -105,10 +133,10 @@ export function LoginPage() {
         </div>
 
         <div className="rounded-[2rem] border border-border bg-card/95 p-8 shadow-xl shadow-brand/5">
-          {isLoading ? (
+          {isLoading || isResolvingSession ? (
             <div className="flex min-h-56 items-center justify-center gap-3 text-sm text-muted-foreground">
               <LoaderCircle className="h-4 w-4 animate-spin" />
-              Checking your session...
+              {isResolvingSession ? 'Resolving your session...' : 'Checking your session...'}
             </div>
           ) : isAuthenticated && !isUnauthorizedRecovery ? (
             <div className="space-y-4">
@@ -116,25 +144,12 @@ export function LoginPage() {
                 Active session detected
               </p>
               <h2 className="text-2xl font-semibold text-foreground">
-                Redirecting to your dashboard
+                Redirecting...
               </h2>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <LoaderCircle className="h-4 w-4 animate-spin" />
-                Taking you to the protected area now.
+                Taking you to the right place now.
               </div>
-              <p className="text-sm leading-6 text-muted-foreground">
-                If the redirect does not happen automatically, you can continue
-                manually below.
-              </p>
-              <Link
-                className={buttonVariants({
-                  className: 'w-full',
-                  size: 'lg',
-                })}
-                to={redirectTo}
-              >
-                Open dashboard now
-              </Link>
             </div>
           ) : (
             <div className="space-y-6">

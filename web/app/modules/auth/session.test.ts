@@ -32,7 +32,7 @@ describe('bootstrapAuthSession', () => {
   });
 
   it('loads the current user with the session token', async () => {
-    vi.mocked(getCurrentUser).mockResolvedValue({
+    const sessionUser = {
       id: 'user-1',
       authProviderId: 'auth0|123',
       name: 'Owner',
@@ -40,21 +40,25 @@ describe('bootstrapAuthSession', () => {
       phone: null,
       createdAt: '2026-03-23T00:00:00.000Z',
       updatedAt: '2026-03-23T00:00:00.000Z',
-    });
+      company: {
+        id: 'company-1',
+        name: 'Acme',
+        step: 'running' as const,
+        role: 'owner' as const,
+      },
+      onboarding: {
+        requiresOnboarding: false,
+        step: 'complete' as const,
+      },
+    };
+
+    vi.mocked(getCurrentUser).mockResolvedValue(sessionUser);
 
     await expect(
       bootstrapAuthSession(async () => ({
         __raw: 'token-123',
       })),
-    ).resolves.toEqual({
-      id: 'user-1',
-      authProviderId: 'auth0|123',
-      name: 'Owner',
-      email: 'owner@example.com',
-      phone: null,
-      createdAt: '2026-03-23T00:00:00.000Z',
-      updatedAt: '2026-03-23T00:00:00.000Z',
-    });
+    ).resolves.toEqual(sessionUser);
 
     expect(getCurrentUser).toHaveBeenCalledWith('token-123');
   });
