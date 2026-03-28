@@ -14,7 +14,7 @@ export class Memory {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'uuid' })
+  @Column({ type: 'varchar' })
   sessionId: string;
 
   @Column({ type: 'uuid', nullable: true })

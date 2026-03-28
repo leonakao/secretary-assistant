@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
-import { Button } from '~/components/ui/base/button';
+import { Button } from '~/components/ui/button';
 import { createOnboardingCompany } from '../../../api/onboarding.api';
 import { useApiClient } from '~/lib/api-client-context';
 

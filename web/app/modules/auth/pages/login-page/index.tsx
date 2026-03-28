@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { AlertTriangle, Bot, LoaderCircle, LogIn, UserRoundPlus } from 'lucide-react';
-import { Button } from '~/components/ui/base/button';
+import { Button } from '~/components/ui/button';
 import { getAuth0RedirectUri } from '~/lib/runtime-config.client';
 import { isUnauthorizedSessionRecovery } from '~/modules/auth/session-recovery';
 import { useAppAuth } from '~/modules/auth/auth-provider';

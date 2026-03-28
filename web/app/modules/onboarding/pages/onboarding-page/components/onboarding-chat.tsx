@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
-import { LoaderCircle, Send } from 'lucide-react';
-import { Button } from '~/components/ui/base/button';
+import { useEffect, useRef, useState } from 'react';
+import { Bot, LoaderCircle, Send } from 'lucide-react';
+import { Button } from '~/components/ui/button';
 import {
   sendOnboardingMessage,
   type OnboardingMessage,
@@ -24,12 +24,24 @@ export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     setTimeout(() => {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 50);
   };
+
+  const adjustTextareaHeight = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  };
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [input]);
 
   const handleSend = async () => {
     const message = input.trim();
@@ -84,70 +96,107 @@ export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps
   };
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex-1 space-y-4 overflow-y-auto">
+    <div className="flex h-full flex-col">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-6 py-6">
         {messages.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground">
-            Your assistant is ready. Say hello to get started.
-          </p>
-        ) : (
-          messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10">
+              <Bot className="h-6 w-6 text-brand" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                Your assistant is ready
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Describe your business — what you do, who your customers are,<br />
+                and how you handle service requests.
+              </p>
+            </div>
+            <button
+              onClick={() => setInput("Hi! We're a plumbing company and we handle service requests from residential clients.")}
+              className="rounded-full border border-border bg-muted/50 px-4 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-6 ${
-                  msg.role === 'user'
-                    ? 'bg-brand text-white'
-                    : 'bg-muted text-foreground'
-                }`}
-              >
-                {msg.content}
-              </div>
-            </div>
-          ))
-        )}
-        {isSending ? (
-          <div className="flex justify-start">
-            <div className="flex items-center gap-2 rounded-2xl bg-muted px-4 py-2.5 text-sm text-muted-foreground">
-              <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-              Typing...
-            </div>
+              Try an example →
+            </button>
           </div>
-        ) : null}
-        <div ref={bottomRef} />
+        ) : (
+          <div className="space-y-4">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex items-end gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {msg.role === 'assistant' && (
+                  <div className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/10">
+                    <Bot className="h-3.5 w-3.5 text-brand" />
+                  </div>
+                )}
+                <div
+                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm leading-6 ${
+                    msg.role === 'user'
+                      ? 'rounded-br-sm bg-brand text-white'
+                      : 'rounded-bl-sm bg-muted text-foreground'
+                  }`}
+                >
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {isSending && (
+              <div className="flex items-end gap-2.5 justify-start">
+                <div className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/10">
+                  <Bot className="h-3.5 w-3.5 text-brand" />
+                </div>
+                <div className="flex items-center gap-2 rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5 text-sm text-muted-foreground">
+                  <span className="flex gap-1">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:0ms]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/50 [animation-delay:300ms]" />
+                  </span>
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+        )}
       </div>
 
-      {error ? (
-        <p className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
+      {/* Error */}
+      {error && (
+        <div className="px-6 pb-2">
+          <p className="rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
+            {error}
+          </p>
+        </div>
+      )}
 
-      <div className="flex gap-2">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={isSending}
-          placeholder="Type your message..."
-          rows={2}
-          className="flex-1 resize-none rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 disabled:opacity-50"
-        />
-        <Button
-          onClick={() => void handleSend()}
-          disabled={isSending || !input.trim()}
-          size="icon"
-          className="h-auto self-end"
-          aria-label="Send message"
-        >
-          {isSending ? (
-            <LoaderCircle className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
+      {/* Input bar */}
+      <div className="border-t border-border bg-background px-6 py-4">
+        <div className="flex items-end gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-2 focus-within:border-brand/40 focus-within:ring-2 focus-within:ring-brand/20">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isSending}
+            placeholder="Describe your business..."
+            rows={1}
+            className="flex-1 resize-none bg-transparent py-1 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+          />
+          <Button
+            onClick={() => void handleSend()}
+            disabled={isSending || !input.trim()}
+            size="icon"
+            className="mb-0.5 h-8 w-8 shrink-0 rounded-xl"
+            aria-label="Send message"
+          >
+            <Send className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <p className="mt-2 text-center text-xs text-muted-foreground/60">
+          Press Enter to send · Shift+Enter for new line
+        </p>
       </div>
     </div>
   );

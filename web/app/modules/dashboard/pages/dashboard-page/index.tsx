@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router';
 import { LoaderCircle, LogOut } from 'lucide-react';
-import { Button, buttonVariants } from '~/components/ui/base/button';
+import { Button, buttonVariants } from '~/components/ui/button';
 import {
   bootstrapAuthSession,
   isUnauthorizedSessionError,
