@@ -1,4 +1,12 @@
 {
+  "scripts": {
+    "onboarding-validation:up": "docker compose --env-file .env.onboarding-validation -f docker-compose.onboarding-validation.yaml up -d",
+    "onboarding-validation:migrate": "docker compose --env-file .env.onboarding-validation -f docker-compose.onboarding-validation.yaml exec onboarding-validation-api pnpm migration:run",
+    "onboarding-validation:logs": "docker compose --env-file .env.onboarding-validation -f docker-compose.onboarding-validation.yaml logs -f",
+    "onboarding-validation:test": "sh -c 'set -a && . ./.env.onboarding-validation && set +a && pnpm --dir web test:e2e:onboarding-validation'",
+    "onboarding-validation:down": "docker compose --env-file .env.onboarding-validation -f docker-compose.onboarding-validation.yaml down",
+    "onboarding-validation:down:volumes": "docker compose --env-file .env.onboarding-validation -f docker-compose.onboarding-validation.yaml down -v"
+  },
   "volta": {
     "node": "24.14.0"
   }

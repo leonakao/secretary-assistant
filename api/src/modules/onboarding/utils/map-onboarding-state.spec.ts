@@ -15,6 +15,7 @@ function makeUserCompany(
     company: {
       id: 'company-1',
       name: 'Acme',
+      businessType: 'Clínica odontológica',
       step: companyStep,
       description: null,
       isClientsSupportEnabled: false,
@@ -51,6 +52,7 @@ describe('mapOnboardingState', () => {
       company: {
         id: 'company-1',
         name: 'Acme',
+        businessType: 'Clínica odontológica',
         step: 'onboarding',
         role: 'owner',
       },
@@ -68,6 +70,7 @@ describe('mapOnboardingState', () => {
       company: {
         id: 'company-1',
         name: 'Acme',
+        businessType: 'Clínica odontológica',
         step: 'running',
         role: 'owner',
       },

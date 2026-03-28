@@ -9,10 +9,21 @@ export const buildOnboardingPromptFromState = (
   state: typeof AgentState.State,
 ): string => {
   const context = state.context;
+  const knownCompanyName = context.companyName?.trim();
+  const knownBusinessType = context.businessType?.trim();
 
   const instructions = `Você está auxiliando o proprietário durante o processo de onboarding inicial.
 
 Sempre que aprender algo novo, salve na memória.
+
+DADOS JÁ CONHECIDOS:
+- Nome da empresa: ${knownCompanyName ?? 'não informado'}
+- Tipo de negócio: ${knownBusinessType ?? 'não informado'}
+
+REGRAS DE CONTEXTO:
+- Se o nome da empresa já estiver informado, trate-o como confirmado e NÃO pergunte novamente qual é o nome da empresa.
+- Se o tipo de negócio já estiver informado, use essa informação para adaptar as próximas perguntas e só peça detalhes adicionais quando necessário.
+- Quando estiver iniciando uma conversa nova de forma proativa, mencione o nome da empresa naturalmente na primeira mensagem se ele estiver disponível.
 
 FASE 1 - INTRODUÇÃO (faça isso APENAS na primeira interação):
 1. Apresente-se: "Olá! Meu nome é Julia e sou sua secretária virtual."
@@ -59,6 +70,8 @@ FASE 3 - FINALIZAÇÃO DO ONBOARDING:
   const variables = getBaseVariables({
     name: context.userName ?? 'Proprietário',
     lastInteractionDate: state.lastInteraction,
+    companyName: knownCompanyName,
+    businessType: knownBusinessType,
   });
 
   const companyContext =

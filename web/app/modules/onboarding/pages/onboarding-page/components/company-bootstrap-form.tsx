@@ -34,7 +34,11 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
   };
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
+    <form
+      onSubmit={(e) => void handleSubmit(e)}
+      className="space-y-6"
+      data-testid="company-bootstrap-form"
+    >
       <div className="space-y-2">
         <label
           htmlFor="company-name"
@@ -50,6 +54,7 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
           onChange={(e) => setName(e.target.value)}
           placeholder="Acme Ltda."
           disabled={isSubmitting}
+          data-testid="company-bootstrap-name-input"
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 disabled:opacity-50"
         />
       </div>
@@ -69,6 +74,7 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
           onChange={(e) => setBusinessType(e.target.value)}
           placeholder="e.g. Plumbing, Catering, Beauty salon"
           disabled={isSubmitting}
+          data-testid="company-bootstrap-business-type-input"
           className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 disabled:opacity-50"
         />
       </div>
@@ -84,6 +90,7 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
         className="w-full"
         size="lg"
         disabled={isSubmitting || !name.trim() || !businessType.trim()}
+        data-testid="company-bootstrap-submit-button"
       >
         {isSubmitting ? (
           <>

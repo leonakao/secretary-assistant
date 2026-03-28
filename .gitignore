@@ -395,6 +395,7 @@ Temporary Items
 =======
 # Local
 .env
+.env.onboarding-validation
 dist
 .webpack
 .serverless/**/*.zip

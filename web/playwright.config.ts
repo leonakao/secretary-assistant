@@ -1,9 +1,14 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 function loadLocalEnv(): void {
   const envFilePath = join(process.cwd(), '.env');
+
+  if (!existsSync(envFilePath)) {
+    return;
+  }
+
   const content = readFileSync(envFilePath, 'utf8');
 
   for (const line of content.split('\n')) {
@@ -30,18 +35,32 @@ function loadLocalEnv(): void {
 
 loadLocalEnv();
 
+const ONBOARDING_VALIDATION_WEB_PORT = Number(
+  process.env.ONBOARDING_VALIDATION_WEB_PORT || '4173',
+);
+const ONBOARDING_VALIDATION_BASE_URL =
+  process.env.ONBOARDING_VALIDATION_BASE_URL ||
+  `http://127.0.0.1:${ONBOARDING_VALIDATION_WEB_PORT}`;
+const ONBOARDING_VALIDATION_API_BASE_URL =
+  process.env.ONBOARDING_VALIDATION_API_BASE_URL || 'http://127.0.0.1:3300';
+const onboardingValidationBaseUrl = new URL(ONBOARDING_VALIDATION_BASE_URL);
+
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
+  outputDir: './test-results/onboarding-validation',
   timeout: 120000,
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: ONBOARDING_VALIDATION_BASE_URL,
     trace: 'on-first-retry',
   },
   webServer: {
     command:
-      'VITE_AUTH0_APP_ORIGIN=http://localhost:5173 pnpm exec react-router dev --host localhost --port 5173',
-    port: 5173,
+      `VITE_API_BASE_URL=${ONBOARDING_VALIDATION_API_BASE_URL} ` +
+      `VITE_AUTH0_APP_ORIGIN=${ONBOARDING_VALIDATION_BASE_URL} ` +
+      'VITE_E2E_AUTH_MOCK=true ' +
+      `pnpm exec react-router dev --host ${onboardingValidationBaseUrl.hostname} --port ${onboardingValidationBaseUrl.port}`,
+    port: Number(onboardingValidationBaseUrl.port),
     reuseExistingServer: true,
     timeout: 120000,
   },

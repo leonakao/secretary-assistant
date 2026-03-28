@@ -45,6 +45,7 @@ export class CreateOnboardingCompanyUseCase {
     const company = await this.companyRepository.save(
       this.companyRepository.create({
         name: dto.name,
+        businessType: dto.businessType,
         step: 'onboarding',
       }),
     );

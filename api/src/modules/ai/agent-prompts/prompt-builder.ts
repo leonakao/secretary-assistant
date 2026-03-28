@@ -16,7 +16,7 @@ function escapeXml(value: string): string {
  * Builds a complete prompt from modular components
  */
 export function buildPrompt(components: PromptComponents): string {
-  const { persona, instructions, variables } = components;
+  const { persona, context, instructions, variables } = components;
 
   const parts: string[] = [];
 
@@ -29,6 +29,12 @@ export function buildPrompt(components: PromptComponents): string {
     parts.push('  <instruções>');
     parts.push(escapeXml(instructions));
     parts.push('  </instruções>');
+  }
+
+  if (context.trim().length > 0) {
+    parts.push('  <contexto>');
+    parts.push(escapeXml(context));
+    parts.push('  </contexto>');
   }
 
   parts.push('  <sistema>');
@@ -104,10 +110,24 @@ export function getBaseRules(): string {
 export function getBaseVariables(variables: {
   name: string;
   lastInteractionDate: Date;
+  companyName?: string;
+  businessType?: string;
 }): string {
-  return `- Data atual: ${new Date().toLocaleString('pt-BR')}
-- Você está falando com ${variables.name}
-- A última mensagem do usuário foi: ${variables.lastInteractionDate.toLocaleString('pt-BR')}`;
+  const lines = [
+    `- Data atual: ${new Date().toLocaleString('pt-BR')}`,
+    `- Você está falando com ${variables.name}`,
+    `- A última mensagem do usuário foi: ${variables.lastInteractionDate.toLocaleString('pt-BR')}`,
+  ];
+
+  if (variables.companyName?.trim()) {
+    lines.push(`- Nome da empresa conhecido: ${variables.companyName.trim()}`);
+  }
+
+  if (variables.businessType?.trim()) {
+    lines.push(`- Tipo de negócio conhecido: ${variables.businessType.trim()}`);
+  }
+
+  return lines.join('\n');
 }
 
 /**

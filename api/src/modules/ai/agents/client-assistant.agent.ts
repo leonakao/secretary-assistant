@@ -27,6 +27,7 @@ import { createRequestHumanNode } from '../nodes/request-human.node';
 import { PostgresStore } from '../stores/postgres.store';
 import { createAssistantNode } from '../nodes/assistant.node';
 import { buildClientPromptFromState } from '../agent-prompts/assistant-client';
+import { ensureCheckpointerSetup } from './checkpointer-setup';
 
 @Injectable()
 export class ClientAssistantAgent implements OnModuleInit {
@@ -69,12 +70,16 @@ export class ClientAssistantAgent implements OnModuleInit {
   }
 
   async onModuleInit(): Promise<void> {
+    const connectionString = `postgresql://${this.configService.get<string>('DB_USERNAME', 'postgres')}:${this.configService.get<string>('DB_PASSWORD', 'postgres')}@${this.configService.get<string>('DB_HOST', 'localhost')}:${this.configService.get<number>('DB_PORT', 5432)}/${this.configService.get<string>('DB_DATABASE', 'postgres')}`;
+
     this.checkpointer = PostgresSaver.fromConnString(
-      `postgresql://${this.configService.get<string>('DB_USERNAME', 'postgres')}:${this.configService.get<string>('DB_PASSWORD', 'postgres')}@${this.configService.get<string>('DB_HOST', 'localhost')}:${this.configService.get<number>('DB_PORT', 5432)}/${this.configService.get<string>('DB_DATABASE', 'postgres')}`,
+      connectionString,
       { schema: 'checkpointer' },
     );
 
-    await this.checkpointer.setup();
+    await ensureCheckpointerSetup(`${connectionString}|checkpointer`, () =>
+      this.checkpointer.setup(),
+    );
 
     this.graph = this.buildGraph();
   }

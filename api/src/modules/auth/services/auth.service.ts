@@ -7,10 +7,32 @@ import type { JWTPayload } from 'jose';
 import { User } from 'src/modules/users/entities/user.entity';
 import type { SessionClaims } from '../auth.types';
 
+interface DeterministicSessionClaims {
+  email?: unknown;
+  name?: unknown;
+  sub?: unknown;
+}
+
+const E2E_TOKEN_PREFIX = 'e2e.';
+
+const LEGACY_E2E_TOKENS: Record<string, SessionClaims> = {
+  'mock-e2e-signin-token': {
+    sub: 'auth0|signin-user',
+    email: 'owner@example.com',
+    name: 'Existing Owner',
+  },
+  'mock-e2e-signup-token': {
+    sub: 'auth0|signup-user',
+    email: 'new-owner@example.com',
+    name: 'New Owner',
+  },
+};
+
 @Injectable()
 export class AuthService {
   private readonly auth0Domain: string;
   private readonly auth0ClientId: string;
+  private readonly e2eAuthModeEnabled: boolean;
   private readonly issuer: string;
   private readonly jwks: ReturnType<typeof createRemoteJWKSet>;
 
@@ -27,6 +49,10 @@ export class AuthService {
       'AUTH0_CLIENT_ID',
       'SJtvoRN584unasTOBo2fYogJM8HaWjWU',
     );
+    this.e2eAuthModeEnabled =
+      this.configService.get<string>('E2E_AUTH_MODE', 'false') === 'true' &&
+      this.configService.get<string>('NODE_ENV', 'development') !==
+        'production';
     this.issuer = `https://${this.auth0Domain}/`;
     this.jwks = createRemoteJWKSet(
       new URL(`${this.issuer}.well-known/jwks.json`),
@@ -37,7 +63,9 @@ export class AuthService {
     claims: SessionClaims;
     user: User;
   }> {
-    const claims = await this.verifyIdToken(token);
+    const claims = this.shouldUseDeterministicAuth(token)
+      ? this.verifyDeterministicToken(token)
+      : await this.verifyIdToken(token);
     const user = await this.findOrCreateUser(claims);
 
     return {
@@ -57,6 +85,66 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Invalid session token');
     }
+  }
+
+  private shouldUseDeterministicAuth(token: string): boolean {
+    return (
+      this.e2eAuthModeEnabled &&
+      (token.startsWith(E2E_TOKEN_PREFIX) || token in LEGACY_E2E_TOKENS)
+    );
+  }
+
+  private verifyDeterministicToken(token: string): SessionClaims {
+    const legacyClaims = LEGACY_E2E_TOKENS[token];
+
+    if (legacyClaims) {
+      return legacyClaims;
+    }
+
+    const encodedClaims = token.slice(E2E_TOKEN_PREFIX.length);
+    const decodedClaims = this.decodeBase64Url(encodedClaims);
+
+    let claims: DeterministicSessionClaims;
+
+    try {
+      claims = JSON.parse(decodedClaims) as DeterministicSessionClaims;
+    } catch {
+      throw new UnauthorizedException('Invalid E2E session token');
+    }
+
+    return this.mapDeterministicClaims(claims);
+  }
+
+  private decodeBase64Url(value: string): string {
+    if (!value) {
+      throw new UnauthorizedException('Invalid E2E session token');
+    }
+
+    const paddedValue = value.padEnd(Math.ceil(value.length / 4) * 4, '=');
+    const normalizedValue = paddedValue.replace(/-/g, '+').replace(/_/g, '/');
+
+    try {
+      return Buffer.from(normalizedValue, 'base64').toString('utf8');
+    } catch {
+      throw new UnauthorizedException('Invalid E2E session token');
+    }
+  }
+
+  private mapDeterministicClaims(
+    payload: DeterministicSessionClaims,
+  ): SessionClaims {
+    const sub = typeof payload.sub === 'string' ? payload.sub : null;
+    const email = typeof payload.email === 'string' ? payload.email : null;
+    const name =
+      typeof payload.name === 'string' && payload.name.trim().length > 0
+        ? payload.name.trim()
+        : null;
+
+    if (!sub || !email || !name) {
+      throw new UnauthorizedException('Invalid E2E session token');
+    }
+
+    return { sub, email, name };
   }
 
   private mapClaims(payload: JWTPayload): SessionClaims {

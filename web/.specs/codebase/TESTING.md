@@ -19,6 +19,7 @@ pnpm test        # vitest run
 pnpm test:watch  # watch mode
 pnpm test:cov    # coverage
 pnpm test:e2e    # playwright smoke tests
+pnpm test:e2e:onboarding-validation  # full onboarding validation against the dedicated test stack
 ```
 
 ## What to Test
@@ -48,6 +49,12 @@ pnpm test:e2e    # playwright smoke tests
 - Protected dashboard redirect behavior
 - Happy-path sign in and sign up redirects
 - Prefer deterministic auth mocks over real third-party login in CI/local smoke runs
+
+### Onboarding validation E2E
+- Target the dedicated onboarding-validation base URL, not the default local dev server
+- Keep `VITE_E2E_AUTH_MOCK=true` scoped to onboarding-validation runs only
+- Persist interview evidence under `web/test-results/onboarding-validation/<run-id>/`
+- Cover briefing parsing, prompt classification, answer resolution, and report generation with focused helper tests
 
 ## Testing Conventions
 

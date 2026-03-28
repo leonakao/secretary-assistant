@@ -13,6 +13,7 @@ import { OnboardingMessagesController } from './controllers/onboarding-messages.
 import { CreateOnboardingCompanyUseCase } from './use-cases/create-onboarding-company.use-case';
 import { GetOnboardingStateUseCase } from './use-cases/get-onboarding-state.use-case';
 import { SendOnboardingMessageUseCase } from './use-cases/send-onboarding-message.use-case';
+import { InitializeOnboardingConversationUseCase } from './use-cases/initialize-onboarding-conversation.use-case';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { SendOnboardingMessageUseCase } from './use-cases/send-onboarding-messag
     CreateOnboardingCompanyUseCase,
     GetOnboardingStateUseCase,
     SendOnboardingMessageUseCase,
+    InitializeOnboardingConversationUseCase,
   ],
   exports: [OnboardingConversationService],
 })

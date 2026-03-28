@@ -1,0 +1,81 @@
+name: ${ONBOARDING_VALIDATION_COMPOSE_PROJECT_NAME:-secretary-assistant-onboarding-validation}
+
+services:
+  onboarding-validation-db:
+    image: pgvector/pgvector:pg17
+    shm_size: 128mb
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '${ONBOARDING_VALIDATION_DB_PORT:-55432}:5432'
+    volumes:
+      - onboarding-validation-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  onboarding-validation-api:
+    build:
+      context: ./api
+      target: build
+    command: >
+      sh -c "corepack enable &&
+      CI=1 pnpm install --config.confirmModulesPurge=false &&
+      pnpm run start:dev"
+    volumes:
+      - ./api:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - '${ONBOARDING_VALIDATION_API_PORT:-3300}:3000'
+    env_file:
+      - ./.env.onboarding-validation
+    environment:
+      DB_HOST: onboarding-validation-db
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_DATABASE: postgres
+      NODE_ENV: development
+      PORT: 3000
+      E2E_AUTH_MODE: 'true'
+      AUTH0_DOMAIN: ${ONBOARDING_VALIDATION_AUTH0_DOMAIN:-dev-du3tsou284mgwefg.us.auth0.com}
+      AUTH0_CLIENT_ID: ${ONBOARDING_VALIDATION_AUTH0_CLIENT_ID:-SJtvoRN584unasTOBo2fYogJM8HaWjWU}
+      GOOGLE_API_KEY: ${ONBOARDING_VALIDATION_GOOGLE_API_KEY:-}
+      EVOLUTION_API_KEY: ${ONBOARDING_VALIDATION_EVOLUTION_API_KEY:-change-me}
+      EVOLUTION_API_URL: ${ONBOARDING_VALIDATION_EVOLUTION_API_URL:-http://127.0.0.1:9}
+      EVOLUTION_API_TOKEN: ${ONBOARDING_VALIDATION_EVOLUTION_API_TOKEN:-change-me}
+    depends_on:
+      onboarding-validation-db:
+        condition: service_healthy
+
+  onboarding-validation-web:
+    image: node:24-alpine
+    working_dir: /usr/src/app
+    command: >
+      sh -c "corepack enable &&
+      CI=1 pnpm install --config.confirmModulesPurge=false &&
+      VITE_DEV_PROXY_TARGET=http://onboarding-validation-api:3000
+      pnpm dev --host 0.0.0.0 --port ${ONBOARDING_VALIDATION_WEB_PORT:-4173}"
+    volumes:
+      - ./web:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - '${ONBOARDING_VALIDATION_WEB_PORT:-4173}:${ONBOARDING_VALIDATION_WEB_PORT:-4173}'
+    env_file:
+      - ./.env.onboarding-validation
+    environment:
+      VITE_API_BASE_URL: ${ONBOARDING_VALIDATION_VITE_API_BASE_URL:-/api}
+      VITE_E2E_AUTH_MOCK: 'true'
+      VITE_AUTH0_APP_ORIGIN: ${ONBOARDING_VALIDATION_VITE_AUTH0_APP_ORIGIN:-http://localhost:4173}
+      VITE_AUTH0_DOMAIN: ${ONBOARDING_VALIDATION_AUTH0_DOMAIN:-dev-du3tsou284mgwefg.us.auth0.com}
+      VITE_AUTH0_CLIENT_ID: ${ONBOARDING_VALIDATION_AUTH0_CLIENT_ID:-SJtvoRN584unasTOBo2fYogJM8HaWjWU}
+    depends_on:
+      onboarding-validation-api:
+        condition: service_started
+
+volumes:
+  onboarding-validation-db-data:

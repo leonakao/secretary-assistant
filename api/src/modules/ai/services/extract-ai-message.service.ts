@@ -1,5 +1,4 @@
 import { BaseMessage } from '@langchain/core/messages';
-import { Messages } from '@langchain/langgraph';
 import { Injectable } from '@nestjs/common';
 
 export interface AssistantExtractionResult {
@@ -10,6 +9,19 @@ export interface AssistantExtractionResult {
 
 @Injectable()
 export class ExtractAiMessageService {
+  private isTextContentPart(
+    value: unknown,
+  ): value is { type: 'text'; text: string } {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'type' in value &&
+      value.type === 'text' &&
+      'text' in value &&
+      typeof value.text === 'string'
+    );
+  }
+
   private isBaseMessage(value: unknown): value is BaseMessage {
     return (
       typeof value === 'object' &&
@@ -21,7 +33,7 @@ export class ExtractAiMessageService {
     );
   }
 
-  public extractFromChunkMessages(messages: Messages | undefined): string {
+  public extractFromChunkMessages(messages: unknown[] | undefined): string {
     if (!messages) {
       return '';
     }
@@ -41,10 +53,13 @@ export class ExtractAiMessageService {
       if (typeof content === 'string') {
         return content;
       }
-      if (Array.isArray(content) && typeof content[0].text === 'string') {
+      if (
+        Array.isArray(content) &&
+        content.some((part) => this.isTextContentPart(part))
+      ) {
         return content
-          .filter((c) => c.type === 'text')
-          .map((c) => c.text)
+          .filter((part) => this.isTextContentPart(part))
+          .map((part) => part.text)
           .join('\n');
       }
     }

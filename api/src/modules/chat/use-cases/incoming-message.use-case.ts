@@ -164,8 +164,9 @@ export class IncomingMessageUseCase {
       this.logger.log('🎤 Audio message detected, transcribing...');
 
       const transcription =
-        await this.audioTranscriptionService.transcribeAudioFromBase64(
+        await this.audioTranscriptionService.transcribeAudio(
           messageContent.base64!,
+          messageContent.audioMessage.mimetype,
         );
 
       if (transcription) {

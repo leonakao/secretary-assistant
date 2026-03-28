@@ -27,6 +27,8 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isResolvingSession, setIsResolvingSession] = useState(false);
+  const [sessionBootstrapError, setSessionBootstrapError] = useState<string | null>(null);
+  const [sessionBootstrapAttempt, setSessionBootstrapAttempt] = useState(0);
 
   const mode: AuthMode =
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
@@ -48,14 +50,20 @@ export function LoginPage() {
     });
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated || isUnauthorizedRecovery) return;
+    if (isLoading || !isAuthenticated || isUnauthorizedRecovery) {
+      setSessionBootstrapError(null);
+      setIsResolvingSession(false);
+      return;
+    }
 
     let cancelled = false;
     setIsResolvingSession(true);
+    setSessionBootstrapError(null);
 
     void bootstrapAuthSession(() => getIdTokenClaims()).then(
       (sessionUser) => {
         if (!cancelled) {
+          setSessionBootstrapError(null);
           const target = resolveAuthenticatedEntryTarget(sessionUser);
           void navigate(target, { replace: true });
         }
@@ -64,7 +72,11 @@ export function LoginPage() {
         if (!cancelled) {
           setIsResolvingSession(false);
           if (!isUnauthorizedSessionError(cause)) {
-            void navigate(redirectTo, { replace: true });
+            setSessionBootstrapError(
+              cause instanceof Error
+                ? cause.message
+                : 'We could not validate your session. Please try again.',
+            );
           }
         }
       },
@@ -73,10 +85,20 @@ export function LoginPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, isLoading, isUnauthorizedRecovery, navigate, redirectTo, getIdTokenClaims]);
+  }, [
+    getIdTokenClaims,
+    isAuthenticated,
+    isLoading,
+    isUnauthorizedRecovery,
+    navigate,
+    sessionBootstrapAttempt,
+  ]);
 
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden bg-background">
+    <main
+      className="relative flex min-h-screen flex-col overflow-hidden bg-background"
+      data-testid="login-page"
+    >
       {/* Ambient top glow */}
       <div
         aria-hidden="true"
@@ -122,6 +144,28 @@ export function LoginPage() {
                       ? 'Resolving your session...'
                       : 'Checking your session...'}
                   </p>
+                </div>
+              ) : sessionBootstrapError ? (
+                <div className="flex min-h-48 flex-col items-center justify-center gap-4 text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-foreground">
+                      We couldn&apos;t validate your session
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {sessionBootstrapError}
+                    </p>
+                  </div>
+                  <Button
+                    className="rounded-xl"
+                    data-testid="login-session-retry-button"
+                    onClick={() => setSessionBootstrapAttempt((current) => current + 1)}
+                    size="sm"
+                  >
+                    Try again
+                  </Button>
                 </div>
               ) : isAuthenticated && !isUnauthorizedRecovery ? (
                 <div className="flex min-h-48 flex-col items-center justify-center gap-4 text-center">
@@ -185,6 +229,7 @@ export function LoginPage() {
                   <div className="grid gap-2.5">
                     <Button
                       className="w-full rounded-xl"
+                      data-testid="login-signin-button"
                       onClick={() => handleAuth('signin')}
                       size="lg"
                     >
@@ -193,6 +238,7 @@ export function LoginPage() {
                     </Button>
                     <Button
                       className="w-full rounded-xl"
+                      data-testid="login-signup-button"
                       onClick={() => handleAuth('signup')}
                       size="lg"
                       variant="outline"

@@ -56,6 +56,49 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+## Deterministic E2E Auth
+
+`E2E_AUTH_MODE` is a test-only auth bypass for onboarding validation. It is disabled by default, and the API keeps normal Auth0 JWKS verification whenever the flag is off.
+
+Use it only in an isolated onboarding-validation stack with separate env and database settings. Do not enable it in a normal shared dev stack or production.
+
+### Environment
+
+```bash
+E2E_AUTH_MODE=true
+```
+
+### Supported bearer token contracts
+
+Preferred browser-buildable contract:
+
+```text
+e2e.<base64url-json>
+```
+
+Required JSON claims:
+
+- `sub`
+- `email`
+- `name`
+
+Example payload before base64url encoding:
+
+```json
+{
+  "sub": "e2e|run-20260327-owner-1",
+  "email": "run-20260327-owner-1@example.com",
+  "name": "Run 20260327 Owner 1"
+}
+```
+
+Current web mock compatibility is also preserved for:
+
+- `mock-e2e-signup-token`
+- `mock-e2e-signin-token`
+
+Malformed deterministic tokens return `401 Unauthorized`. Valid deterministic tokens still resolve through the normal user/session bootstrap path, including `findOrCreateUser()` and the existing protected routes such as `/users/me`, `/onboarding/state`, `/onboarding/company`, and `/onboarding/messages`.
+
 ## Resources
 
 Check out a few resources that may come in handy when working with NestJS:

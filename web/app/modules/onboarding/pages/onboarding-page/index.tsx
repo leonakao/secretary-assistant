@@ -58,7 +58,7 @@ export function OnboardingPage() {
   const currentStepIndex = steps.findIndex((s) => s.id === step);
 
   return (
-    <main className="flex min-h-screen bg-background">
+    <main className="flex min-h-screen bg-background" data-testid="onboarding-page">
       {/* Sidebar */}
       <aside className="hidden w-72 shrink-0 flex-col justify-between border-r border-border bg-[var(--color-surface-hero)] px-8 py-10 lg:flex">
         <div className="space-y-10">
@@ -115,7 +115,10 @@ export function OnboardingPage() {
       <div className="flex flex-1 flex-col">
         {step === 'company-bootstrap' ? (
           <div className="flex flex-1 items-center justify-center px-6 py-10">
-            <div className="w-full max-w-md space-y-6">
+            <div
+              className="w-full max-w-md space-y-6"
+              data-testid="onboarding-step-company-bootstrap"
+            >
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand">
                   Step 1 of 2
@@ -132,7 +135,10 @@ export function OnboardingPage() {
           </div>
         ) : (
           <div className="flex flex-1 flex-col overflow-hidden">
-            <div className="border-b border-border px-6 py-4">
+            <div
+              className="border-b border-border px-6 py-4"
+              data-testid="onboarding-step-assistant-chat"
+            >
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand">
                 Step 2 of 2
               </p>
@@ -143,7 +149,11 @@ export function OnboardingPage() {
             <div className="flex-1 overflow-hidden">
               <OnboardingChat
                 conversation={
-                  data.conversation ?? { threadId: null, messages: [] }
+                  data.conversation ?? {
+                    threadId: null,
+                    isInitialized: false,
+                    messages: [],
+                  }
                 }
                 onComplete={() => {
                   void navigate('/dashboard', { replace: true });

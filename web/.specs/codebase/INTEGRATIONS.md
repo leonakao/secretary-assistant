@@ -19,6 +19,11 @@
 
 - Auth/session:
   - `GET /users/me`
+- Onboarding:
+  - `GET /onboarding/state`
+  - `POST /onboarding/company`
+  - `POST /onboarding/messages/initialize`
+  - `POST /onboarding/messages` — JSON text message or multipart audio upload
 
 **Planned endpoints:**
 - Agent configuration:

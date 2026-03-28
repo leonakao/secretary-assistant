@@ -10,6 +10,7 @@ import {
 } from '../utils/map-onboarding-state';
 import { OnboardingConversationService } from '../services/onboarding-conversation.service';
 import type { User } from 'src/modules/users/entities/user.entity';
+import { findPreferredUserCompanyForOnboardingState } from '../utils/find-active-user-company';
 
 interface ConversationMessage {
   id: string;
@@ -21,6 +22,7 @@ interface ConversationMessage {
 interface ConversationResult {
   threadId: string;
   messages: ConversationMessage[];
+  isInitialized: boolean;
 }
 
 export interface GetOnboardingStateResult {
@@ -38,11 +40,10 @@ export class GetOnboardingStateUseCase {
   ) {}
 
   async execute(user: User): Promise<GetOnboardingStateResult> {
-    const userCompany = await this.userCompanyRepository.findOne({
-      where: { userId: user.id },
-      relations: ['company'],
-      order: { createdAt: 'ASC' },
-    });
+    const userCompany = await findPreferredUserCompanyForOnboardingState(
+      this.userCompanyRepository,
+      user.id,
+    );
 
     const { company, onboarding } = mapOnboardingState(
       userCompany as (UserCompany & { company: Company }) | null,
@@ -66,6 +67,7 @@ export class GetOnboardingStateUseCase {
         content: m.content,
         createdAt: m.createdAt.toISOString(),
       })),
+      isInitialized: messages.length > 0,
     };
 
     return { company, onboarding, conversation };

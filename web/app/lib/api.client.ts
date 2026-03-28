@@ -35,14 +35,21 @@ export async function fetchApiResponse(
   const { authToken, skipCredentials, ...init } = options;
   const base = getApiBaseUrl();
   const url = `${base}${path}`;
+  const isFormDataBody =
+    typeof FormData !== 'undefined' && init.body instanceof FormData;
+  const headers = new Headers(init.headers);
+
+  if (!isFormDataBody && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  if (authToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${authToken}`);
+  }
 
   return fetch(url, {
     ...init,
     credentials: skipCredentials ? 'omit' : 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      ...init.headers,
-    },
+    headers,
   });
 }

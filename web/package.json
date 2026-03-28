@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:onboarding-validation": "playwright test --config=playwright.onboarding.config.ts",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage"
   },

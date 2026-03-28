@@ -4,6 +4,7 @@ import type { UserCompany } from 'src/modules/companies/entities/user-company.en
 export interface OnboardingCompanyResult {
   id: string;
   name: string;
+  businessType: string | null;
   step: 'onboarding' | 'running';
   role: 'owner' | 'admin' | 'employee';
 }
@@ -36,6 +37,7 @@ export function mapOnboardingState(
       company: {
         id: company.id,
         name: company.name,
+        businessType: company.businessType ?? null,
         step: 'onboarding',
         role,
       },
@@ -50,6 +52,7 @@ export function mapOnboardingState(
     company: {
       id: company.id,
       name: company.name,
+      businessType: company.businessType ?? null,
       step: 'running',
       role,
     },

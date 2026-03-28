@@ -1,10 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { HumanMessage } from '@langchain/core/messages';
 
 @Injectable()
 export class AudioTranscriptionService {
+  private static readonly SUPPORTED_MIME_TYPES = new Set([
+    'audio/aac',
+    'audio/flac',
+    'audio/mp3',
+    'audio/mp4',
+    'audio/mpeg',
+    'audio/mpga',
+    'audio/ogg',
+    'audio/wav',
+    'audio/webm',
+    'audio/x-wav',
+  ]);
+
   private readonly model: ChatGoogleGenerativeAI;
 
   constructor(private configService: ConfigService) {
@@ -21,10 +34,15 @@ export class AudioTranscriptionService {
     });
   }
 
-  /**
-   * Transcribe audio from URL to text using Gemini
-   */
-  async transcribeAudioFromBase64(audioBase64: string): Promise<string> {
+  async transcribeAudio(
+    audio: Buffer | string,
+    mimeType: string,
+  ): Promise<string> {
+    const normalizedMimeType = this.normalizeMimeType(mimeType);
+    const audioBase64 = Buffer.isBuffer(audio)
+      ? audio.toString('base64')
+      : audio;
+
     const message = new HumanMessage({
       content: [
         {
@@ -33,7 +51,7 @@ export class AudioTranscriptionService {
         },
         {
           type: 'media',
-          mimeType: 'audio/ogg',
+          mimeType: normalizedMimeType,
           data: audioBase64,
         },
       ],
@@ -46,5 +64,18 @@ export class AudioTranscriptionService {
       : response.content.toString().trim();
 
     return transcription;
+  }
+
+  private normalizeMimeType(mimeType: string): string {
+    const normalizedMimeType = mimeType.toLowerCase().split(';')[0].trim();
+
+    if (
+      !normalizedMimeType ||
+      !AudioTranscriptionService.SUPPORTED_MIME_TYPES.has(normalizedMimeType)
+    ) {
+      throw new BadRequestException('Unsupported audio MIME type');
+    }
+
+    return normalizedMimeType;
   }
 }

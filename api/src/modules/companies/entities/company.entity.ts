@@ -19,6 +19,9 @@ export class Company {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  businessType: string | null;
+
   @Column({ type: 'boolean', default: false })
   isClientsSupportEnabled: boolean;
 

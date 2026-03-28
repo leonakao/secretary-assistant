@@ -21,6 +21,7 @@ import { AgentContext, AgentState } from './agent.state';
 import { PostgresStore } from '../stores/postgres.store';
 import { createAssistantNode } from '../nodes/assistant.node';
 import { buildOnboardingPromptFromState } from '../agent-prompts/assistant-onboarding';
+import { ensureCheckpointerSetup } from './checkpointer-setup';
 
 @Injectable()
 export class OnboardingAssistantAgent implements OnModuleInit {
@@ -58,12 +59,16 @@ export class OnboardingAssistantAgent implements OnModuleInit {
   }
 
   async onModuleInit() {
+    const connectionString = `postgresql://${this.configService.get<string>('DB_USERNAME', 'postgres')}:${this.configService.get<string>('DB_PASSWORD', 'postgres')}@${this.configService.get<string>('DB_HOST', 'localhost')}:${this.configService.get<number>('DB_PORT', 5432)}/${this.configService.get<string>('DB_DATABASE', 'postgres')}`;
+
     this.checkpointer = PostgresSaver.fromConnString(
-      `postgresql://${this.configService.get<string>('DB_USERNAME', 'postgres')}:${this.configService.get<string>('DB_PASSWORD', 'postgres')}@${this.configService.get<string>('DB_HOST', 'localhost')}:${this.configService.get<number>('DB_PORT', 5432)}/${this.configService.get<string>('DB_DATABASE', 'postgres')}`,
+      connectionString,
       { schema: 'checkpointer' },
     );
 
-    await this.checkpointer.setup();
+    await ensureCheckpointerSetup(`${connectionString}|checkpointer`, () =>
+      this.checkpointer.setup(),
+    );
 
     this.graph = this.buildGraph();
   }

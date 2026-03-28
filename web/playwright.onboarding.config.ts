@@ -1,0 +1,8 @@
+import baseConfig from './playwright.config';
+
+export default {
+  ...baseConfig,
+  timeout: 600000,
+  testMatch: ['**/onboarding-validation.spec.ts'],
+  fullyParallel: false,
+} satisfies typeof baseConfig;

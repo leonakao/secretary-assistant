@@ -101,6 +101,50 @@ To also remove volumes (database data):
 docker compose down -v
 ```
 
+## Onboarding validation stack
+
+Use the isolated onboarding-validation stack when you want to run the
+automated onboarding interview flow without conflicting with your normal local
+environment.
+
+This stack is opt-in and separate from the default developer workflow:
+
+- dedicated compose file: `docker-compose.onboarding-validation.yaml`
+- dedicated env file: `.env.onboarding-validation`
+- dedicated compose project name: `secretary-assistant-onboarding-validation`
+- dedicated ports: web `4173`, API `3300`, PostgreSQL `55432`
+- test-only auth mode enabled only inside the isolated stack
+- web API calls stay same-origin through the Vite `/api` proxy
+
+Setup:
+
+```bash
+cp .env.onboarding-validation.example .env.onboarding-validation
+```
+
+Start the isolated stack:
+
+```bash
+pnpm onboarding-validation:up
+```
+
+Run migrations:
+
+```bash
+pnpm onboarding-validation:migrate
+```
+
+Run the onboarding validation flow:
+
+```bash
+pnpm onboarding-validation:test
+```
+
+This root command invokes the dedicated onboarding validation Playwright config
+only, not the default E2E suite.
+
+See [ONBOARDING_VALIDATION.md](ONBOARDING_VALIDATION.md) for the full workflow and port/env details.
+
 ## Tech stack
 
 - **Backend** — [NestJS](https://nestjs.com/), PostgreSQL with [pgvector](https://github.com/pgvector/pgvector), TypeORM, LangGraph + Google Gemini

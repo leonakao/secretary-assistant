@@ -16,6 +16,10 @@ import {
   getAuth0Domain,
   getAuth0RedirectUri,
 } from '~/lib/runtime-config.client';
+import {
+  createExistingSigninIdentity,
+  createFreshSignupIdentity,
+} from './e2e-auth';
 
 interface AppAuthContextValue {
   error?: Error;
@@ -82,17 +86,14 @@ function writeMockSession(session: MockSession | null): void {
 }
 
 function createMockSession(screenHint?: string): MockSession {
-  const isSignup = screenHint === 'signup';
+  const identity =
+    screenHint === 'signup'
+      ? createFreshSignupIdentity()
+      : createExistingSigninIdentity();
 
   return {
-    token: isSignup ? 'mock-e2e-signup-token' : 'mock-e2e-signin-token',
-    user: {
-      email: isSignup ? 'new-owner@example.com' : 'owner@example.com',
-      email_verified: true,
-      name: isSignup ? 'New Owner' : 'Existing Owner',
-      nickname: isSignup ? 'new-owner' : 'owner',
-      sub: isSignup ? 'auth0|signup-user' : 'auth0|signin-user',
-    },
+    token: identity.token,
+    user: identity.user,
   };
 }
 

@@ -21,6 +21,7 @@ export interface OnboardingMessage {
 
 export interface OnboardingConversation {
   threadId: string | null;
+  isInitialized: boolean;
   messages: OnboardingMessage[];
 }
 
@@ -47,11 +48,21 @@ export interface SendOnboardingMessageInput {
 export interface SendOnboardingMessageResponse {
   company: OnboardingCompany | null;
   onboarding: OnboardingState;
-  assistantMessage: {
-    role: 'assistant';
-    content: string;
-    createdAt: string;
-  };
+  userMessage: OnboardingMessage;
+  assistantMessage: OnboardingMessage;
+}
+
+export interface InitializeOnboardingConversationResponse {
+  company: OnboardingCompany | null;
+  onboarding: OnboardingState;
+  initialized: boolean;
+  assistantMessage: OnboardingMessage | null;
+}
+
+export interface SendOnboardingAudioMessageInput {
+  audio: Blob;
+  durationMs: number;
+  mimeType: string;
 }
 
 export async function getOnboardingState(client: BoundApiClient): Promise<OnboardingStateResponse> {
@@ -68,12 +79,41 @@ export async function createOnboardingCompany(
   });
 }
 
-export async function sendOnboardingMessage(
+export async function sendOnboardingTextMessage(
   input: SendOnboardingMessageInput,
   client: BoundApiClient,
 ): Promise<SendOnboardingMessageResponse> {
   return client.fetchApi<SendOnboardingMessageResponse>('/onboarding/messages', {
     method: 'POST',
     body: JSON.stringify(input),
+  });
+}
+
+export const sendOnboardingMessage = sendOnboardingTextMessage;
+
+export async function initializeOnboardingConversation(
+  client: BoundApiClient,
+): Promise<InitializeOnboardingConversationResponse> {
+  return client.fetchApi<InitializeOnboardingConversationResponse>(
+    '/onboarding/messages/initialize',
+    {
+      method: 'POST',
+    },
+  );
+}
+
+export async function sendOnboardingAudioMessage(
+  input: SendOnboardingAudioMessageInput,
+  client: BoundApiClient,
+): Promise<SendOnboardingMessageResponse> {
+  const formData = new FormData();
+  formData.append('kind', 'audio');
+  formData.append('audio', input.audio);
+  formData.append('durationMs', String(input.durationMs));
+  formData.append('mimeType', input.mimeType);
+
+  return client.fetchApi<SendOnboardingMessageResponse>('/onboarding/messages', {
+    method: 'POST',
+    body: formData,
   });
 }

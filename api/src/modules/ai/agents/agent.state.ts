@@ -6,6 +6,8 @@ export interface AgentContext {
   companyId: string;
   instanceName: string;
   companyDescription: string;
+  companyName?: string;
+  businessType?: string;
   confirmations: PendingConfirmation[];
   contactId?: string;
   contactName?: string;

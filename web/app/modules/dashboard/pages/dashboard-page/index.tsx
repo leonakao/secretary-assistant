@@ -113,7 +113,10 @@ export function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-muted/50 px-6 py-10">
+    <main
+      className="min-h-screen bg-muted/50 px-6 py-10"
+      data-testid="dashboard-page"
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand">

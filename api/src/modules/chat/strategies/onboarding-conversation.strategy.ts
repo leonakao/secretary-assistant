@@ -36,11 +36,13 @@ export class OnboardingConversationStrategy implements ConversationStrategy {
       presence: 'composing',
     });
 
-    const { assistantMessage } = await this.onboardingConversationService.run({
+    const result = await this.onboardingConversationService.run({
       userId: params.userId,
       companyId: params.companyId,
       message: params.message,
     });
+
+    const assistantMessage = result.assistantMessage?.content ?? '';
 
     if (assistantMessage.trim()) {
       await this.chatService.sendPresenceNotification({
