@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { AlertTriangle, LoaderCircle, LogIn, UserRoundPlus } from 'lucide-react';
+import { AlertTriangle, Bot, LoaderCircle, LogIn, UserRoundPlus } from 'lucide-react';
 import { Button } from '~/components/ui/base/button';
 import { getAuth0RedirectUri } from '~/lib/runtime-config.client';
 import { isUnauthorizedSessionRecovery } from '~/modules/auth/session-recovery';
@@ -32,13 +32,6 @@ export function LoginPage() {
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
   const redirectTo = getSafeRedirectTarget(searchParams.get('redirectTo'));
   const isUnauthorizedRecovery = isUnauthorizedSessionRecovery(searchParams);
-
-  const headline =
-    mode === 'signup' ? 'Create your owner account' : 'Sign in to your dashboard';
-  const description =
-    mode === 'signup'
-      ? 'Create your Secretary Assistant account and land directly in the protected dashboard.'
-      : 'Use the dedicated sign-in page to access the protected dashboard.';
 
   const handleAuth = (nextMode: AuthMode) =>
     loginWithRedirect({
@@ -83,136 +76,153 @@ export function LoginPage() {
   }, [isAuthenticated, isLoading, isUnauthorizedRecovery, navigate, redirectTo, getIdTokenClaims]);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(34,197,94,0.12),_transparent_35%),linear-gradient(180deg,_var(--color-background),_var(--color-muted))] px-6 py-10">
-      <div className="mx-auto flex max-w-5xl justify-between gap-4">
-        <Link
-          to="/"
-          className="text-sm font-semibold tracking-tight text-foreground transition-colors hover:text-brand"
-        >
-          Secretary Assistant
+    <main className="relative flex min-h-screen flex-col overflow-hidden bg-background">
+      {/* Ambient top glow */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 flex justify-center"
+      >
+        <div className="h-[320px] w-[700px] rounded-full bg-brand/8 blur-[100px]" />
+      </div>
+
+      {/* Top nav */}
+      <nav className="relative z-10 flex items-center justify-between px-6 py-5">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand">
+            <Bot className="h-4 w-4 text-brand-foreground" />
+          </div>
+          <span className="text-sm font-semibold tracking-tight text-foreground">
+            Secretary Assistant
+          </span>
         </Link>
         <Link
           to="/"
           className="text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          Back to home
+          ← Back to home
         </Link>
-      </div>
+      </nav>
 
-      <section className="mx-auto mt-16 grid max-w-5xl gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.28em] text-brand">
-            Owner access
-          </p>
-          <h1 className="max-w-xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            {headline}
-          </h1>
-          <p className="max-w-xl text-lg leading-8 text-muted-foreground">
-            {description}
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-3xl border border-border bg-card/70 p-5 shadow-sm">
-              <p className="text-sm font-semibold text-foreground">
-                Protected routing
-              </p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Successful sign in lands on <strong>/dashboard</strong> instead
-                of returning to the marketing page.
-              </p>
-            </div>
-            <div className="rounded-3xl border border-border bg-card/70 p-5 shadow-sm">
-              <p className="text-sm font-semibold text-foreground">
-                API session check
-              </p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                The dashboard validates the backend session through the protected{' '}
-                <strong>/users/me</strong> endpoint.
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Centered auth card */}
+      <div className="relative z-10 flex flex-1 items-center justify-center px-6 py-12">
+        <div className="w-full max-w-sm">
+          {/* Card */}
+          <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-black/5 ring-1 ring-border/50">
+            {/* Card top accent line */}
+            <div className="h-px bg-gradient-to-r from-transparent via-brand/60 to-transparent" />
 
-        <div className="rounded-[2rem] border border-border bg-card/95 p-8 shadow-xl shadow-brand/5">
-          {isLoading || isResolvingSession ? (
-            <div className="flex min-h-56 items-center justify-center gap-3 text-sm text-muted-foreground">
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-              {isResolvingSession ? 'Resolving your session...' : 'Checking your session...'}
-            </div>
-          ) : isAuthenticated && !isUnauthorizedRecovery ? (
-            <div className="space-y-4">
-              <p className="text-sm font-semibold text-brand">
-                Active session detected
-              </p>
-              <h2 className="text-2xl font-semibold text-foreground">
-                Redirecting...
-              </h2>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-                Taking you to the right place now.
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <p className="text-sm font-semibold text-brand">
-                  Dedicated auth page
-                </p>
-                <h2 className="text-2xl font-semibold text-foreground">
-                  {isUnauthorizedRecovery
-                    ? 'Your dashboard session was rejected'
-                    : 'Choose how you want to enter'}
-                </h2>
-              </div>
-
-              {isUnauthorizedRecovery ? (
-                <div className="rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p>
-                      Auth0 still recognizes your browser session, but the API rejected
-                      it with <strong>401 Unauthorized</strong>. Automatic redirect is
-                      paused here to avoid a login loop. Sign in again to retry with a
-                      fresh session.
+            <div className="p-8">
+              {isLoading || isResolvingSession ? (
+                <div className="flex min-h-48 flex-col items-center justify-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10">
+                    <LoaderCircle className="h-5 w-5 animate-spin text-brand" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {isResolvingSession
+                      ? 'Resolving your session...'
+                      : 'Checking your session...'}
+                  </p>
+                </div>
+              ) : isAuthenticated && !isUnauthorizedRecovery ? (
+                <div className="flex min-h-48 flex-col items-center justify-center gap-4 text-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10">
+                    <LoaderCircle className="h-5 w-5 animate-spin text-brand" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-brand">Active session</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Taking you to the right place...
                     </p>
                   </div>
                 </div>
-              ) : null}
+              ) : (
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div className="space-y-1 text-center">
+                    <div className="mb-4 flex justify-center">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand">
+                        <Bot className="h-6 w-6 text-brand-foreground" />
+                      </div>
+                    </div>
+                    <h1 className="text-xl font-bold tracking-tight text-foreground">
+                      {isUnauthorizedRecovery
+                        ? 'Session rejected'
+                        : mode === 'signup'
+                          ? 'Create your account'
+                          : 'Welcome back'}
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                      {isUnauthorizedRecovery
+                        ? 'Sign in again to start a fresh session.'
+                        : mode === 'signup'
+                          ? 'Get your AI secretary up and running.'
+                          : 'Sign in to your Secretary Assistant dashboard.'}
+                    </p>
+                  </div>
 
-              {error ? (
-                <p className="rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  {error.message}
-                </p>
-              ) : null}
+                  {/* Warning banner */}
+                  {isUnauthorizedRecovery ? (
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/8 px-4 py-3 text-sm">
+                      <div className="flex items-start gap-2.5">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                        <p className="text-amber-700 dark:text-amber-300">
+                          The API rejected your session with{' '}
+                          <strong>401 Unauthorized</strong>. Sign in again to retry
+                          with a fresh token.
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
 
-              <div className="grid gap-3">
-                <Button
-                  className="w-full"
-                  onClick={() => handleAuth('signin')}
-                  size="lg"
-                >
-                  <LogIn className="h-4 w-4" />
-                  Sign in
-                </Button>
-                <Button
-                  className="w-full"
-                  onClick={() => handleAuth('signup')}
-                  size="lg"
-                  variant="outline"
-                >
-                  <UserRoundPlus className="h-4 w-4" />
-                  Sign up
-                </Button>
-              </div>
+                  {/* Error banner */}
+                  {error ? (
+                    <div className="rounded-2xl border border-destructive/20 bg-destructive/8 px-4 py-3 text-sm text-destructive">
+                      {error.message}
+                    </div>
+                  ) : null}
 
-              <p className="text-sm leading-6 text-muted-foreground">
-                {isUnauthorizedRecovery
-                  ? 'Use sign in to force a fresh Auth0 login before trying the dashboard again.'
-                  : 'New users can start with sign up. Existing owners can sign in and continue straight to the dashboard.'}
-              </p>
+                  {/* Actions */}
+                  <div className="grid gap-2.5">
+                    <Button
+                      className="w-full rounded-xl"
+                      onClick={() => handleAuth('signin')}
+                      size="lg"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      Sign in
+                    </Button>
+                    <Button
+                      className="w-full rounded-xl"
+                      onClick={() => handleAuth('signup')}
+                      size="lg"
+                      variant="outline"
+                    >
+                      <UserRoundPlus className="h-4 w-4" />
+                      Create account
+                    </Button>
+                  </div>
+
+                  {/* Footer hint */}
+                  <p className="text-center text-xs leading-5 text-muted-foreground">
+                    {isUnauthorizedRecovery
+                      ? 'Sign in forces a fresh Auth0 login prompt.'
+                      : 'New here? Start with "Create account". Already a member? Sign in to go straight to your dashboard.'}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Below card link */}
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            By continuing, you agree to our{' '}
+            <span className="text-foreground underline-offset-4 hover:underline cursor-pointer">
+              Terms of Service
+            </span>
+            .
+          </p>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

@@ -1,4 +1,4 @@
-import { fetchApi } from '~/lib/api.client';
+import type { BoundApiClient } from '~/lib/api-client-context';
 
 export interface OnboardingCompany {
   id: string;
@@ -54,14 +54,15 @@ export interface SendOnboardingMessageResponse {
   };
 }
 
-export async function getOnboardingState(): Promise<OnboardingStateResponse> {
-  return fetchApi<OnboardingStateResponse>('/onboarding/state');
+export async function getOnboardingState(client: BoundApiClient): Promise<OnboardingStateResponse> {
+  return client.fetchApi<OnboardingStateResponse>('/onboarding/state');
 }
 
 export async function createOnboardingCompany(
   input: CreateOnboardingCompanyInput,
+  client: BoundApiClient,
 ): Promise<CreateOnboardingCompanyResponse> {
-  return fetchApi<CreateOnboardingCompanyResponse>('/onboarding/company', {
+  return client.fetchApi<CreateOnboardingCompanyResponse>('/onboarding/company', {
     method: 'POST',
     body: JSON.stringify(input),
   });
@@ -69,8 +70,9 @@ export async function createOnboardingCompany(
 
 export async function sendOnboardingMessage(
   input: SendOnboardingMessageInput,
+  client: BoundApiClient,
 ): Promise<SendOnboardingMessageResponse> {
-  return fetchApi<SendOnboardingMessageResponse>('/onboarding/messages', {
+  return client.fetchApi<SendOnboardingMessageResponse>('/onboarding/messages', {
     method: 'POST',
     body: JSON.stringify(input),
   });

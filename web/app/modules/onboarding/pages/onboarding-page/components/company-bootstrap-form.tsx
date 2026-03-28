@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { Button } from '~/components/ui/base/button';
 import { createOnboardingCompany } from '../../../api/onboarding.api';
+import { useApiClient } from '~/lib/api-client-context';
 
 interface CompanyBootstrapFormProps {
   onSuccess: () => void;
 }
 
 export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
+  const client = useApiClient();
   const [name, setName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,7 +23,7 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
     setError(null);
 
     try {
-      await createOnboardingCompany({ name: name.trim(), businessType: businessType.trim() });
+      await createOnboardingCompany({ name: name.trim(), businessType: businessType.trim() }, client);
       onSuccess();
     } catch (cause) {
       setError(

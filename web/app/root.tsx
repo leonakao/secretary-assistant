@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import { AppAuthProvider } from '~/modules/auth/auth-provider';
+import { useAppAuth } from '~/modules/auth/auth-provider';
+import { getSessionToken } from '~/modules/auth/session';
+import { ApiClientProvider } from '~/lib/api-client-context';
 import './app.css';
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -21,10 +24,22 @@ export function Layout({ children }: { children: ReactNode }) {
   );
 }
 
+function AuthenticatedProviders({ children }: { children: ReactNode }) {
+  const { getIdTokenClaims } = useAppAuth();
+
+  return (
+    <ApiClientProvider getToken={() => getSessionToken(getIdTokenClaims)}>
+      {children}
+    </ApiClientProvider>
+  );
+}
+
 export default function App() {
   return (
     <AppAuthProvider>
-      <Outlet />
+      <AuthenticatedProviders>
+        <Outlet />
+      </AuthenticatedProviders>
     </AppAuthProvider>
   );
 }

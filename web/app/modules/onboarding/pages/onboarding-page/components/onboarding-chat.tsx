@@ -5,6 +5,7 @@ import {
   sendOnboardingMessage,
   type OnboardingMessage,
 } from '../../../api/onboarding.api';
+import { useApiClient } from '~/lib/api-client-context';
 
 interface OnboardingChatProps {
   conversation: {
@@ -15,6 +16,7 @@ interface OnboardingChatProps {
 }
 
 export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps) {
+  const client = useApiClient();
   const [messages, setMessages] = useState<OnboardingMessage[]>(
     conversation.messages,
   );
@@ -48,7 +50,7 @@ export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps
     scrollToBottom();
 
     try {
-      const response = await sendOnboardingMessage({ message });
+      const response = await sendOnboardingMessage({ message }, client);
 
       const assistantMsg: OnboardingMessage = {
         id: `assistant-${Date.now()}`,

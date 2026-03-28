@@ -1,41 +1,22 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { LoaderCircle } from 'lucide-react';
 import { CompanyBootstrapForm } from './components/company-bootstrap-form';
 import { OnboardingChat } from './components/onboarding-chat';
-import {
-  loadOnboardingPageData,
-  type OnboardingPageLoaderData,
-} from '../../use-cases/load-onboarding-page-data';
+import { loadOnboardingPageData } from '../../use-cases/load-onboarding-page-data';
 import { resolveOnboardingStep } from '../../use-cases/resolve-onboarding-step';
+import { usePageLoader } from '~/lib/api-client-context';
 
 export function OnboardingPage() {
   const navigate = useNavigate();
-  const [data, setData] = useState<OnboardingPageLoaderData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const nextData = await loadOnboardingPageData();
-      setData(nextData);
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : 'Failed to load onboarding state.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const { data, error, isLoading, reload } = usePageLoader(
+    loadOnboardingPageData,
+    '/onboarding',
+  );
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    reload();
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -88,7 +69,7 @@ export function OnboardingPage() {
 
         <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
           {step === 'company-bootstrap' ? (
-            <CompanyBootstrapForm onSuccess={() => void loadData()} />
+            <CompanyBootstrapForm onSuccess={reload} />
           ) : (
             <div className="space-y-4">
               <div>

@@ -2,9 +2,9 @@ import {
   getOnboardingState,
   type OnboardingStateResponse,
 } from '../api/onboarding.api';
+import type { BoundApiClient, LoaderFactory } from '~/lib/api-client-context';
 
 export type OnboardingPageLoaderData = OnboardingStateResponse;
 
-export async function loadOnboardingPageData(): Promise<OnboardingPageLoaderData> {
-  return getOnboardingState();
-}
+export const loadOnboardingPageData: LoaderFactory<OnboardingPageLoaderData> =
+  (client: BoundApiClient) => () => getOnboardingState(client);
