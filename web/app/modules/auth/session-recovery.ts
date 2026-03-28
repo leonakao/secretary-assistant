@@ -2,7 +2,7 @@ const SESSION_ERROR_PARAM = 'sessionError';
 const UNAUTHORIZED_SESSION_ERROR = 'unauthorized';
 
 export function buildUnauthorizedSessionRecoveryPath(
-  redirectTo: string = '/dashboard',
+  redirectTo: string = '/app',
 ): string {
   const searchParams = new URLSearchParams();
   searchParams.set('mode', 'signin');

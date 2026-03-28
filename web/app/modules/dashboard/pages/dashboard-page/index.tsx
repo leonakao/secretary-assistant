@@ -1,223 +1,90 @@
-import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router';
-import { LoaderCircle, LogOut } from 'lucide-react';
-import { Button, buttonVariants } from '~/components/ui/button';
-import {
-  bootstrapAuthSession,
-  isUnauthorizedSessionError,
-} from '~/modules/auth/session';
-import { buildUnauthorizedSessionRecoveryPath } from '~/modules/auth/session-recovery';
-import type { SessionUser } from '~/modules/auth/api/get-current-user';
-import { resolveAuthenticatedEntryTarget } from '~/modules/auth/use-cases/resolve-authenticated-entry-target';
-import { getAuth0AppOrigin, getAuth0LogoutReturnTo } from '~/lib/runtime-config.client';
-import { useAppAuth } from '~/modules/auth/auth-provider';
-
-function getExpiredSessionReturnTo(): string {
-  return new URL(
-    buildUnauthorizedSessionRecoveryPath('/dashboard'),
-    getAuth0AppOrigin(),
-  ).toString();
-}
+import { Activity, Building2, MessageSquareText, ShieldCheck } from 'lucide-react';
+import { useAuthenticatedAppShell } from '~/modules/app-shell/use-authenticated-app-shell';
 
 export function DashboardPage() {
-  const { getIdTokenClaims, isAuthenticated, isLoading, logout, user } =
-    useAppAuth();
-  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isRecoveringSession, setIsRecoveringSession] = useState(false);
-  const [shouldRedirectToOnboarding, setShouldRedirectToOnboarding] =
-    useState(false);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setSessionUser(null);
-      setError(null);
-      setIsRecoveringSession(false);
-      setShouldRedirectToOnboarding(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    void bootstrapAuthSession(() => getIdTokenClaims()).then(
-      (nextUser) => {
-        if (!cancelled) {
-          const target = resolveAuthenticatedEntryTarget(nextUser);
-
-          if (target === '/onboarding') {
-            setShouldRedirectToOnboarding(true);
-            setSessionUser(null);
-            setError(null);
-            setIsRecoveringSession(false);
-            return;
-          }
-
-          setSessionUser(nextUser);
-          setError(null);
-          setIsRecoveringSession(false);
-          setShouldRedirectToOnboarding(false);
-        }
-      },
-      (cause: unknown) => {
-        if (!cancelled) {
-          if (isUnauthorizedSessionError(cause)) {
-            setSessionUser(null);
-            setError(null);
-            setIsRecoveringSession(true);
-            setShouldRedirectToOnboarding(false);
-            logout({
-              logoutParams: {
-                returnTo: getExpiredSessionReturnTo(),
-              },
-            });
-            return;
-          }
-
-          setSessionUser(null);
-          setIsRecoveringSession(false);
-          setShouldRedirectToOnboarding(false);
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : 'Failed to load the protected session.',
-          );
-        }
-      },
-    );
-
-    return () => {
-      cancelled = true;
-    };
-  }, [getIdTokenClaims, isAuthenticated]);
-
-  if (isLoading) {
-    return (
-      <main className="flex min-h-screen items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
-        <LoaderCircle className="h-4 w-4 animate-spin" />
-        Loading authentication state...
-      </main>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <Navigate
-        replace
-        to="/login?mode=signin&redirectTo=%2Fdashboard"
-      />
-    );
-  }
-
-  if (shouldRedirectToOnboarding) {
-    return <Navigate replace to="/onboarding" />;
-  }
+  const { sessionUser } = useAuthenticatedAppShell();
 
   return (
-    <main
-      className="min-h-screen bg-muted/50 px-6 py-10"
-      data-testid="dashboard-page"
-    >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand">
-            Protected dashboard
+    <div className="space-y-6" data-testid="app-home-page">
+      <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand">
+            Workspace overview
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
-            Welcome back, {sessionUser?.name || user?.name || 'owner'}
-          </h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            className={buttonVariants({
-              size: 'sm',
-              variant: 'outline',
-            })}
-            to="/"
-          >
-            Home
-          </Link>
-          <Button
-            onClick={() =>
-              logout({
-                logoutParams: { returnTo: getAuth0LogoutReturnTo() },
-              })
-            }
-            size="sm"
-            variant="outline"
-          >
-            <LogOut className="h-4 w-4" />
-            Log out
-          </Button>
-        </div>
-      </div>
-
-      <section className="mx-auto mt-10 grid max-w-6xl gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
-          <p className="text-sm font-semibold text-brand">Session status</p>
-          {isRecoveringSession ? (
-            <div className="mt-6 flex items-center gap-3 text-sm text-muted-foreground">
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-              Your session expired. Redirecting to sign in...
-            </div>
-          ) : error ? (
-            <p className="mt-4 rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {error}
-            </p>
-          ) : sessionUser ? (
-            <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl bg-muted p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Name
-                </dt>
-                <dd className="mt-2 text-sm font-medium text-foreground">
-                  {sessionUser.name}
-                </dd>
-              </div>
-              <div className="rounded-2xl bg-muted p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Email
-                </dt>
-                <dd className="mt-2 text-sm font-medium text-foreground">
-                  {sessionUser.email}
-                </dd>
-              </div>
-              <div className="rounded-2xl bg-muted p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Phone
-                </dt>
-                <dd className="mt-2 text-sm font-medium text-foreground">
-                  {sessionUser.phone || 'Not provided yet'}
-                </dd>
-              </div>
-              <div className="rounded-2xl bg-muted p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  User ID
-                </dt>
-                <dd className="mt-2 break-all text-sm font-medium text-foreground">
-                  {sessionUser.id}
-                </dd>
-              </div>
-            </dl>
-          ) : (
-            <div className="mt-6 flex items-center gap-3 text-sm text-muted-foreground">
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-              Validating your protected API session...
-            </div>
-          )}
-        </div>
-
-        <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
-          <p className="text-sm font-semibold text-brand">Next step</p>
-          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
-            Dashboard shell is protected
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+            Welcome back, {sessionUser.name}
           </h2>
-          <p className="mt-4 text-sm leading-7 text-muted-foreground">
-            This page is now the authenticated entry point after sign in or sign
-            up. It also confirms the backend session by calling the guarded{' '}
-            <strong>/users/me</strong> endpoint.
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
+            This is now the home of the authenticated workspace. From here you
+            can expand your company setup, contacts, and settings without
+            rebuilding the shell each time.
           </p>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-3xl bg-muted p-5">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-brand/10 p-2 text-brand">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Protected session</p>
+                  <p className="text-xs text-muted-foreground">Confirmed via /users/me</p>
+                </div>
+              </div>
+              <p className="mt-4 text-sm text-muted-foreground">{sessionUser.email}</p>
+            </div>
+            <div className="rounded-3xl bg-muted p-5">
+              <div className="flex items-center gap-3">
+                <div className="rounded-2xl bg-brand/10 p-2 text-brand">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Company status</p>
+                  <p className="text-xs text-muted-foreground">Current workspace owner</p>
+                </div>
+              </div>
+              <p className="mt-4 text-sm text-muted-foreground">
+                {sessionUser.company?.name || 'No company linked yet'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand">
+            Next steps
+          </p>
+          <div className="mt-6 space-y-4">
+            {[
+              {
+                icon: MessageSquareText,
+                title: 'Shape your assistant',
+                copy: 'Use the new workspace sections to evolve setup without crowding the dashboard.',
+              },
+              {
+                icon: Activity,
+                title: 'Keep the structure growing cleanly',
+                copy: 'Each context now has a route and space to grow independently.',
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="rounded-3xl bg-muted p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-2xl bg-brand/10 p-2 text-brand">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <p className="text-sm font-medium text-foreground">{item.title}</p>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                    {item.copy}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }

@@ -36,7 +36,7 @@ describe('resolveAuthenticatedEntryTarget', () => {
     expect(resolveAuthenticatedEntryTarget(makeUser(true))).toBe('/onboarding');
   });
 
-  it('returns /dashboard when onboarding is complete', () => {
-    expect(resolveAuthenticatedEntryTarget(makeUser(false))).toBe('/dashboard');
+  it('returns /app when onboarding is complete', () => {
+    expect(resolveAuthenticatedEntryTarget(makeUser(false))).toBe('/app');
   });
 });

@@ -8,8 +8,8 @@ export type FailureBucket =
   | 'auth'
   | 'bootstrap'
   | 'completion-not-reached'
-  | 'dashboard-access-regression'
-  | 'dashboard-redirect'
+  | 'workspace-access-regression'
+  | 'workspace-redirect'
   | 'interview-message-send'
   | 'interview-prompt-classification'
   | 'routing-to-onboarding';

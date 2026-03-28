@@ -15,10 +15,21 @@ type AuthMode = 'signin' | 'signup';
 
 function getSafeRedirectTarget(value: string | null): string {
   if (!value || !value.startsWith('/')) {
-    return '/dashboard';
+    return '/app';
   }
 
   return value;
+}
+
+function resolvePostLoginNavigationTarget(
+  redirectTo: string,
+  authenticatedEntryTarget: ReturnType<typeof resolveAuthenticatedEntryTarget>,
+): string {
+  if (authenticatedEntryTarget === '/onboarding') {
+    return '/onboarding';
+  }
+
+  return redirectTo.startsWith('/app') ? redirectTo : '/app';
 }
 
 export function LoginPage() {
@@ -64,7 +75,10 @@ export function LoginPage() {
       (sessionUser) => {
         if (!cancelled) {
           setSessionBootstrapError(null);
-          const target = resolveAuthenticatedEntryTarget(sessionUser);
+          const target = resolvePostLoginNavigationTarget(
+            redirectTo,
+            resolveAuthenticatedEntryTarget(sessionUser),
+          );
           void navigate(target, { replace: true });
         }
       },
@@ -91,6 +105,7 @@ export function LoginPage() {
     isLoading,
     isUnauthorizedRecovery,
     navigate,
+    redirectTo,
     sessionBootstrapAttempt,
   ]);
 

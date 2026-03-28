@@ -17,7 +17,16 @@ type Pages = {
   "/login": {
     params: {};
   };
-  "/dashboard": {
+  "/app": {
+    params: {};
+  };
+  "/app/company": {
+    params: {};
+  };
+  "/app/contacts": {
+    params: {};
+  };
+  "/app/settings": {
     params: {};
   };
   "/onboarding": {
@@ -28,7 +37,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/login" | "/dashboard" | "/onboarding";
+    page: "/" | "/login" | "/app" | "/app/company" | "/app/contacts" | "/app/settings" | "/onboarding";
   };
   "routes/home.tsx": {
     id: "routes/home";
@@ -38,9 +47,25 @@ type RouteFiles = {
     id: "routes/login";
     page: "/login";
   };
-  "routes/dashboard.tsx": {
-    id: "routes/dashboard";
-    page: "/dashboard";
+  "routes/app.tsx": {
+    id: "routes/app";
+    page: "/app" | "/app/company" | "/app/contacts" | "/app/settings";
+  };
+  "routes/app._index.tsx": {
+    id: "routes/app._index";
+    page: "/app";
+  };
+  "routes/app.company.tsx": {
+    id: "routes/app.company";
+    page: "/app/company";
+  };
+  "routes/app.contacts.tsx": {
+    id: "routes/app.contacts";
+    page: "/app/contacts";
+  };
+  "routes/app.settings.tsx": {
+    id: "routes/app.settings";
+    page: "/app/settings";
   };
   "routes/onboarding.tsx": {
     id: "routes/onboarding";
@@ -52,6 +77,10 @@ type RouteModules = {
   "root": typeof import("./app/root.tsx");
   "routes/home": typeof import("./app/routes/home.tsx");
   "routes/login": typeof import("./app/routes/login.tsx");
-  "routes/dashboard": typeof import("./app/routes/dashboard.tsx");
+  "routes/app": typeof import("./app/routes/app.tsx");
+  "routes/app._index": typeof import("./app/routes/app._index.tsx");
+  "routes/app.company": typeof import("./app/routes/app.company.tsx");
+  "routes/app.contacts": typeof import("./app/routes/app.contacts.tsx");
+  "routes/app.settings": typeof import("./app/routes/app.settings.tsx");
   "routes/onboarding": typeof import("./app/routes/onboarding.tsx");
 };

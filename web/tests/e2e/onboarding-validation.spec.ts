@@ -23,8 +23,9 @@ const BRIEFING_FIXTURE_PATH = join(
   'tests/e2e/fixtures/onboarding-company-briefing.md',
 );
 const INITIAL_ASSISTANT_PROMPT_TIMEOUT_MS = 180000;
+const LOGIN_PAGE_TIMEOUT_MS = 60000;
 
-test('fresh owner completes onboarding and reaches the dashboard with interview evidence', async ({
+test('fresh owner completes onboarding and reaches the app workspace with interview evidence', async ({
   page,
 }, testInfo) => {
   const briefingMarkdown = await readFile(BRIEFING_FIXTURE_PATH, 'utf8');
@@ -49,7 +50,9 @@ test('fresh owner completes onboarding and reaches the dashboard with interview 
   try {
     await test.step('authenticate through the fresh signup path', async () => {
       await page.goto('/login?mode=signup');
-      await expect(page.getByTestId('login-page')).toBeVisible();
+      await expect(page.getByTestId('login-page')).toBeVisible({
+        timeout: LOGIN_PAGE_TIMEOUT_MS,
+      });
       await page.getByTestId('login-signup-button').click();
       await page.waitForURL('**/onboarding');
       artifact.finalRoute = '/onboarding';
@@ -68,17 +71,7 @@ test('fresh owner completes onboarding and reaches the dashboard with interview 
     });
 
     await test.step('drive the onboarding interview from the real UI transcript', async () => {
-      await expect
-        .poll(
-          async () =>
-            page
-              .locator(
-                '[data-testid="onboarding-message-row"][data-message-role="assistant"]',
-              )
-              .count(),
-          { timeout: INITIAL_ASSISTANT_PROMPT_TIMEOUT_MS },
-        )
-        .toBeGreaterThan(0);
+      await waitForInitialAssistantPrompt(page);
 
       artifact.turns = await driveInterview({
         briefing,
@@ -87,15 +80,15 @@ test('fresh owner completes onboarding and reaches the dashboard with interview 
       });
       artifact.completionReached = true;
 
-      await page.waitForURL('**/dashboard');
-      artifact.finalRoute = '/dashboard';
+      await page.waitForURL('**/app');
+      artifact.finalRoute = '/app';
     });
 
-    await test.step('keep dashboard access unlocked after completion', async () => {
-      await expect(page.getByTestId('dashboard-page')).toBeVisible();
-      await page.goto('/dashboard');
-      await expect(page).toHaveURL(/\/dashboard$/);
-      await expect(page.getByTestId('dashboard-page')).toBeVisible();
+    await test.step('keep app workspace access unlocked after completion', async () => {
+      await expect(page.getByTestId('app-home-page')).toBeVisible();
+      await page.goto('/app');
+      await expect(page).toHaveURL(/\/app$/);
+      await expect(page.getByTestId('app-home-page')).toBeVisible();
     });
   } catch (cause) {
     artifact.failureBucket =
@@ -149,10 +142,10 @@ function resolveFailureBucket(cause: unknown): FailureBucket {
 
   if (
     message.includes('waitforurl') ||
-    message.includes('/dashboard') ||
-    message.includes('dashboard')
+    message.includes('/app') ||
+    message.includes('workspace')
   ) {
-    return 'dashboard-redirect';
+    return 'workspace-redirect';
   }
 
   if (
@@ -189,4 +182,46 @@ function buildTranscriptFromTurns(
       role: 'user' as const,
     },
   ]);
+}
+
+async function waitForInitialAssistantPrompt(page: Parameters<typeof driveInterview>[0]['page']) {
+  const outcome = await page.waitForFunction(
+    () => {
+      const errorBanner = document.querySelector<HTMLElement>(
+        '[data-testid="onboarding-chat-error-banner"]',
+      );
+
+      if (errorBanner?.innerText.trim()) {
+        return {
+          kind: 'error',
+          message: errorBanner.innerText.trim(),
+        } as const;
+      }
+
+      const assistantMessages = document.querySelectorAll(
+        '[data-testid="onboarding-message-row"][data-message-role="assistant"]',
+      );
+
+      if (assistantMessages.length > 0) {
+        return {
+          kind: 'assistant',
+        } as const;
+      }
+
+      return null;
+    },
+    { timeout: INITIAL_ASSISTANT_PROMPT_TIMEOUT_MS },
+  );
+
+  const value = await outcome.jsonValue();
+
+  if (!value || typeof value !== 'object' || !('kind' in value)) {
+    throw new Error('Onboarding chat initialization ended in an unknown state.');
+  }
+
+  if (value.kind === 'error') {
+    throw new Error(
+      `Onboarding chat initialization failed before the first assistant prompt: ${value.message}`,
+    );
+  }
 }

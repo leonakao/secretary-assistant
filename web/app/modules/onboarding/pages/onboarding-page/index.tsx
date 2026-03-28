@@ -22,7 +22,7 @@ export function OnboardingPage() {
     if (!data) return;
 
     if (resolveOnboardingStep(data) === 'complete') {
-      void navigate('/dashboard', { replace: true });
+      void navigate('/app', { replace: true });
     }
   }, [data, navigate]);
 
@@ -156,7 +156,7 @@ export function OnboardingPage() {
                   }
                 }
                 onComplete={() => {
-                  void navigate('/dashboard', { replace: true });
+                  void navigate('/app', { replace: true });
                 }}
               />
             </div>

@@ -6,7 +6,7 @@ import {
 describe('buildUnauthorizedSessionRecoveryPath', () => {
   it('builds the login recovery path with the unauthorized session flag', () => {
     expect(buildUnauthorizedSessionRecoveryPath()).toBe(
-      '/login?mode=signin&redirectTo=%2Fdashboard&sessionError=unauthorized',
+      '/login?mode=signin&redirectTo=%2Fapp&sessionError=unauthorized',
     );
   });
 

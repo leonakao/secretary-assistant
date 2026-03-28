@@ -342,13 +342,13 @@ async function waitForAssistantReply(params: {
   page: Page;
   previousAssistantId: string;
   timeoutMs: number;
-}): Promise<'dashboard' | 'reply'> {
+}): Promise<'workspace' | 'reply'> {
   const { page, previousAssistantId, timeoutMs } = params;
 
   try {
     await page.waitForFunction(
       ({ previousId }) => {
-        if (window.location.pathname === '/dashboard') {
+        if (window.location.pathname === '/app') {
           return true;
         }
 
@@ -374,7 +374,7 @@ async function waitForAssistantReply(params: {
     );
   }
 
-  return page.url().includes('/dashboard') ? 'dashboard' : 'reply';
+  return page.url().includes('/app') ? 'workspace' : 'reply';
 }
 
 export async function driveInterview(params: {
@@ -395,7 +395,7 @@ export async function driveInterview(params: {
   const answeredAssistantIds = new Set<string>();
 
   for (let turnIndex = 0; turnIndex < maxTurns; turnIndex += 1) {
-    if (page.url().includes('/dashboard')) {
+    if (page.url().includes('/app')) {
       return turns;
     }
 
@@ -404,7 +404,7 @@ export async function driveInterview(params: {
     if (answeredAssistantIds.has(assistantPrompt.id)) {
       throw new InterviewDriverError(
         'completion-not-reached',
-        `Interview stalled on assistant prompt ${assistantPrompt.id} without reaching the dashboard.`,
+        `Interview stalled on assistant prompt ${assistantPrompt.id} without reaching the app workspace.`,
       );
     }
 
@@ -443,13 +443,13 @@ export async function driveInterview(params: {
       timeoutMs: timeoutPerTurnMs,
     });
 
-    if (outcome === 'dashboard') {
+    if (outcome === 'workspace') {
       return turns;
     }
   }
 
   throw new InterviewDriverError(
     'completion-not-reached',
-    `Interview exceeded the maximum turn limit of ${maxTurns} without reaching the dashboard.`,
+    `Interview exceeded the maximum turn limit of ${maxTurns} without reaching the app workspace.`,
   );
 }

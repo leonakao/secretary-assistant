@@ -8,7 +8,7 @@ const mockGetIdTokenClaims = vi.fn();
 const mockUseAppAuth = vi.fn();
 const mockBootstrapAuthSession = vi.fn();
 const mockIsUnauthorizedSessionError = vi.fn();
-const mockSearchParams = new URLSearchParams('mode=signin&redirectTo=%2Fdashboard');
+let mockSearchParams = new URLSearchParams('mode=signin&redirectTo=%2Fapp');
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
@@ -41,6 +41,7 @@ vi.mock('~/lib/runtime-config.client', () => ({
 
 describe('LoginPage', () => {
   beforeEach(() => {
+    mockSearchParams = new URLSearchParams('mode=signin&redirectTo=%2Fapp');
     mockNavigate.mockReset();
     mockLoginWithRedirect.mockReset();
     mockGetIdTokenClaims.mockReset();
@@ -70,7 +71,7 @@ describe('LoginPage', () => {
     });
 
     expect(screen.getByText('Backend unavailable')).toBeInTheDocument();
-    expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard', { replace: true });
+    expect(mockNavigate).not.toHaveBeenCalledWith('/app', { replace: true });
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
@@ -91,5 +92,39 @@ describe('LoginPage', () => {
 
     expect(mockNavigate).not.toHaveBeenCalled();
     expect(screen.getByText('Still unavailable')).toBeInTheDocument();
+  });
+
+  it('preserves /app deep links after successful session bootstrap', async () => {
+    mockSearchParams = new URLSearchParams(
+      'mode=signin&redirectTo=%2Fapp%2Fcompany',
+    );
+    mockBootstrapAuthSession.mockResolvedValue({
+      onboarding: { requiresOnboarding: false, step: 'complete' },
+    });
+
+    render(<LoginPage />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/app/company', {
+        replace: true,
+      });
+    });
+  });
+
+  it('still prefers onboarding when the authenticated user requires onboarding', async () => {
+    mockSearchParams = new URLSearchParams(
+      'mode=signin&redirectTo=%2Fapp%2Fcompany',
+    );
+    mockBootstrapAuthSession.mockResolvedValue({
+      onboarding: { requiresOnboarding: true, step: 'assistant-chat' },
+    });
+
+    render(<LoginPage />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/onboarding', {
+        replace: true,
+      });
+    });
   });
 });

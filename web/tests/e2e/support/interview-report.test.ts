@@ -34,7 +34,7 @@ const artifact: OnboardingValidationArtifact = {
   completionReached: true,
   errorMessage: null,
   failureBucket: null,
-  finalRoute: '/dashboard',
+  finalRoute: '/app',
   finishedAt: '2026-03-27T12:10:00.000Z',
   runId: 'run-123',
   startedAt: '2026-03-27T12:00:00.000Z',

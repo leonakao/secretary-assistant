@@ -73,7 +73,7 @@ export function useApiClient(): BoundApiClient {
 
 export function usePageLoader<TData, TParams extends unknown[] = []>(
   loaderFactory: LoaderFactory<TData, TParams>,
-  redirectOnUnauthorized: string = '/dashboard',
+  redirectOnUnauthorized: string = '/app',
 ): PageLoaderState<TData> & { loader: (...params: TParams) => Promise<void> } {
   const client = useApiClient();
   const navigate = useNavigate();

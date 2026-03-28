@@ -120,7 +120,7 @@ function MockAuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession);
 
       if (typeof window !== 'undefined') {
-        window.location.replace(options?.appState?.returnTo || '/dashboard');
+        window.location.replace(options?.appState?.returnTo || '/app');
       }
     },
     logout: (options?: LogoutOptions) => {
@@ -150,7 +150,7 @@ function RealAuthProvider({ children }: { children: ReactNode }) {
       httpTimeoutInSeconds={10}
       onRedirectCallback={(appState) => {
         if (typeof window !== 'undefined') {
-          window.location.replace(appState?.returnTo || '/dashboard');
+          window.location.replace(appState?.returnTo || '/app');
         }
       }}
     >

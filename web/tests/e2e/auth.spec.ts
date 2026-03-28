@@ -1,24 +1,26 @@
 import { expect, test } from '@playwright/test';
 
-test('home page exposes the login option in the header', async ({ page }) => {
+test('home page exposes the sign-in entry point', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('link', { name: 'Login' })).toHaveAttribute(
+  await expect(
+    page.getByRole('link', { name: 'Sign in to dashboard' }),
+  ).toHaveAttribute(
     'href',
     '/login?mode=signin',
   );
 });
 
-test('dashboard redirects unauthenticated users to the dedicated login page', async ({
+test('app redirects unauthenticated users to the dedicated login page', async ({
   page,
 }) => {
-  await page.goto('/dashboard');
+  await page.goto('/app');
 
-  await expect(page).toHaveURL(/\/login\?mode=signin&redirectTo=%2Fdashboard$/);
+  await expect(page).toHaveURL(/\/login\?mode=signin&redirectTo=%2Fapp$/);
   await expect(page.getByTestId('login-page')).toBeVisible();
 });
 
-test('mock signup uses the dedicated login route and reaches onboarding', async ({
+test('mock signup uses the dedicated login route and reaches the app entry point', async ({
   page,
 }) => {
   await page.goto('/login?mode=signup');
@@ -26,6 +28,6 @@ test('mock signup uses the dedicated login route and reaches onboarding', async 
 
   await page.getByTestId('login-signup-button').click();
 
-  await expect(page).toHaveURL(/\/onboarding$/);
-  await expect(page.getByTestId('onboarding-page')).toBeVisible();
+  await expect(page).toHaveURL(/\/app$/);
+  await expect(page.getByTestId('app-shell')).toBeVisible();
 });

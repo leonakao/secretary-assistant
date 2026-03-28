@@ -37,8 +37,8 @@ export default function OnboardingRoute() {
       (user) => {
         if (cancelled) return;
         const target = resolveAuthenticatedEntryTarget(user);
-        if (target === '/dashboard') {
-          setRedirectTo('/dashboard');
+        if (target === '/app') {
+          setRedirectTo('/app');
         } else {
           setIsAllowed(true);
         }
