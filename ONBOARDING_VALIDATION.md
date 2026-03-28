@@ -5,7 +5,7 @@ This stack is an opt-in environment for the onboarding interview validation flow
 It is intentionally isolated from the default local development stack:
 
 - dedicated compose file: `docker-compose.onboarding-validation.yaml`
-- dedicated env file: `.env.onboarding-validation`
+- layered env loading: `api/.env`, `web/.env`, `.env.test`
 - dedicated compose project name: `secretary-assistant-onboarding-validation`
 - dedicated web/API ports: `4173` and `3300`
 - dedicated database port: `55432`
@@ -24,35 +24,37 @@ process.
 1. Copy the env example:
 
 ```bash
-cp .env.onboarding-validation.example .env.onboarding-validation
+cp .env.test.example .env.test
 ```
 
-2. Fill in at least:
+2. Add only the overrides the isolated test stack should apply.
 
 ```text
-ONBOARDING_VALIDATION_GOOGLE_API_KEY
+OPENAI_API_KEY
+GOOGLE_API_KEY
 ```
 
-The remaining values have safe local defaults for the isolated stack.
+The stack loads env in this order:
 
-Key isolation knobs in `.env.onboarding-validation`:
+1. `api/.env`
+2. `web/.env`
+3. `.env.test`
 
-- `ONBOARDING_VALIDATION_COMPOSE_PROJECT_NAME`
-- `ONBOARDING_VALIDATION_WEB_PORT`
-- `ONBOARDING_VALIDATION_API_PORT`
-- `ONBOARDING_VALIDATION_DB_PORT`
-- `ONBOARDING_VALIDATION_VITE_API_BASE_URL`
-- `ONBOARDING_VALIDATION_VITE_AUTH0_APP_ORIGIN`
-- `ONBOARDING_VALIDATION_BASE_URL`
-- `ONBOARDING_VALIDATION_API_BASE_URL`
+`.env.test` is the override layer. Keep it small.
 
-The supported commands below always pass `--env-file .env.onboarding-validation`
-so Compose interpolation and container runtime env stay aligned.
+`OPENAI` is required for chat and transcription in the isolated API.
+`GOOGLE` is still required while embeddings remain on Google.
 
-For the isolated web stack, `ONBOARDING_VALIDATION_VITE_API_BASE_URL` should stay
-at `/api` so browser requests go through the Vite proxy to the isolated API
-container. Do not point the browser directly at `http://localhost:3300` unless
-the app is updated to handle CORS explicitly.
+The ports and isolated stack shape are fixed by the compose file:
+
+- web: `4173`
+- API: `3300`
+- PostgreSQL: `55432`
+
+The supported commands below always pass `--env-file .env.test`.
+
+For the isolated web stack, `VITE_API_BASE_URL` stays at `/api` so browser
+requests go through the Vite proxy to the isolated API container.
 
 ## Start the isolated stack
 
@@ -60,11 +62,13 @@ the app is updated to handle CORS explicitly.
 pnpm onboarding-validation:up
 ```
 
-Run API migrations against the isolated API container:
+`up` performs the full setup path:
 
-```bash
-pnpm onboarding-validation:migrate
-```
+- removes the previous isolated stack and volumes
+- rebuilds containers
+- renews anonymous volumes
+- starts the stack
+- runs API migrations
 
 ## Run the onboarding validation flow
 
@@ -76,23 +80,16 @@ pnpm onboarding-validation:test
 
 This runs the dedicated onboarding validation Playwright config from `web/`,
 not the default E2E suite. It targets the isolated onboarding-validation
-web/API base URLs defined in `.env.onboarding-validation`.
+web/API stack on `http://127.0.0.1:4173` and `http://127.0.0.1:3300`.
 
 Recommended developer flow:
 
 1. Keep your normal local stack running if you want; it can stay on `5173`,
    `3000`, and `5432`.
-2. Start the isolated onboarding-validation stack on `4173`, `3300`, and
-   `55432`.
+2. Run `pnpm onboarding-validation:up`.
 3. Run `pnpm onboarding-validation:test`.
 4. Inspect Playwright artifacts under `web/test-results/onboarding-validation/`
    if the validation fails.
-
-If you need live service output while debugging:
-
-```bash
-pnpm onboarding-validation:logs
-```
 
 ## URLs
 
@@ -105,12 +102,7 @@ pnpm onboarding-validation:logs
 ```bash
 pnpm onboarding-validation:down
 ```
-
-To also remove the isolated database volume:
-
-```bash
-pnpm onboarding-validation:down:volumes
-```
+`down` removes the isolated containers and volumes.
 
 ## Scope
 

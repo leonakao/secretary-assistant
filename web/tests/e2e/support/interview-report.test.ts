@@ -9,27 +9,7 @@ import {
 } from './interview-report';
 
 const artifact: OnboardingValidationArtifact = {
-  briefing: {
-    address: 'Rua Central, 10',
-    bookingScheduling: 'Clients book by WhatsApp.',
-    businessHours: 'Monday to Friday.',
-    businessType: 'Wellness clinic',
-    cancellationPolicy: 'Cancel with 24 hours notice.',
-    clientNeeds: ['Pricing'],
-    clientRequestFlow: 'Clients ask for recommendations.',
-    commonQuestions: ['How many sessions do I need?'],
-    companyDescription: 'Aurora is a clinic.',
-    companyName: 'Aurora',
-    contactEmail: 'contato@aurora.test',
-    contactPhone: '+55 11 4000-1234',
-    differentiators: 'Personalized plans.',
-    finishConfirmation: 'Yes, you can finalize the onboarding.',
-    pricingApproach: 'We share a price range.',
-    rawMarkdown: '# Briefing',
-    serviceArea: 'Sao Paulo',
-    services: ['Skin treatment'],
-    turnaroundTime: '45 minutes',
-  },
+  briefingMarkdown: '# Briefing',
   briefingFixturePath: 'fixtures/onboarding-company-briefing.md',
   completionReached: true,
   errorMessage: null,
@@ -45,9 +25,8 @@ const artifact: OnboardingValidationArtifact = {
   turns: [
     {
       answer: 'Sim, estou pronto para começar.',
+      answerModel: 'gpt-5-nano',
       assistantMessageId: 'assistant-1',
-      intent: 'ready-to-start',
-      matchedKeywords: ['pronto para comecar'],
       prompt: 'Você está pronto para começar?',
       turnIndex: 0,
     },
@@ -59,7 +38,7 @@ describe('interview report helpers', () => {
     expect(buildTranscriptMarkdown(artifact.transcript)).toContain(
       '## ASSISTANT · assistant-1',
     );
-    expect(buildInterviewSummaryMarkdown(artifact)).toContain('[ready-to-start]');
+    expect(buildInterviewSummaryMarkdown(artifact)).toContain('[gpt-5-nano]');
   });
 
   it('writes all report artifacts to disk', async () => {
@@ -68,7 +47,7 @@ describe('interview report helpers', () => {
     try {
       const files = await writeInterviewArtifacts({ artifact, artifactDir });
 
-      expect(files).toHaveLength(5);
+      expect(files).toHaveLength(4);
       await expect(readFile(join(artifactDir, 'report.json'), 'utf8')).resolves.toContain(
         '"runId": "run-123"',
       );

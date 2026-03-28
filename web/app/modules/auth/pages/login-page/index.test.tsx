@@ -111,6 +111,24 @@ describe('LoginPage', () => {
     });
   });
 
+  it('does not re-bootstrap the session on a rerender with the same auth state', async () => {
+    mockBootstrapAuthSession.mockResolvedValue({
+      onboarding: { requiresOnboarding: false, step: 'complete' },
+    });
+
+    const view = render(<LoginPage />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/app', { replace: true });
+    });
+
+    mockNavigate.mockReset();
+    view.rerender(<LoginPage />);
+
+    expect(mockBootstrapAuthSession).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it('still prefers onboarding when the authenticated user requires onboarding', async () => {
     mockSearchParams = new URLSearchParams(
       'mode=signin&redirectTo=%2Fapp%2Fcompany',
@@ -126,5 +144,31 @@ describe('LoginPage', () => {
         replace: true,
       });
     });
+  });
+
+  it('sends signup through onboarding instead of /app', async () => {
+    mockUseAppAuth.mockReturnValue({
+      error: undefined,
+      getIdTokenClaims: mockGetIdTokenClaims,
+      isAuthenticated: false,
+      isLoading: false,
+      loginWithRedirect: mockLoginWithRedirect,
+    });
+    mockSearchParams = new URLSearchParams('mode=signup');
+
+    render(<LoginPage />);
+
+    fireEvent.click(screen.getByTestId('login-signup-button'));
+
+    expect(mockLoginWithRedirect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appState: {
+          returnTo: '/onboarding',
+        },
+        authorizationParams: expect.objectContaining({
+          screen_hint: 'signup',
+        }),
+      }),
+    );
   });
 });

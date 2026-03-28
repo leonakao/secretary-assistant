@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { END, START, StateGraph } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
@@ -21,16 +20,18 @@ import { PostgresStore } from '../stores/postgres.store';
 import { createAssistantNode } from '../nodes/assistant.node';
 import { buildOwnerPromptFromState } from '../agent-prompts/assistant-owner';
 import { ensureCheckpointerSetup } from './checkpointer-setup';
+import { LlmChatModel, LlmModelService } from '../services/llm-model.service';
 
 @Injectable()
 export class OwnerAssistantAgent implements OnModuleInit {
   private readonly logger = new Logger(OwnerAssistantAgent.name);
-  private model: ChatGoogleGenerativeAI;
+  private readonly model: LlmChatModel;
   private checkpointer: PostgresSaver;
   private graph: ReturnType<typeof this.buildGraph>;
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly llmModelService: LlmModelService,
     private readonly createServiceRequestTool: CreateServiceRequestTool,
     private readonly searchServiceRequestTool: SearchServiceRequestTool,
     private readonly updateServiceRequestTool: UpdateServiceRequestTool,
@@ -42,18 +43,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
     private readonly searchUserTool: SearchUserTool,
     private readonly postgresStore: PostgresStore,
   ) {
-    const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
-
-    if (!apiKey) {
-      throw new Error('GOOGLE_API_KEY is not defined in environment variables');
-    }
-
-    this.model = new ChatGoogleGenerativeAI({
-      apiKey,
-      model: 'gemini-2.5-flash',
-      temperature: 0.7,
-      maxOutputTokens: 2048,
-    });
+    this.model = this.llmModelService.getLlmModel('user-interaction');
   }
 
   async onModuleInit() {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { AlertTriangle, Bot, LoaderCircle, LogIn, UserRoundPlus } from 'lucide-react';
 import { Button } from '~/components/ui/button';
@@ -32,6 +32,14 @@ function resolvePostLoginNavigationTarget(
   return redirectTo.startsWith('/app') ? redirectTo : '/app';
 }
 
+function resolveAuthReturnTo(nextMode: AuthMode, redirectTo: string): string {
+  if (nextMode === 'signup') {
+    return '/onboarding';
+  }
+
+  return redirectTo;
+}
+
 export function LoginPage() {
   const { error, isAuthenticated, isLoading, loginWithRedirect, getIdTokenClaims } =
     useAppAuth();
@@ -40,6 +48,7 @@ export function LoginPage() {
   const [isResolvingSession, setIsResolvingSession] = useState(false);
   const [sessionBootstrapError, setSessionBootstrapError] = useState<string | null>(null);
   const [sessionBootstrapAttempt, setSessionBootstrapAttempt] = useState(0);
+  const hasBootstrappedSessionAttemptRef = useRef<number | null>(null);
 
   const mode: AuthMode =
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
@@ -49,7 +58,7 @@ export function LoginPage() {
   const handleAuth = (nextMode: AuthMode) =>
     loginWithRedirect({
       appState: {
-        returnTo: redirectTo,
+        returnTo: resolveAuthReturnTo(nextMode, redirectTo),
       },
       authorizationParams: {
         redirect_uri: getAuth0RedirectUri(),
@@ -62,11 +71,17 @@ export function LoginPage() {
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || isUnauthorizedRecovery) {
+      hasBootstrappedSessionAttemptRef.current = null;
       setSessionBootstrapError(null);
       setIsResolvingSession(false);
       return;
     }
 
+    if (hasBootstrappedSessionAttemptRef.current === sessionBootstrapAttempt) {
+      return;
+    }
+
+    hasBootstrappedSessionAttemptRef.current = sessionBootstrapAttempt;
     let cancelled = false;
     setIsResolvingSession(true);
     setSessionBootstrapError(null);

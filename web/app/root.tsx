@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
 import { AppAuthProvider } from '~/modules/auth/auth-provider';
 import { useAppAuth } from '~/modules/auth/auth-provider';
@@ -26,9 +26,13 @@ export function Layout({ children }: { children: ReactNode }) {
 
 function AuthenticatedProviders({ children }: { children: ReactNode }) {
   const { getIdTokenClaims } = useAppAuth();
+  const getToken = useCallback(
+    () => getSessionToken(getIdTokenClaims),
+    [getIdTokenClaims],
+  );
 
   return (
-    <ApiClientProvider getToken={() => getSessionToken(getIdTokenClaims)}>
+    <ApiClientProvider getToken={getToken}>
       {children}
     </ApiClientProvider>
   );

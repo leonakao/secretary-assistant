@@ -30,6 +30,7 @@ import { Confirmation } from '../service-requests/entities/confirmation.entity';
 import { ChatModule } from '../chat/chat.module';
 import { ExtractAiMessageService } from './services/extract-ai-message.service';
 import { PostgresStore } from './stores/postgres.store';
+import { LlmModelService } from './services/llm-model.service';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { PostgresStore } from './stores/postgres.store';
     FinishOnboardingTool,
     // Services
     ExtractAiMessageService,
+    LlmModelService,
     LangchainService,
     AudioTranscriptionService,
     PostgresStore,
@@ -78,6 +80,7 @@ import { PostgresStore } from './stores/postgres.store';
     // Services
     AudioTranscriptionService,
     ExtractAiMessageService,
+    LlmModelService,
     LangchainService,
   ],
 })

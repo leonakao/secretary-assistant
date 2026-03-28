@@ -237,7 +237,9 @@ describe('OnboardingConversationService', () => {
       expect(agent.streamConversation).toHaveBeenCalledTimes(2);
       expect(agent.streamConversation).toHaveBeenNthCalledWith(
         2,
-        expect.stringContaining('Continue o onboarding com uma resposta visível'),
+        expect.stringContaining(
+          'Continue o onboarding com uma resposta visível',
+        ),
         expect.anything(),
         expect.anything(),
         'onboarding:company-1:user-1',
@@ -355,9 +357,9 @@ describe('OnboardingConversationService', () => {
         companyId: 'company-1',
       });
 
-      expect(transactionalUserCompanyRepo.createQueryBuilder).toHaveBeenCalledWith(
-        'userCompany',
-      );
+      expect(
+        transactionalUserCompanyRepo.createQueryBuilder,
+      ).toHaveBeenCalledWith('userCompany');
       expect(queryBuilder.innerJoinAndSelect).toHaveBeenCalledWith(
         'userCompany.company',
         'company',

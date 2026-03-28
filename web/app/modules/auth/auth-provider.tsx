@@ -7,6 +7,8 @@ import {
 } from '@auth0/auth0-react';
 import {
   createContext,
+  useCallback,
+  useMemo,
   useContext,
   useState,
   type ReactNode,
@@ -102,37 +104,47 @@ function MockAuthProvider({ children }: { children: ReactNode }) {
     readMockSession(),
   );
 
-  const value: AppAuthContextValue = {
-    getIdTokenClaims: async () =>
-      session
-        ? {
-            __raw: session.token,
-          }
-        : undefined,
-    isAuthenticated: Boolean(session),
-    isLoading: false,
-    loginWithRedirect: async (options?: RedirectLoginOptions) => {
-      const nextSession = createMockSession(
-        options?.authorizationParams?.screen_hint,
-      );
+  const getIdTokenClaims = useCallback(async () => {
+    return session
+      ? {
+          __raw: session.token,
+        }
+      : undefined;
+  }, [session]);
 
-      writeMockSession(nextSession);
-      setSession(nextSession);
+  const loginWithRedirect = useCallback(async (options?: RedirectLoginOptions) => {
+    const nextSession = createMockSession(
+      options?.authorizationParams?.screen_hint,
+    );
 
-      if (typeof window !== 'undefined') {
-        window.location.replace(options?.appState?.returnTo || '/app');
-      }
-    },
-    logout: (options?: LogoutOptions) => {
-      writeMockSession(null);
-      setSession(null);
+    writeMockSession(nextSession);
+    setSession(nextSession);
 
-      if (typeof window !== 'undefined') {
-        window.location.replace(options?.logoutParams?.returnTo || '/');
-      }
-    },
-    user: session?.user,
-  };
+    if (typeof window !== 'undefined') {
+      window.location.replace(options?.appState?.returnTo || '/app');
+    }
+  }, []);
+
+  const logout = useCallback((options?: LogoutOptions) => {
+    writeMockSession(null);
+    setSession(null);
+
+    if (typeof window !== 'undefined') {
+      window.location.replace(options?.logoutParams?.returnTo || '/');
+    }
+  }, []);
+
+  const value: AppAuthContextValue = useMemo(
+    () => ({
+      getIdTokenClaims,
+      isAuthenticated: Boolean(session),
+      isLoading: false,
+      loginWithRedirect,
+      logout,
+      user: session?.user,
+    }),
+    [getIdTokenClaims, loginWithRedirect, logout, session],
+  );
 
   return (
     <AppAuthContext.Provider value={value}>{children}</AppAuthContext.Provider>
@@ -162,15 +174,26 @@ function RealAuthProvider({ children }: { children: ReactNode }) {
 function Auth0ContextBridge({ children }: { children: ReactNode }) {
   const auth0 = useAuth0();
 
-  const value: AppAuthContextValue = {
-    error: auth0.error,
-    getIdTokenClaims: async () => auth0.getIdTokenClaims(),
-    isAuthenticated: auth0.isAuthenticated,
-    isLoading: auth0.isLoading,
-    loginWithRedirect: auth0.loginWithRedirect,
-    logout: auth0.logout,
-    user: auth0.user,
-  };
+  const value: AppAuthContextValue = useMemo(
+    () => ({
+      error: auth0.error,
+      getIdTokenClaims: async () => auth0.getIdTokenClaims(),
+      isAuthenticated: auth0.isAuthenticated,
+      isLoading: auth0.isLoading,
+      loginWithRedirect: auth0.loginWithRedirect,
+      logout: auth0.logout,
+      user: auth0.user,
+    }),
+    [
+      auth0.error,
+      auth0.getIdTokenClaims,
+      auth0.isAuthenticated,
+      auth0.isLoading,
+      auth0.loginWithRedirect,
+      auth0.logout,
+      auth0.user,
+    ],
+  );
 
   return (
     <AppAuthContext.Provider value={value}>{children}</AppAuthContext.Provider>

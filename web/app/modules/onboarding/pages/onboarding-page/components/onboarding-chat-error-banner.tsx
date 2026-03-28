@@ -16,7 +16,7 @@ export function OnboardingChatErrorBanner({
   }
 
   return (
-    <div className="px-6 pb-2">
+    <div className="px-6 pb-2" data-testid="onboarding-chat-error-banner">
       <div className="mx-auto max-w-3xl rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
         <div className="flex items-center justify-between gap-3">
           <span>{error}</span>

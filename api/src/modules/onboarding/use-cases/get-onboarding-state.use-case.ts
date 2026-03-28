@@ -11,6 +11,7 @@ import {
 import { OnboardingConversationService } from '../services/onboarding-conversation.service';
 import type { User } from 'src/modules/users/entities/user.entity';
 import { findPreferredUserCompanyForOnboardingState } from '../utils/find-active-user-company';
+import { buildOnboardingThreadId } from '../utils/build-onboarding-thread-id';
 
 interface ConversationMessage {
   id: string;
@@ -60,7 +61,7 @@ export class GetOnboardingStateUseCase {
       );
 
     const conversation: ConversationResult = {
-      threadId: `onboarding:${userCompany.companyId}:${user.id}`,
+      threadId: buildOnboardingThreadId(user.id, userCompany.companyId),
       messages: messages.map((m) => ({
         id: m.id,
         role: m.role as 'user' | 'assistant',

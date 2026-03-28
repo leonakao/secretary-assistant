@@ -1,58 +1,58 @@
-## Company
-- Name: Luna Clean
-- Business Type: Residential cleaning company
+## Empresa
+- Nome: Luna Clean
+- Tipo de Negocio: Empresa de limpeza residencial
 
-Luna Clean is a residential cleaning company based in Sao Paulo. The business serves busy families and professionals who want recurring, trustworthy home cleaning with simple scheduling and clear communication.
+A Luna Clean e uma empresa de limpeza residencial de Sao Paulo. O negocio atende familias ocupadas e profissionais que querem limpeza recorrente, confiavel e com agendamento simples.
 
-## Services
-- Weekly residential cleaning
-- Biweekly residential cleaning
-- Deep cleaning for apartments and small houses
-- Move-in and move-out cleaning
-- Post-renovation light cleanup for lived-in homes
+## Servicos
+- Limpeza residencial semanal
+- Limpeza residencial quinzenal
+- Limpeza profunda para apartamentos e casas pequenas
+- Limpeza de mudanca de entrada e saida
+- Limpeza leve de pos-reforma para imoveis habitados
 
-## What Clients Look For In Chat
-- What cleaning services are available
-- Whether the company serves their neighborhood
-- Business hours and scheduling windows
-- How recurring cleaning works
-- Rough pricing guidance before booking
-- How to reschedule or cancel a visit
+## O Que os Clientes Procuram no Chat
+- Quais servicos de limpeza estao disponiveis
+- Se a empresa atende o bairro deles
+- Horarios de atendimento e janelas para agendamento
+- Como funciona a limpeza recorrente
+- Faixa de preco antes da reserva
+- Como remarcar ou cancelar uma visita
 
-## Service Area
-The company serves central and west-zone neighborhoods in Sao Paulo, with priority for apartment buildings and residential condos.
+## Area de Atendimento
+A empresa atende bairros das regioes central e oeste de Sao Paulo, com prioridade para predios residenciais e condominios.
 
-## Business Hours
-Customer support runs Monday to Friday from 8:00 to 18:00. Cleaning visits are scheduled Monday to Saturday from 8:00 to 17:00.
+## Horario de Atendimento
+O atendimento ao cliente funciona de segunda a sexta, das 8h as 18h. As visitas de limpeza sao agendadas de segunda a sabado, das 8h as 17h.
 
-## Booking and Scheduling
-Clients usually request a preferred day, time window, home size, and whether they want a recurring or one-time service. The team confirms availability in chat and finalizes the booking after collecting the address.
+## Agendamento
+Os clientes normalmente informam dia preferido, janela de horario, tamanho do imovel e se desejam servico recorrente ou pontual. A equipe confirma a disponibilidade no chat e finaliza o agendamento depois de receber o endereco.
 
-## Pricing and Payment
-Pricing depends on home size, visit type, and frequency. Recurring weekly and biweekly plans get better rates than one-time deep cleaning. Payment is accepted by Pix, bank transfer, or credit card link after confirmation.
+## Precos e Pagamento
+Os precos variam conforme tamanho do imovel, tipo de visita e frequencia. Planos recorrentes semanais e quinzenais tem valor melhor que limpezas profundas avulsas. O pagamento pode ser feito por Pix, transferencia bancaria ou link de cartao apos a confirmacao.
 
-## Cancellation and Rescheduling
-Clients can reschedule with at least 24 hours notice. Same-day cancellations may incur a fee depending on the cleaner allocation.
+## Cancelamento e Reagendamento
+Os clientes podem remarcar com pelo menos 24 horas de antecedencia. Cancelamentos no mesmo dia podem gerar taxa, dependendo da alocacao da equipe.
 
-## Contact
-- Phone: +55 11 99888-7766
+## Contato
+- Telefone: +55 11 99888-7766
 - Email: atendimento@lunaclean.test
-- Address: Rua Diana, 245, Perdizes, Sao Paulo
+- Endereco: Rua Diana, 245, Perdizes, Sao Paulo
 
-## Turnaround Time
-Standard cleaning visits usually last between 3 and 5 hours depending on home size and the requested checklist.
+## Tempo Medio de Atendimento
+As visitas de limpeza padrao costumam durar entre 3 e 5 horas, dependendo do tamanho do imovel e do checklist solicitado.
 
-## Differentiators
-Luna Clean focuses on recurring household routines, keeps communication simple in WhatsApp, and adapts the checklist to each family's priorities.
+## Diferenciais
+A Luna Clean foca em rotinas domesticas recorrentes, mantem a comunicacao simples pelo WhatsApp e adapta o checklist as prioridades de cada familia.
 
-## Common Questions
-- What is included in a standard cleaning visit?
-- Do you bring cleaning products?
-- Can I book a fixed weekly time slot?
-- What happens if I need to reschedule?
+## Perguntas Frequentes
+- O que esta incluido em uma limpeza padrao?
+- Voces levam os produtos de limpeza?
+- Posso reservar um horario fixo semanal?
+- O que acontece se eu precisar remarcar?
 
-## Client Request Flow
-Most clients start by asking for availability and a rough price estimate. After that, they share the address, home size, preferred day, and whether they want recurring or one-time service so the team can confirm the booking.
+## Fluxo de Solicitação do Cliente
+Normalmente os clientes comecam perguntando disponibilidade e uma faixa de preco. Depois informam endereco, tamanho do imovel, dia preferido e se querem servico recorrente ou pontual para que a equipe confirme a reserva.
 
-## Finish Confirmation
-Yes, you can finalize the onboarding and activate the assistant for Luna Clean.
+## Confirmacao de Finalizacao
+Sim, voce pode finalizar o onboarding e ativar a assistente da Luna Clean.

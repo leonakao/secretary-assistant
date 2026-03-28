@@ -110,7 +110,7 @@ environment.
 This stack is opt-in and separate from the default developer workflow:
 
 - dedicated compose file: `docker-compose.onboarding-validation.yaml`
-- dedicated env file: `.env.onboarding-validation`
+- layered env loading: `api/.env`, `web/.env`, `.env.test`
 - dedicated compose project name: `secretary-assistant-onboarding-validation`
 - dedicated ports: web `4173`, API `3300`, PostgreSQL `55432`
 - test-only auth mode enabled only inside the isolated stack
@@ -119,8 +119,13 @@ This stack is opt-in and separate from the default developer workflow:
 Setup:
 
 ```bash
-cp .env.onboarding-validation.example .env.onboarding-validation
+cp .env.test.example .env.test
 ```
+
+Add only the overrides the isolated stack should apply. The most likely ones are:
+
+- `OPENAI_API_KEY`
+- `GOOGLE_API_KEY`
 
 Start the isolated stack:
 
@@ -128,16 +133,18 @@ Start the isolated stack:
 pnpm onboarding-validation:up
 ```
 
-Run migrations:
-
-```bash
-pnpm onboarding-validation:migrate
-```
+`up` rebuilds the isolated containers, clears volumes, and runs API migrations.
 
 Run the onboarding validation flow:
 
 ```bash
 pnpm onboarding-validation:test
+```
+
+Stop and clean the isolated stack:
+
+```bash
+pnpm onboarding-validation:down
 ```
 
 This root command invokes the dedicated onboarding validation Playwright config
@@ -147,6 +154,6 @@ See [ONBOARDING_VALIDATION.md](ONBOARDING_VALIDATION.md) for the full workflow a
 
 ## Tech stack
 
-- **Backend** — [NestJS](https://nestjs.com/), PostgreSQL with [pgvector](https://github.com/pgvector/pgvector), TypeORM, LangGraph + Google Gemini
+- **Backend** — [NestJS](https://nestjs.com/), PostgreSQL with [pgvector](https://github.com/pgvector/pgvector), TypeORM, LangGraph + OpenAI chat models, Google embeddings
 - **Frontend** — React 19, React Router, Tailwind CSS, shadcn/ui
 - **WhatsApp integration** — [Evolution API](https://github.com/EvolutionAPI/evolution-api)

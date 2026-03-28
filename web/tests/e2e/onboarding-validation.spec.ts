@@ -2,10 +2,6 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { expect, test } from '@playwright/test';
 import {
-  buildBootstrapCompanyInput,
-  parseOnboardingBriefing,
-} from './support/onboarding-briefing';
-import {
   driveInterview,
   InterviewDriverError,
   readTranscript,
@@ -24,17 +20,21 @@ const BRIEFING_FIXTURE_PATH = join(
 );
 const INITIAL_ASSISTANT_PROMPT_TIMEOUT_MS = 180000;
 const LOGIN_PAGE_TIMEOUT_MS = 60000;
+const E2E_AUTH_ENABLED_STORAGE_KEY = 'secretary-assistant:e2e-auth-enabled';
+const E2E_AUTH_STORAGE_KEY = 'secretary-assistant:e2e-auth';
+const BOOTSTRAP_COMPANY_INPUT = {
+  businessType: 'Empresa de limpeza residencial',
+  name: 'Luna Clean',
+} as const;
 
 test('fresh owner completes onboarding and reaches the app workspace with interview evidence', async ({
   page,
 }, testInfo) => {
   const briefingMarkdown = await readFile(BRIEFING_FIXTURE_PATH, 'utf8');
-  const briefing = parseOnboardingBriefing(briefingMarkdown);
-  const bootstrapInput = buildBootstrapCompanyInput(briefing);
   const runId = createRunId(testInfo);
   const artifactDir = join(process.cwd(), 'test-results/onboarding-validation', runId);
   const artifact: OnboardingValidationArtifact = {
-    briefing,
+    briefingMarkdown,
     briefingFixturePath: BRIEFING_FIXTURE_PATH,
     completionReached: false,
     errorMessage: null,
@@ -49,6 +49,16 @@ test('fresh owner completes onboarding and reaches the app workspace with interv
 
   try {
     await test.step('authenticate through the fresh signup path', async () => {
+      await page.context().clearCookies();
+      await page.goto('/');
+      await page.evaluate(
+        ([enabledKey, sessionKey]) => {
+          window.localStorage.removeItem(enabledKey);
+          window.localStorage.removeItem(sessionKey);
+          window.sessionStorage.clear();
+        },
+        [E2E_AUTH_ENABLED_STORAGE_KEY, E2E_AUTH_STORAGE_KEY],
+      );
       await page.goto('/login?mode=signup');
       await expect(page.getByTestId('login-page')).toBeVisible({
         timeout: LOGIN_PAGE_TIMEOUT_MS,
@@ -62,10 +72,10 @@ test('fresh owner completes onboarding and reaches the app workspace with interv
       await expect(page.getByTestId('onboarding-step-company-bootstrap')).toBeVisible();
       await page
         .getByTestId('company-bootstrap-name-input')
-        .fill(bootstrapInput.name);
+        .fill(BOOTSTRAP_COMPANY_INPUT.name);
       await page
         .getByTestId('company-bootstrap-business-type-input')
-        .fill(bootstrapInput.businessType);
+        .fill(BOOTSTRAP_COMPANY_INPUT.businessType);
       await page.getByTestId('company-bootstrap-submit-button').click();
       await expect(page.getByTestId('onboarding-step-assistant-chat')).toBeVisible();
     });
@@ -74,8 +84,8 @@ test('fresh owner completes onboarding and reaches the app workspace with interv
       await waitForInitialAssistantPrompt(page);
 
       artifact.turns = await driveInterview({
-        briefing,
-        maxTurns: 20,
+        briefingMarkdown,
+        maxTurns: 50,
         page,
       });
       artifact.completionReached = true;
@@ -91,6 +101,10 @@ test('fresh owner completes onboarding and reaches the app workspace with interv
       await expect(page.getByTestId('app-home-page')).toBeVisible();
     });
   } catch (cause) {
+    if (cause instanceof InterviewDriverError && cause.turns.length > 0) {
+      artifact.turns = cause.turns;
+    }
+
     artifact.failureBucket =
       cause instanceof InterviewDriverError
         ? cause.bucket
@@ -102,6 +116,8 @@ test('fresh owner completes onboarding and reaches the app workspace with interv
   } finally {
     artifact.finishedAt = new Date().toISOString();
     artifact.finalRoute = page.url() ? new URL(page.url()).pathname : artifact.finalRoute;
+    artifact.completionReached =
+      artifact.completionReached || artifact.finalRoute === '/app';
     artifact.transcript = await readTranscript(page).catch(() => []);
     if (artifact.transcript.length === 0) {
       artifact.transcript = buildTranscriptFromTurns(artifact.turns);
@@ -119,10 +135,15 @@ function resolveFailureBucket(cause: unknown): FailureBucket {
 
   if (
     message.includes('unknown onboarding prompt intent') ||
+    message.includes('failed to generate an interview answer') ||
+    message.includes('openai interview helper') ||
     message.includes('no assistant prompt found') ||
     message.includes('interview')
   ) {
-    return 'interview-prompt-classification';
+    return message.includes('generate an interview answer') ||
+      message.includes('openai interview helper')
+      ? 'interview-answer-generation'
+      : 'interview-prompt-classification';
   }
 
   if (

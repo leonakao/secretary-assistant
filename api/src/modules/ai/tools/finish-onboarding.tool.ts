@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import { Company } from 'src/modules/companies/entities/company.entity';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { LangchainService } from '../services/langchain.service';
+import { buildOnboardingThreadId } from 'src/modules/onboarding/utils/build-onboarding-thread-id';
 
 const finishOnboardingSchema = z.object({});
 
@@ -45,9 +46,10 @@ export class FinishOnboardingTool extends StructuredTool {
     const company = await this.companyRepository.findOneByOrFail({
       id: companyId,
     });
+    const sessionId = buildOnboardingThreadId(userId, companyId);
 
     const memories = await this.memoryRepository.find({
-      where: { sessionId: userId },
+      where: { sessionId },
       order: { createdAt: 'ASC' },
     });
 

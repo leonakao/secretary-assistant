@@ -1,35 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import {
   HumanMessage,
   SystemMessage,
   AIMessage,
 } from '@langchain/core/messages';
+import { LlmChatModel, LlmModelService } from './llm-model.service';
 
 @Injectable()
 export class LangchainService {
-  private model: ChatGoogleGenerativeAI;
+  private readonly model: LlmChatModel;
 
-  constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
-
-    if (!apiKey) {
-      throw new Error('GOOGLE_API_KEY is not defined in environment variables');
-    }
-
-    this.model = new ChatGoogleGenerativeAI({
-      apiKey,
-      model: 'gemini-2.5-flash',
-      temperature: 0.7,
-      maxOutputTokens: 2048,
-    });
+  constructor(private readonly llmModelService: LlmModelService) {
+    this.model = this.llmModelService.getLlmModel('helper');
   }
 
   /**
-   * Get the configured Gemini model instance
+   * Get the configured helper model instance
    */
-  getModel(): ChatGoogleGenerativeAI {
+  getModel(): LlmChatModel {
     return this.model;
   }
 
@@ -38,12 +26,7 @@ export class LangchainService {
    */
   async chat(message: string, maxTokens?: number): Promise<string> {
     const model = maxTokens
-      ? new ChatGoogleGenerativeAI({
-          apiKey: this.configService.get<string>('GOOGLE_API_KEY'),
-          model: 'gemini-2.5-flash',
-          temperature: 0.7,
-          maxOutputTokens: maxTokens,
-        })
+      ? this.createHelperModelWithMaxTokens(maxTokens)
       : this.model;
 
     const response = await model.invoke([new HumanMessage(message)]);
@@ -108,5 +91,11 @@ export class LangchainService {
           : JSON.stringify(chunk.content);
       }
     }
+  }
+
+  private createHelperModelWithMaxTokens(maxTokens: number): LlmChatModel {
+    const model = this.llmModelService.getLlmModel('helper');
+    model.maxTokens = maxTokens;
+    return model;
   }
 }

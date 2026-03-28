@@ -18,6 +18,7 @@ import {
   mapOnboardingState,
   OnboardingStateResult,
 } from '../utils/map-onboarding-state';
+import { buildOnboardingThreadId } from '../utils/build-onboarding-thread-id';
 
 export interface RunOnboardingConversationInput {
   userId: string;
@@ -349,7 +350,7 @@ ${businessTypeLine}`;
   }
 
   private buildThreadId(userId: string, companyId: string): string {
-    return `onboarding:${companyId}:${userId}`;
+    return buildOnboardingThreadId(userId, companyId);
   }
 
   private async findUserCompanyForInitialization(params: {

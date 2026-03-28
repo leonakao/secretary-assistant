@@ -1,11 +1,11 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { TestInfo } from '@playwright/test';
-import type { OnboardingBriefing } from './onboarding-briefing';
-import type { InterviewIntent, TranscriptMessage } from './interview-driver';
+import type { TranscriptMessage } from './interview-driver';
 
 export type FailureBucket =
   | 'auth'
+  | 'interview-answer-generation'
   | 'bootstrap'
   | 'completion-not-reached'
   | 'workspace-access-regression'
@@ -16,15 +16,14 @@ export type FailureBucket =
 
 export interface InterviewTurnArtifact {
   answer: string;
+  answerModel: string;
   assistantMessageId: string;
-  intent: InterviewIntent;
-  matchedKeywords: string[];
   prompt: string;
   turnIndex: number;
 }
 
 export interface OnboardingValidationArtifact {
-  briefing: OnboardingBriefing;
+  briefingMarkdown: string;
   briefingFixturePath: string;
   completionReached: boolean;
   errorMessage: string | null;
@@ -88,7 +87,7 @@ export function buildInterviewSummaryMarkdown(
   } else {
     for (const turn of artifact.turns) {
       lines.push(
-        `${turn.turnIndex + 1}. [${turn.intent}] ${turn.prompt} -> ${turn.answer}`,
+        `${turn.turnIndex + 1}. [${turn.answerModel}] ${turn.prompt} -> ${turn.answer}`,
       );
     }
   }
@@ -108,11 +107,7 @@ export async function writeInterviewArtifacts(params: {
   const files = [
     {
       name: 'briefing-source.md',
-      content: artifact.briefing.rawMarkdown,
-    },
-    {
-      name: 'briefing.json',
-      content: JSON.stringify(artifact.briefing, null, 2),
+      content: artifact.briefingMarkdown,
     },
     {
       name: 'report.json',

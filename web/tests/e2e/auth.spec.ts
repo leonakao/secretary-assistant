@@ -20,7 +20,7 @@ test('app redirects unauthenticated users to the dedicated login page', async ({
   await expect(page.getByTestId('login-page')).toBeVisible();
 });
 
-test('mock signup uses the dedicated login route and reaches the app entry point', async ({
+test('mock signup uses the dedicated login route and reaches onboarding', async ({
   page,
 }) => {
   await page.goto('/login?mode=signup');
@@ -28,6 +28,6 @@ test('mock signup uses the dedicated login route and reaches the app entry point
 
   await page.getByTestId('login-signup-button').click();
 
-  await expect(page).toHaveURL(/\/app$/);
-  await expect(page.getByTestId('app-shell')).toBeVisible();
+  await expect(page).toHaveURL(/\/onboarding$/);
+  await expect(page.getByTestId('onboarding-step-company-bootstrap')).toBeVisible();
 });

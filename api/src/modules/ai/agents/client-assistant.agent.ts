@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { END, START, StateGraph } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
@@ -28,16 +27,19 @@ import { PostgresStore } from '../stores/postgres.store';
 import { createAssistantNode } from '../nodes/assistant.node';
 import { buildClientPromptFromState } from '../agent-prompts/assistant-client';
 import { ensureCheckpointerSetup } from './checkpointer-setup';
+import { LlmChatModel, LlmModelService } from '../services/llm-model.service';
 
 @Injectable()
 export class ClientAssistantAgent implements OnModuleInit {
   private readonly logger = new Logger(ClientAssistantAgent.name);
-  private model: ChatGoogleGenerativeAI;
+  private readonly helperModel: LlmChatModel;
+  private readonly userInteractionModel: LlmChatModel;
   private checkpointer: PostgresSaver;
   private graph: ReturnType<typeof this.buildGraph>;
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly llmModelService: LlmModelService,
     private readonly createServiceRequestTool: CreateServiceRequestTool,
     private readonly searchServiceRequestTool: SearchServiceRequestTool,
     private readonly updateServiceRequestTool: UpdateServiceRequestTool,
@@ -55,27 +57,17 @@ export class ClientAssistantAgent implements OnModuleInit {
     private readonly userRepository: Repository<User>,
     private readonly postgresStore: PostgresStore,
   ) {
-    const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
-
-    if (!apiKey) {
-      throw new Error('GOOGLE_API_KEY is not defined in environment variables');
-    }
-
-    this.model = new ChatGoogleGenerativeAI({
-      apiKey,
-      model: 'gemini-2.5-flash',
-      temperature: 0.6,
-      maxOutputTokens: 2048,
-    });
+    this.helperModel = this.llmModelService.getLlmModel('helper');
+    this.userInteractionModel =
+      this.llmModelService.getLlmModel('user-interaction');
   }
 
   async onModuleInit(): Promise<void> {
     const connectionString = `postgresql://${this.configService.get<string>('DB_USERNAME', 'postgres')}:${this.configService.get<string>('DB_PASSWORD', 'postgres')}@${this.configService.get<string>('DB_HOST', 'localhost')}:${this.configService.get<number>('DB_PORT', 5432)}/${this.configService.get<string>('DB_DATABASE', 'postgres')}`;
 
-    this.checkpointer = PostgresSaver.fromConnString(
-      connectionString,
-      { schema: 'checkpointer' },
-    );
+    this.checkpointer = PostgresSaver.fromConnString(connectionString, {
+      schema: 'checkpointer',
+    });
 
     await ensureCheckpointerSetup(`${connectionString}|checkpointer`, () =>
       this.checkpointer.setup(),
@@ -97,7 +89,7 @@ export class ClientAssistantAgent implements OnModuleInit {
     };
 
     const workflow = new StateGraph(AgentState)
-      .addNode('detectTransfer', createDetectTransferNode(this.model), {
+      .addNode('detectTransfer', createDetectTransferNode(this.helperModel), {
         ends: ['requestHuman', 'assistant'],
       })
       .addNode(
@@ -111,7 +103,7 @@ export class ClientAssistantAgent implements OnModuleInit {
       .addNode(
         'assistant',
         createAssistantNode(
-          this.model.bindTools(this.getTools()),
+          this.userInteractionModel.bindTools(this.getTools()),
           buildClientPromptFromState,
         ),
       )

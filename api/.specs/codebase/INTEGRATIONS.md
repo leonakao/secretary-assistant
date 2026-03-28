@@ -9,13 +9,29 @@
 **Webhook:** `POST /webhooks/evolution` (`EvolutionWebhookController` in `ChatModule`)
 **Events handled:** Incoming messages routed through `IncomingMessageUseCase`
 
-## AI — Google Gemini
+## AI — OpenAI Chat Models
 
-**Service:** Google Generative AI (Gemini 2.5 Flash)
-**Purpose:** LLM powering all assistant agents
-**Implementation:** `@langchain/google-genai` — `ChatGoogleGenerativeAI` in each agent
+**Service:** OpenAI GPT chat models
+**Purpose:** LLM powering assistant agents and helper chat tasks
+**Implementation:** `@langchain/openai` through `getLlmModel(type)` in `src/modules/ai/services/llm-model.service.ts`
+**Configuration:** `OPENAI_API_KEY` env var
+**Model routing:** `user-interaction -> gpt-5-mini`, `helper -> gpt-5-nano`
+**Used by:** `ClientAssistantAgent`, `OwnerAssistantAgent`, `OnboardingAssistantAgent`, `LangchainService`
+
+## AI — OpenAI Audio Transcription
+
+**Service:** OpenAI Audio API
+**Purpose:** Speech-to-text for incoming audio messages
+**Implementation:** `openai` SDK in `src/modules/ai/services/audio-transcription.service.ts`
+**Configuration:** `OPENAI_API_KEY` env var
+**Model:** `gpt-4o-mini-transcribe`
+
+## AI — Google Gemini Embeddings
+
+**Service:** Google Generative AI embeddings
+**Purpose:** Vector embeddings for memory/search
+**Implementation:** `@langchain/google-genai` in `src/modules/ai/stores/postgres.store.ts`
 **Configuration:** `GOOGLE_API_KEY` env var
-**Used by:** `ClientAssistantAgent`, `OwnerAssistantAgent`, `OnboardingAssistantAgent`
 
 ## Agent Framework — LangGraph
 

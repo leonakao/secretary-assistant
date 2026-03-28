@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { HumanMessage } from '@langchain/core/messages';
+import OpenAI, { toFile } from 'openai';
 
 @Injectable()
 export class AudioTranscriptionService {
@@ -18,19 +17,18 @@ export class AudioTranscriptionService {
     'audio/x-wav',
   ]);
 
-  private readonly model: ChatGoogleGenerativeAI;
+  private readonly client: OpenAI;
+  private readonly model = 'gpt-4o-mini-transcribe';
 
-  constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('GOOGLE_API_KEY');
+  constructor(private readonly configService: ConfigService) {
+    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
     if (!apiKey) {
-      throw new Error('GOOGLE_API_KEY is not defined in environment variables');
+      throw new Error('OPENAI_API_KEY is not defined in environment variables');
     }
 
-    this.model = new ChatGoogleGenerativeAI({
+    this.client = new OpenAI({
       apiKey,
-      model: 'gemini-2.5-flash',
-      temperature: 0.1,
     });
   }
 
@@ -39,31 +37,23 @@ export class AudioTranscriptionService {
     mimeType: string,
   ): Promise<string> {
     const normalizedMimeType = this.normalizeMimeType(mimeType);
-    const audioBase64 = Buffer.isBuffer(audio)
-      ? audio.toString('base64')
-      : audio;
+    const file = await toFile(
+      this.getAudioBuffer(audio),
+      this.getFilenameForMimeType(normalizedMimeType),
+      {
+        type: normalizedMimeType,
+      },
+    );
 
-    const message = new HumanMessage({
-      content: [
-        {
-          type: 'text',
-          text: 'Transcreva este áudio em português brasileiro. Retorne APENAS o texto transcrito, sem comentários adicionais.',
-        },
-        {
-          type: 'media',
-          mimeType: normalizedMimeType,
-          data: audioBase64,
-        },
-      ],
+    const transcription = await this.client.audio.transcriptions.create({
+      file,
+      model: this.model,
+      language: 'pt',
+      prompt:
+        'Transcreva este audio em portugues brasileiro. Retorne apenas o texto transcrito, sem comentarios adicionais.',
     });
 
-    const response = await this.model.invoke([message]);
-
-    const transcription: string = Array.isArray(response.content)
-      ? (response.content[0].text as string)
-      : response.content.toString().trim();
-
-    return transcription;
+    return transcription.text.trim();
   }
 
   private normalizeMimeType(mimeType: string): string {
@@ -77,5 +67,26 @@ export class AudioTranscriptionService {
     }
 
     return normalizedMimeType;
+  }
+
+  private getAudioBuffer(audio: Buffer | string): Buffer {
+    return Buffer.isBuffer(audio) ? audio : Buffer.from(audio, 'base64');
+  }
+
+  private getFilenameForMimeType(mimeType: string): string {
+    const extensions: Record<string, string> = {
+      'audio/aac': 'aac',
+      'audio/flac': 'flac',
+      'audio/mp3': 'mp3',
+      'audio/mp4': 'mp4',
+      'audio/mpeg': 'mp3',
+      'audio/mpga': 'mp3',
+      'audio/ogg': 'ogg',
+      'audio/wav': 'wav',
+      'audio/webm': 'webm',
+      'audio/x-wav': 'wav',
+    };
+
+    return `audio.${extensions[mimeType] ?? 'wav'}`;
   }
 }

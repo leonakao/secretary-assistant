@@ -1,14 +1,10 @@
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { Runnable } from '@langchain/core/runnables';
 import { AgentState } from '../agents/agent.state';
 
 export type BuildPromptFromState = (state: typeof AgentState.State) => string;
 
 export const createAssistantNode =
-  (
-    modelWithTools: ChatGoogleGenerativeAI | Runnable,
-    buildPromptFromState: BuildPromptFromState,
-  ) =>
+  (modelWithTools: Runnable, buildPromptFromState: BuildPromptFromState) =>
   async (state: typeof AgentState.State) => {
     const systemMessage = buildPromptFromState(state);
     const messages = [

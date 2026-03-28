@@ -4,11 +4,9 @@ The onboarding validation flow runs against a dedicated web/API stack and does n
 
 ## Environment
 
-- `ONBOARDING_VALIDATION_BASE_URL`
+- `BASE_URL`
   Default: `http://127.0.0.1:4173`
-- `ONBOARDING_VALIDATION_WEB_PORT`
-  Default: `4173`
-- `ONBOARDING_VALIDATION_API_BASE_URL`
+- `API_BASE_URL`
   Default: `http://127.0.0.1:3300`
 
 Playwright injects `VITE_E2E_AUTH_MOCK=true` for this run so `/login?mode=signup` creates a unique deterministic browser identity that matches the API `e2e.<base64url-json-claims>` contract.
@@ -42,7 +40,6 @@ web/test-results/onboarding-validation/<run-id>/
 Artifacts include:
 
 - `briefing-source.md`
-- `briefing.json`
 - `report.json`
 - `summary.md`
 - `transcript.md`

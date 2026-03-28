@@ -1,11 +1,8 @@
 {
   "scripts": {
-    "onboarding-validation:up": "docker compose --env-file .env.onboarding-validation -f docker-compose.onboarding-validation.yaml up -d",
-    "onboarding-validation:migrate": "docker compose --env-file .env.onboarding-validation -f docker-compose.onboarding-validation.yaml exec onboarding-validation-api pnpm migration:run",
-    "onboarding-validation:logs": "docker compose --env-file .env.onboarding-validation -f docker-compose.onboarding-validation.yaml logs -f",
-    "onboarding-validation:test": "sh -c 'set -a && . ./.env.onboarding-validation && set +a && pnpm --dir web test:e2e:onboarding-validation'",
-    "onboarding-validation:down": "docker compose --env-file .env.onboarding-validation -f docker-compose.onboarding-validation.yaml down",
-    "onboarding-validation:down:volumes": "docker compose --env-file .env.onboarding-validation -f docker-compose.onboarding-validation.yaml down -v"
+    "onboarding-validation:up": "sh -c 'docker compose --env-file .env.test -f docker-compose.onboarding-validation.yaml down --remove-orphans -v && docker compose --env-file .env.test -f docker-compose.onboarding-validation.yaml up -d --build --renew-anon-volumes && until curl -sf \"http://127.0.0.1:4173/login?mode=signup\" >/dev/null && curl -sf http://127.0.0.1:3300/health >/dev/null; do sleep 2; done'",
+    "onboarding-validation:test": "sh -c 'set -a && [ -f ./api/.env ] && . ./api/.env; [ -f ./web/.env ] && . ./web/.env; [ -f ./.env.test ] && . ./.env.test; set +a && pnpm --dir web test:e2e:onboarding-validation'",
+    "onboarding-validation:down": "docker compose --env-file .env.test -f docker-compose.onboarding-validation.yaml down --remove-orphans -v"
   },
   "volta": {
     "node": "24.14.0"

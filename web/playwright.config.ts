@@ -35,14 +35,10 @@ function loadLocalEnv(): void {
 
 loadLocalEnv();
 
-const ONBOARDING_VALIDATION_WEB_PORT = Number(
-  process.env.ONBOARDING_VALIDATION_WEB_PORT || '4173',
-);
 const ONBOARDING_VALIDATION_BASE_URL =
-  process.env.ONBOARDING_VALIDATION_BASE_URL ||
-  `http://127.0.0.1:${ONBOARDING_VALIDATION_WEB_PORT}`;
+  process.env.BASE_URL || 'http://127.0.0.1:4173';
 const ONBOARDING_VALIDATION_API_BASE_URL =
-  process.env.ONBOARDING_VALIDATION_API_BASE_URL || 'http://127.0.0.1:3300';
+  process.env.API_BASE_URL || 'http://127.0.0.1:3300';
 const onboardingValidationBaseUrl = new URL(ONBOARDING_VALIDATION_BASE_URL);
 
 export default defineConfig({
