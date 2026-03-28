@@ -20,6 +20,15 @@ const COMPLETED_SESSION_USER = {
   updatedAt: '2026-03-28T00:00:00.000Z',
 };
 
+const COMPLETED_MANAGED_COMPANY = {
+  businessType: 'Clínica odontológica',
+  description: '# Existing Owner Co.\n\n## Atendimento\n- Consultas',
+  id: 'company-existing-owner',
+  name: 'Existing Owner Co.',
+  step: 'running' as const,
+  updatedAt: '2026-03-28T12:00:00.000Z',
+};
+
 test('existing owner can navigate across the authenticated app shell', async ({
   page,
 }) => {
@@ -28,6 +37,18 @@ test('existing owner can navigate across the authenticated app shell', async ({
       contentType: 'application/json',
       status: 200,
       body: JSON.stringify(COMPLETED_SESSION_USER),
+    });
+  });
+  await page.route('**/companies/me', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+
+    await route.fulfill({
+      body: JSON.stringify({ company: COMPLETED_MANAGED_COMPANY }),
+      contentType: 'application/json',
+      status: 200,
     });
   });
 
@@ -46,7 +67,7 @@ test('existing owner can navigate across the authenticated app shell', async ({
 
     await expect(page).toHaveURL(/\/app\/company$/);
     await expect(page.getByTestId('company-page')).toBeVisible();
-    await expect(page.getByText('Company profile placeholder')).toBeVisible();
+    await expect(page.getByTestId('company-knowledge-viewer')).toBeVisible();
   });
 
   await test.step('navigate to contacts from the authenticated shell', async () => {
@@ -84,6 +105,18 @@ test('unauthenticated deep link to company returns to the same app page after si
       body: JSON.stringify(COMPLETED_SESSION_USER),
     });
   });
+  await page.route('**/companies/me', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.fallback();
+      return;
+    }
+
+    await route.fulfill({
+      body: JSON.stringify({ company: COMPLETED_MANAGED_COMPANY }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
 
   await test.step('redirect the unauthenticated deep link to login while preserving returnTo', async () => {
     await page.goto('/app/company');
@@ -99,6 +132,6 @@ test('unauthenticated deep link to company returns to the same app page after si
 
     await page.waitForURL('**/app/company');
     await expect(page.getByTestId('company-page')).toBeVisible();
-    await expect(page.getByText('Company profile placeholder')).toBeVisible();
+    await expect(page.getByTestId('company-knowledge-viewer')).toBeVisible();
   });
 });

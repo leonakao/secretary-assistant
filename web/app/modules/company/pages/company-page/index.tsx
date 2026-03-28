@@ -1,57 +1,142 @@
-import { Building2, Sparkles, Store } from 'lucide-react';
-import { useAuthenticatedAppShell } from '~/modules/app-shell/use-authenticated-app-shell';
+import { useEffect, useState } from 'react';
+import { Clock3 } from 'lucide-react';
+import { useApiClient } from '~/lib/api-client-context';
+import {
+  getManagedCompany,
+  updateManagedCompanyKnowledgeBase,
+  updateManagedCompanyProfile,
+  type ManagedCompany,
+} from '../../api/company.api';
+import { CompanyKnowledgeEditor } from '../../components/company-knowledge-editor';
+import { CompanyKnowledgeViewer } from '../../components/company-knowledge-viewer';
+import { CompanyPageSkeleton } from '../../components/company-page-skeleton';
+import { CompanyProfileForm } from '../../components/company-profile-form';
 
 export function CompanyPage() {
-  const { sessionUser } = useAuthenticatedAppShell();
+  const client = useApiClient();
+  const [company, setCompany] = useState<ManagedCompany | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isEditingKnowledgeBase, setIsEditingKnowledgeBase] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void getManagedCompany(client).then(
+      (response) => {
+        if (cancelled) {
+          return;
+        }
+
+        setCompany(response.company);
+        setLoadError(null);
+        setIsLoading(false);
+      },
+      (cause: unknown) => {
+        if (cancelled) {
+          return;
+        }
+
+        setLoadError(
+          cause instanceof Error
+            ? cause.message
+            : 'Não foi possível carregar a empresa.',
+        );
+        setIsLoading(false);
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [client]);
+
+  const handleProfileSave = async (input: {
+    name: string;
+    businessType: string | null;
+  }) => {
+    const response = await updateManagedCompanyProfile(input, client);
+    setCompany(response.company);
+  };
+
+  const handleKnowledgeSave = async (markdown: string) => {
+    const response = await updateManagedCompanyKnowledgeBase(
+      { markdown },
+      client,
+    );
+    setCompany(response.company);
+    setIsEditingKnowledgeBase(false);
+  };
+
+  if (isLoading) {
+    return <CompanyPageSkeleton />;
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-6" data-testid="company-page">
+        <section className="rounded-[2rem] border border-destructive/20 bg-card p-6 shadow-sm sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-destructive">
+            Minha empresa
+          </p>
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
+            Não foi possível carregar os dados da empresa
+          </h2>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
+            {loadError}
+          </p>
+        </section>
+      </div>
+    );
+  }
+
+  if (!company) {
+    return null;
+  }
+
+  const formattedUpdatedAt = new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(company.updatedAt));
 
   return (
-    <div className="space-y-6" data-testid="company-page">
-      <section className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-brand/10 p-3 text-brand">
-              <Store className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand">
-                Minha empresa
-              </p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-                Company profile placeholder
-              </h2>
-            </div>
+    <div className="space-y-6 pb-8 sm:space-y-8 sm:pb-12" data-testid="company-page">
+      <section className="space-y-4 rounded-[2rem] border border-border/70 bg-card/90 p-6 shadow-sm sm:p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand">
+          Minha empresa
+        </p>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-3">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
+              {company.name || 'Minha empresa'}
+            </h1>
+            <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-[0.95rem]">
+              Revise os dados básicos do negócio e a base de conhecimento que
+              orienta o assistente em cada atendimento.
+            </p>
           </div>
-          <p className="mt-5 text-sm leading-7 text-muted-foreground">
-            This area will become the home of your business identity, assistant
-            context, and operational setup. For now, it proves the authenticated
-            shell can host a dedicated company module cleanly.
-          </p>
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-2 text-xs font-medium text-muted-foreground">
+            <Clock3 className="h-4 w-4 text-brand" />
+            Atualizado em {formattedUpdatedAt}
+          </div>
         </div>
+      </section>
 
-        <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand">
-            Current linked company
-          </p>
-          <div className="mt-6 space-y-4">
-            <div className="rounded-3xl bg-muted p-5">
-              <div className="flex items-center gap-3">
-                <Building2 className="h-5 w-5 text-brand" />
-                <p className="text-sm font-medium text-foreground">
-                  {sessionUser.company?.name || 'No company linked yet'}
-                </p>
-              </div>
-            </div>
-            <div className="rounded-3xl bg-muted p-5">
-              <div className="flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-brand" />
-                <p className="text-sm leading-6 text-muted-foreground">
-                  Future sections here can hold business profile, support tone,
-                  service details, and assistant behavior inputs.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      <section className="grid gap-4 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] xl:items-start">
+        <CompanyProfileForm company={company} onSave={handleProfileSave} />
+
+        {isEditingKnowledgeBase ? (
+          <CompanyKnowledgeEditor
+            initialMarkdown={company.description}
+            onCancel={() => setIsEditingKnowledgeBase(false)}
+            onSave={handleKnowledgeSave}
+          />
+        ) : (
+          <CompanyKnowledgeViewer
+            markdown={company.description}
+            onEdit={() => setIsEditingKnowledgeBase(true)}
+          />
+        )}
       </section>
     </div>
   );

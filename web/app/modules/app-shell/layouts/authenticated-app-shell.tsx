@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { buildUnauthorizedSessionRecoveryPath } from '~/modules/auth/session-recovery';
@@ -36,9 +36,11 @@ export function AuthenticatedAppShell() {
   const [isRecoveringSession, setIsRecoveringSession] = useState(false);
   const [shouldRedirectToOnboarding, setShouldRedirectToOnboarding] =
     useState(false);
+  const hasBootstrappedSessionRef = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
+      hasBootstrappedSessionRef.current = false;
       setSessionUser(null);
       setError(null);
       setIsRecoveringSession(false);
@@ -46,6 +48,11 @@ export function AuthenticatedAppShell() {
       return;
     }
 
+    if (hasBootstrappedSessionRef.current) {
+      return;
+    }
+
+    hasBootstrappedSessionRef.current = true;
     let cancelled = false;
 
     void bootstrapAuthSession(() => getIdTokenClaims()).then(
@@ -154,8 +161,8 @@ export function AuthenticatedAppShell() {
   }
 
   return (
-    <main className="min-h-screen bg-muted/40 text-foreground">
-      <div className="flex min-h-screen">
+    <main className="min-h-screen bg-muted/40 text-foreground lg:h-screen lg:overflow-hidden">
+      <div className="flex min-h-screen lg:h-screen">
         <AppSidebar
           onLogout={() =>
             logout({
@@ -164,8 +171,8 @@ export function AuthenticatedAppShell() {
           }
           sessionUser={sessionUser}
         />
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-28 lg:pb-0">
-          <AppShellHeader sessionUser={sessionUser} />
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col pb-28 lg:h-screen lg:min-h-0 lg:overflow-y-auto lg:pb-0">
+          <AppShellHeader />
           <div className="flex-1 px-6 py-6">
             <div className="mx-auto max-w-6xl">
               <Outlet context={{ sessionUser }} />

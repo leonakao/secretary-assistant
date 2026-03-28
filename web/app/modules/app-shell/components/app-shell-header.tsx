@@ -1,8 +1,7 @@
 import { useLocation } from 'react-router';
-import type { SessionUser } from '~/modules/auth/api/get-current-user';
 import { APP_NAVIGATION } from '../config/app-navigation';
 
-export function AppShellHeader({ sessionUser }: { sessionUser: SessionUser }) {
+export function AppShellHeader() {
   const location = useLocation();
   const currentItem =
     APP_NAVIGATION.find((item) =>
@@ -23,12 +22,6 @@ export function AppShellHeader({ sessionUser }: { sessionUser: SessionUser }) {
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             {currentItem.description}
-          </p>
-        </div>
-        <div className="hidden rounded-2xl border border-border bg-card px-4 py-3 text-right sm:block">
-          <p className="text-sm font-medium text-foreground">{sessionUser.name}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {sessionUser.company?.name || 'No company linked yet'}
           </p>
         </div>
       </div>

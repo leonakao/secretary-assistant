@@ -11,7 +11,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onLogout, sessionUser }: AppSidebarProps) {
   return (
-    <aside className="hidden w-80 shrink-0 border-r border-border bg-[var(--color-surface-hero)] px-8 py-8 text-white lg:flex lg:flex-col">
+    <aside className="hidden h-screen w-80 shrink-0 border-r border-border bg-[var(--color-surface-hero)] px-8 py-8 text-white lg:sticky lg:top-0 lg:flex lg:flex-col lg:overflow-hidden">
       <div className="space-y-8">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand">
@@ -23,17 +23,6 @@ export function AppSidebar({ onLogout, sessionUser }: AppSidebarProps) {
             </p>
             <p className="text-xs text-white/50">Authenticated workspace</p>
           </div>
-        </div>
-
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-          <p className="text-xs uppercase tracking-[0.24em] text-white/40">
-            Minha empresa
-          </p>
-          <p className="mt-2 text-lg font-semibold">{sessionUser.company?.name || 'Setup pending'}</p>
-          <p className="mt-2 text-sm leading-6 text-white/55">
-            Use the navigation to expand your assistant workspace without losing
-            the shared logged-in context.
-          </p>
         </div>
 
         <nav className="space-y-2">

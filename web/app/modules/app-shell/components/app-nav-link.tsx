@@ -23,8 +23,8 @@ export function AppNavLink({ item, variant }: AppNavLinkProps) {
               ? 'bg-brand text-brand-foreground shadow-lg shadow-brand/20'
               : 'bg-brand/10 text-brand'
             : variant === 'sidebar'
-              ? 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              : 'text-muted-foreground hover:text-foreground',
+              ? 'text-white/80 hover:bg-white/10 hover:text-white'
+              : 'text-foreground/70 hover:bg-muted/70 hover:text-foreground',
         )
       }
       end={item.to === '/app'}
@@ -39,7 +39,7 @@ export function AppNavLink({ item, variant }: AppNavLinkProps) {
       {variant === 'sidebar' ? (
         <div className="min-w-0 space-y-1">
           <p className="font-medium">{item.label}</p>
-          <p className="text-xs leading-5 opacity-80">{item.description}</p>
+          <p className="text-xs leading-5 text-current/70">{item.description}</p>
         </div>
       ) : (
         <span className="truncate font-medium">{item.shortLabel}</span>
