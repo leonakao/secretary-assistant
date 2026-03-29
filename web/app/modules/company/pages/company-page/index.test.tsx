@@ -152,6 +152,34 @@ describe('CompanyPage', () => {
     expect(updateKnowledgeBaseMock).not.toHaveBeenCalled();
   });
 
+  it('applies mobile-friendly full-width actions on the company page', async () => {
+    const { CompanyPage } = await import('./index');
+    getManagedCompanyMock.mockResolvedValue({
+      company: makeCompany(),
+    });
+
+    render(<CompanyPage />);
+
+    await screen.findByRole('heading', { level: 1, name: 'Acme Dental' });
+
+    expect(screen.getByTestId('company-knowledge-edit-button')).toHaveClass(
+      'w-full',
+      'sm:w-auto',
+    );
+    expect(screen.getByText('Editar perfil')).toHaveClass('w-full', 'sm:w-auto');
+
+    fireEvent.click(screen.getByText('Editar perfil'));
+
+    expect(screen.getByTestId('company-profile-save-button')).toHaveClass(
+      'w-full',
+      'sm:w-auto',
+    );
+    expect(screen.getByTestId('company-profile-cancel-button')).toHaveClass(
+      'w-full',
+      'sm:w-auto',
+    );
+  });
+
   it('preserves the markdown draft when save fails', async () => {
     const { CompanyPage } = await import('./index');
     getManagedCompanyMock.mockResolvedValue({

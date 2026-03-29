@@ -146,7 +146,7 @@ export function CompanyKnowledgeViewer({
   const hasContent = Boolean(markdown?.trim());
 
   return (
-    <section className="rounded-[2rem] border border-border bg-card p-6 shadow-sm sm:p-7">
+    <section className="rounded-[1.75rem] border border-border bg-card p-5 shadow-sm sm:rounded-[2rem] sm:p-7">
       <div className="flex flex-col gap-4 border-b border-border/70 pb-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand">
@@ -167,6 +167,7 @@ export function CompanyKnowledgeViewer({
           </div>
         </div>
         <Button
+          className="w-full sm:w-auto"
           data-testid="company-knowledge-edit-button"
           onClick={onEdit}
           size="sm"
@@ -182,23 +183,23 @@ export function CompanyKnowledgeViewer({
           className="mt-6 overflow-hidden rounded-[1.9rem] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,246,241,0.98)_100%)] shadow-[0_1px_0_rgba(255,255,255,0.6)_inset]"
           data-testid="company-knowledge-viewer"
         >
-          <div className="border-b border-border/60 px-5 py-4 sm:px-8">
+          <div className="border-b border-border/60 px-4 py-4 sm:px-8">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               <BookOpenText className="h-4 w-4 text-brand" />
               Visualização
             </div>
           </div>
-          <div className="px-5 py-6 sm:px-8 sm:py-8">
+          <div className="px-4 py-6 sm:px-8 sm:py-8">
             <div className="space-y-5">{renderMarkdown(markdown!.trim())}</div>
           </div>
         </div>
       ) : (
         <div
-          className="mt-6 rounded-[1.9rem] border border-dashed border-border bg-background/80 p-5 sm:p-6"
+          className="mt-6 rounded-[1.9rem] border border-dashed border-border bg-background/80 p-4 sm:p-6"
           data-testid="company-knowledge-empty-state"
         >
-          <div className="flex items-start gap-4">
-            <div className="rounded-2xl bg-brand/10 p-3 text-brand">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="w-fit rounded-2xl bg-brand/10 p-3 text-brand">
               <BookOpenText className="h-5 w-5" />
             </div>
             <div className="space-y-2">

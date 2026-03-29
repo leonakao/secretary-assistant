@@ -46,17 +46,6 @@ function resolveAuthReturnTo(nextMode: AuthMode, redirectTo: string): string {
   return redirectTo;
 }
 
-function logLoginDebug(message: string, details?: unknown): void {
-  if (details === undefined) {
-    console.log(`[auth/login-page] ${message}`);
-    return;
-  }
-
-  console.log(`[auth/login-page] ${message}`, details);
-}
-
-let loginPageInstanceSequence = 0;
-
 export function LoginPage() {
   const {
     error,
@@ -76,7 +65,6 @@ export function LoginPage() {
   const isMountedRef = useRef(true);
   const getIdTokenClaimsRef = useRef(getIdTokenClaims);
   const logoutRef = useRef(logout);
-  const instanceIdRef = useRef(++loginPageInstanceSequence);
 
   const mode: AuthMode =
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
@@ -90,14 +78,7 @@ export function LoginPage() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    logLoginDebug('Mounted login page instance', {
-      instanceId: instanceIdRef.current,
-    });
-
     return () => {
-      logLoginDebug('Unmounted login page instance', {
-        instanceId: instanceIdRef.current,
-      });
       isMountedRef.current = false;
     };
   }, []);
@@ -117,36 +98,7 @@ export function LoginPage() {
     });
 
   useEffect(() => {
-    logLoginDebug('Rendered with auth state', {
-      instanceId: instanceIdRef.current,
-      isAuthenticated,
-      isLoading,
-      isResolvingSession,
-      isUnauthorizedRecovery,
-      mode,
-      redirectTo,
-      sessionBootstrapAttempt,
-      sessionBootstrapError,
-    });
-  }, [
-    isAuthenticated,
-    isLoading,
-    isResolvingSession,
-    isUnauthorizedRecovery,
-    mode,
-    redirectTo,
-    sessionBootstrapAttempt,
-    sessionBootstrapError,
-  ]);
-
-  useEffect(() => {
     if (isLoading || !isAuthenticated || isUnauthorizedRecovery) {
-      logLoginDebug('Skipping bootstrap effect', {
-        instanceId: instanceIdRef.current,
-        isLoading,
-        isAuthenticated,
-        isUnauthorizedRecovery,
-      });
       hasBootstrappedSessionAttemptRef.current = null;
       setSessionBootstrapError(null);
       setIsResolvingSession(false);
@@ -154,51 +106,29 @@ export function LoginPage() {
     }
 
     if (hasBootstrappedSessionAttemptRef.current === sessionBootstrapAttempt) {
-      logLoginDebug('Bootstrap already attempted for current counter', {
-        instanceId: instanceIdRef.current,
-        sessionBootstrapAttempt,
-      });
       return;
     }
 
     hasBootstrappedSessionAttemptRef.current = sessionBootstrapAttempt;
     setIsResolvingSession(true);
     setSessionBootstrapError(null);
-    logLoginDebug('Starting session bootstrap', {
-      instanceId: instanceIdRef.current,
-      redirectTo,
-      sessionBootstrapAttempt,
-    });
 
     void bootstrapAuthSession(() => getIdTokenClaimsRef.current()).then(
       (sessionUser) => {
         if (!isMountedRef.current) {
-          logLoginDebug('Bootstrap resolved after unmount');
           return;
         }
 
         try {
           setIsResolvingSession(false);
           setSessionBootstrapError(null);
-          logLoginDebug('Bootstrap resolved successfully', {
-            instanceId: instanceIdRef.current,
-            sessionUser,
-          });
           const target = resolvePostLoginNavigationTarget(
             redirectTo,
             resolveAuthenticatedEntryTarget(sessionUser),
           );
-          logLoginDebug('Navigating after successful bootstrap', {
-            instanceId: instanceIdRef.current,
-            target,
-          });
           void navigate(target, { replace: true });
         } catch (cause) {
           setIsResolvingSession(false);
-          logLoginDebug('Bootstrap success handler failed', {
-            instanceId: instanceIdRef.current,
-            cause,
-          });
           setSessionBootstrapError(
             cause instanceof Error
               ? cause.message
@@ -208,21 +138,12 @@ export function LoginPage() {
       },
       (cause: unknown) => {
         if (!isMountedRef.current) {
-          logLoginDebug('Bootstrap rejected after unmount', {
-            instanceId: instanceIdRef.current,
-            cause,
-          });
           return;
         }
 
         setIsResolvingSession(false);
         if (isUnauthorizedSessionError(cause)) {
           const recoveryPath = buildUnauthorizedSessionRecoveryPath(redirectTo);
-          logLoginDebug('Bootstrap rejected with unauthorized error', {
-            instanceId: instanceIdRef.current,
-            recoveryPath,
-            cause,
-          });
           logoutRef.current({
             logoutParams: {
               returnTo: new URL(recoveryPath, getAuth0AppOrigin()).toString(),
@@ -231,10 +152,6 @@ export function LoginPage() {
           return;
         }
 
-        logLoginDebug('Bootstrap rejected with non-401 error', {
-          instanceId: instanceIdRef.current,
-          cause,
-        });
         setSessionBootstrapError(
           cause instanceof Error
             ? cause.message

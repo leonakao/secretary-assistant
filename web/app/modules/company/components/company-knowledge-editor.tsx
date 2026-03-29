@@ -50,7 +50,7 @@ export function CompanyKnowledgeEditor({
 
   return (
     <section
-      className="rounded-[2rem] border border-border bg-card p-6 shadow-sm sm:p-7"
+      className="rounded-[1.75rem] border border-border bg-card p-5 shadow-sm sm:rounded-[2rem] sm:p-7"
       data-testid="company-knowledge-editor"
     >
       <div className="flex flex-col gap-4 border-b border-border/70 pb-6 sm:flex-row sm:items-start sm:justify-between">
@@ -72,8 +72,9 @@ export function CompanyKnowledgeEditor({
             Edição avançada
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <Button
+            className="w-full sm:w-auto"
             data-testid="company-knowledge-save-button"
             disabled={isSaving}
             onClick={() => void handleSave()}
@@ -81,6 +82,7 @@ export function CompanyKnowledgeEditor({
             {isSaving ? 'Salvando...' : 'Salvar base'}
           </Button>
           <Button
+            className="w-full sm:w-auto"
             data-testid="company-knowledge-cancel-button"
             disabled={isSaving}
             onClick={handleCancel}
@@ -93,7 +95,7 @@ export function CompanyKnowledgeEditor({
       </div>
 
       <textarea
-        className="mt-6 min-h-[28rem] w-full rounded-[1.75rem] border border-border bg-background px-4 py-4 font-mono text-sm leading-6 text-foreground outline-none transition focus:border-brand/40 focus:ring-2 focus:ring-brand/20"
+        className="mt-6 min-h-[22rem] w-full rounded-[1.5rem] border border-border bg-background px-4 py-4 font-mono text-sm leading-6 text-foreground outline-none transition focus:border-brand/40 focus:ring-2 focus:ring-brand/20 sm:min-h-[28rem] sm:rounded-[1.75rem]"
         data-testid="company-knowledge-markdown-input"
         disabled={isSaving}
         onChange={(event) => setMarkdown(event.target.value)}
@@ -118,11 +120,16 @@ export function CompanyKnowledgeEditor({
         </p>
       ) : null}
 
-      <div className="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-border/70 pt-6">
-        <Button disabled={isSaving} onClick={() => void handleSave()}>
+      <div className="mt-6 flex flex-col gap-3 border-t border-border/70 pt-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <Button
+          className="w-full sm:w-auto"
+          disabled={isSaving}
+          onClick={() => void handleSave()}
+        >
           {isSaving ? 'Salvando...' : 'Salvar base'}
         </Button>
         <Button
+          className="w-full sm:w-auto"
           disabled={isSaving}
           onClick={handleCancel}
           size="sm"

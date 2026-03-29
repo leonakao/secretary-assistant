@@ -24,17 +24,6 @@ function getExpiredSessionReturnTo(pathname: string): string {
   ).toString();
 }
 
-function logAppShellDebug(message: string, details?: unknown): void {
-  if (details === undefined) {
-    console.log(`[auth/app-shell] ${message}`);
-    return;
-  }
-
-  console.log(`[auth/app-shell] ${message}`, details);
-}
-
-let appShellInstanceSequence = 0;
-
 export interface AuthenticatedAppShellOutletContext {
   sessionUser: SessionUser;
 }
@@ -54,7 +43,6 @@ export function AuthenticatedAppShell() {
   const isMountedRef = useRef(true);
   const getIdTokenClaimsRef = useRef(getIdTokenClaims);
   const logoutRef = useRef(logout);
-  const instanceIdRef = useRef(++appShellInstanceSequence);
 
   useEffect(() => {
     getIdTokenClaimsRef.current = getIdTokenClaims;
@@ -63,47 +51,13 @@ export function AuthenticatedAppShell() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    logAppShellDebug('Mounted app shell instance', {
-      instanceId: instanceIdRef.current,
-    });
-
     return () => {
-      logAppShellDebug('Unmounted app shell instance', {
-        instanceId: instanceIdRef.current,
-      });
       isMountedRef.current = false;
     };
   }, []);
 
   useEffect(() => {
-    logAppShellDebug('Rendered with shell state', {
-      instanceId: instanceIdRef.current,
-      pathname: location.pathname,
-      isAuthenticated,
-      isLoading,
-      hasSessionUser: Boolean(sessionUser),
-      error,
-      isRecoveringSession,
-      recoveryRedirectTo,
-      shouldRedirectToOnboarding,
-      isBootstrappingSession: isBootstrappingSessionRef.current,
-    });
-  }, [
-    error,
-    isAuthenticated,
-    isLoading,
-    isRecoveringSession,
-    location.pathname,
-    recoveryRedirectTo,
-    sessionUser,
-    shouldRedirectToOnboarding,
-  ]);
-
-  useEffect(() => {
     if (!isAuthenticated) {
-      logAppShellDebug('Resetting shell state because auth is unavailable', {
-        instanceId: instanceIdRef.current,
-      });
       isBootstrappingSessionRef.current = false;
       setSessionUser(null);
       setError(null);
@@ -121,46 +75,23 @@ export function AuthenticatedAppShell() {
       shouldRedirectToOnboarding ||
       isBootstrappingSessionRef.current
     ) {
-      logAppShellDebug('Skipping shell bootstrap effect', {
-        instanceId: instanceIdRef.current,
-        hasSessionUser: Boolean(sessionUser),
-        error,
-        isRecoveringSession,
-        recoveryRedirectTo,
-        shouldRedirectToOnboarding,
-        isBootstrappingSession: isBootstrappingSessionRef.current,
-      });
       return;
     }
 
     isBootstrappingSessionRef.current = true;
-    logAppShellDebug('Starting protected session bootstrap', {
-      instanceId: instanceIdRef.current,
-      pathname: location.pathname,
-    });
 
     void bootstrapAuthSession(() => getIdTokenClaimsRef.current()).then(
       (nextUser) => {
         if (!isMountedRef.current) {
-          logAppShellDebug('Protected bootstrap resolved after unmount', {
-            instanceId: instanceIdRef.current,
-          });
           return;
         }
 
         try {
           isBootstrappingSessionRef.current = false;
-          logAppShellDebug('Protected bootstrap resolved successfully', {
-            instanceId: instanceIdRef.current,
-            nextUser,
-          });
 
           const target = resolveAuthenticatedEntryTarget(nextUser);
 
           if (target === '/onboarding') {
-            logAppShellDebug('Protected bootstrap resolved to onboarding redirect', {
-              instanceId: instanceIdRef.current,
-            });
             setShouldRedirectToOnboarding(true);
             setSessionUser(null);
             setError(null);
@@ -169,9 +100,6 @@ export function AuthenticatedAppShell() {
             return;
           }
 
-          logAppShellDebug('Protected bootstrap resolved to workspace', {
-            instanceId: instanceIdRef.current,
-          });
           setSessionUser(nextUser);
           setError(null);
           setIsRecoveringSession(false);
@@ -179,10 +107,6 @@ export function AuthenticatedAppShell() {
           setShouldRedirectToOnboarding(false);
         } catch (cause) {
           isBootstrappingSessionRef.current = false;
-          logAppShellDebug('Protected bootstrap success handler failed', {
-            instanceId: instanceIdRef.current,
-            cause,
-          });
           setSessionUser(null);
           setIsRecoveringSession(false);
           setRecoveryRedirectTo(null);
@@ -196,10 +120,6 @@ export function AuthenticatedAppShell() {
       },
       (cause: unknown) => {
         if (!isMountedRef.current) {
-          logAppShellDebug('Protected bootstrap rejected after unmount', {
-            instanceId: instanceIdRef.current,
-            cause,
-          });
           return;
         }
 
@@ -209,12 +129,6 @@ export function AuthenticatedAppShell() {
           const recoveryPath = buildUnauthorizedSessionRecoveryPath(
             location.pathname,
           );
-          logAppShellDebug('Protected bootstrap rejected with unauthorized error', {
-            instanceId: instanceIdRef.current,
-            pathname: location.pathname,
-            recoveryPath,
-            cause,
-          });
           setSessionUser(null);
           setError(null);
           setIsRecoveringSession(true);
@@ -228,10 +142,6 @@ export function AuthenticatedAppShell() {
           return;
         }
 
-        logAppShellDebug('Protected bootstrap rejected with non-401 error', {
-          instanceId: instanceIdRef.current,
-          cause,
-        });
         setSessionUser(null);
         setError(
           cause instanceof Error

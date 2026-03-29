@@ -75,7 +75,7 @@ export function CompanyPage() {
   if (loadError) {
     return (
       <div className="space-y-6" data-testid="company-page">
-        <section className="rounded-[2rem] border border-destructive/20 bg-card p-6 shadow-sm sm:p-8">
+        <section className="rounded-[1.75rem] border border-destructive/20 bg-card p-5 shadow-sm sm:rounded-[2rem] sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-destructive">
             Minha empresa
           </p>
@@ -101,21 +101,21 @@ export function CompanyPage() {
 
   return (
     <div className="space-y-6 pb-8 sm:space-y-8 sm:pb-12" data-testid="company-page">
-      <section className="space-y-4 rounded-[2rem] border border-border/70 bg-card/90 p-6 shadow-sm sm:p-8">
+      <section className="space-y-4 rounded-[1.75rem] border border-border/70 bg-card/90 p-5 shadow-sm sm:rounded-[2rem] sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand">
           Minha empresa
         </p>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
+            <h1 className="text-[1.8rem] font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
               {company.name || 'Minha empresa'}
             </h1>
-            <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-[0.95rem]">
+            <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-[0.95rem] sm:leading-7">
               Revise os dados básicos do negócio e a base de conhecimento que
               orienta o assistente em cada atendimento.
             </p>
           </div>
-          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-background/80 px-4 py-2 text-xs font-medium text-muted-foreground">
+          <div className="inline-flex w-full items-center gap-2 rounded-2xl border border-border bg-background/80 px-4 py-2 text-xs font-medium text-muted-foreground sm:w-fit sm:rounded-full">
             <Clock3 className="h-4 w-4 text-brand" />
             Atualizado em {formattedUpdatedAt}
           </div>

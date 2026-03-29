@@ -17,7 +17,7 @@ export function AppNavLink({ item, variant }: AppNavLinkProps) {
         cn(
           variant === 'sidebar'
             ? 'flex items-start gap-3 rounded-2xl px-3 py-3 text-sm transition-colors'
-            : 'flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-2 py-2 text-xs transition-colors',
+            : 'flex min-w-0 flex-1 items-center justify-center rounded-2xl px-2 py-2.5 transition-colors',
           isActive
             ? variant === 'sidebar'
               ? 'bg-brand text-brand-foreground shadow-lg shadow-brand/20'
@@ -33,7 +33,7 @@ export function AppNavLink({ item, variant }: AppNavLinkProps) {
       <Icon
         className={cn(
           'shrink-0',
-          variant === 'sidebar' ? 'mt-0.5 h-4 w-4' : 'h-4 w-4',
+          variant === 'sidebar' ? 'mt-0.5 h-4 w-4' : 'h-5 w-5',
         )}
       />
       {variant === 'sidebar' ? (
@@ -42,7 +42,7 @@ export function AppNavLink({ item, variant }: AppNavLinkProps) {
           <p className="text-xs leading-5 text-current/70">{item.description}</p>
         </div>
       ) : (
-        <span className="truncate font-medium">{item.shortLabel}</span>
+        <span className="sr-only">{item.shortLabel}</span>
       )}
     </NavLink>
   );

@@ -72,8 +72,8 @@ export function CompanyProfileForm({
   ];
 
   return (
-    <section className="rounded-[2rem] border border-border bg-card p-6 shadow-sm sm:p-7 xl:sticky xl:top-6">
-      <div className="flex items-start justify-between gap-4">
+    <section className="rounded-[1.75rem] border border-border bg-card p-5 shadow-sm sm:rounded-[2rem] sm:p-7 xl:sticky xl:top-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand">
             Perfil
@@ -87,6 +87,7 @@ export function CompanyProfileForm({
         </div>
         {!isEditing ? (
           <Button
+            className="w-full sm:w-auto"
             onClick={() => {
               setIsEditing(true);
               setSuccess(null);
@@ -172,6 +173,7 @@ export function CompanyProfileForm({
         {isEditing ? (
           <>
             <Button
+              className="w-full sm:w-auto"
               data-testid="company-profile-save-button"
               disabled={isSaving || !name.trim()}
               onClick={() => void handleSave()}
@@ -180,6 +182,7 @@ export function CompanyProfileForm({
               {isSaving ? 'Salvando...' : 'Salvar perfil'}
             </Button>
             <Button
+              className="w-full sm:w-auto"
               data-testid="company-profile-cancel-button"
               disabled={isSaving}
               onClick={handleCancel}
@@ -190,7 +193,7 @@ export function CompanyProfileForm({
             </Button>
           </>
         ) : (
-          <div className="rounded-2xl border border-border/80 bg-background/80 px-4 py-3 text-sm text-muted-foreground">
+          <div className="w-full rounded-2xl border border-border/80 bg-background/80 px-4 py-3 text-sm leading-6 text-muted-foreground">
             O perfil permanece em leitura até você iniciar uma edição.
           </div>
         )}
