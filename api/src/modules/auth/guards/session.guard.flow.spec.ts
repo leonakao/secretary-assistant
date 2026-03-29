@@ -76,8 +76,7 @@ describe('SessionGuard flow', () => {
       }),
     };
 
-    const configService = {
-      get: vi.fn((key: string, fallback?: string) => {
+    const configGetMock = vi.fn((key: string, fallback?: string) => {
         if (key === 'E2E_AUTH_MODE') {
           return 'true';
         }
@@ -87,11 +86,14 @@ describe('SessionGuard flow', () => {
         }
 
         return fallback;
-      }),
-    } satisfies Pick<ConfigService, 'get'>;
+      });
+
+    const configService: Pick<ConfigService, 'get'> = {
+      get: configGetMock as unknown as Pick<ConfigService, 'get'>['get'],
+    };
 
     const authService = new AuthService(
-      configService as ConfigService,
+      configService as unknown as ConfigService,
       usersRepository as never,
     );
     const sessionGuard = new SessionGuard(authService);
@@ -234,7 +236,6 @@ describe('SessionGuard flow', () => {
     };
     const initializeOnboardingConversation = {
       execute: vi.fn((user: User) => ({
-        threadId: `onboarding:company-1:${user.id}`,
         company: {
           id: 'company-1',
           name: 'Fresh Co',
@@ -244,7 +245,13 @@ describe('SessionGuard flow', () => {
           step: 'assistant-chat',
           requiresOnboarding: true,
         },
-        messages: [],
+        initialized: true,
+        assistantMessage: {
+          id: 'assistant-message-1',
+          role: 'assistant',
+          content: 'Olá! Meu nome é Julia e sou sua secretária virtual.',
+          createdAt: '2026-01-02T00:00:00.000Z',
+        },
       })),
     };
     const companyController = new OnboardingCompanyController(
@@ -302,6 +309,20 @@ describe('SessionGuard flow', () => {
       },
       userId: 'user-1',
     });
-    expect(initializeResult.threadId).toBe('onboarding:company-1:user-1');
+    expect(initializeResult).toMatchObject({
+      company: {
+        id: 'company-1',
+        name: 'Fresh Co',
+      },
+      onboarding: {
+        step: 'assistant-chat',
+        requiresOnboarding: true,
+      },
+      initialized: true,
+      assistantMessage: {
+        id: 'assistant-message-1',
+        role: 'assistant',
+      },
+    });
   });
 });

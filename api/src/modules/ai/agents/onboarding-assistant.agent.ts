@@ -5,15 +5,6 @@ import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { User } from 'src/modules/users/entities/user.entity';
-import { CreateServiceRequestTool } from '../tools/create-service-request.tool';
-import { SearchServiceRequestTool } from '../tools/search-service-request.tool';
-import { UpdateServiceRequestTool } from '../tools/update-service-request.tool';
-import { SendMessageTool } from '../tools/send-message.tool';
-import { SearchConversationTool } from '../tools/search-conversation.tool';
-import { SearchUserTool } from '../tools/search-user.tool';
-import { CreateConfirmationTool } from '../tools/create-confirmation.tool';
-import { UpdateConfirmationTool } from '../tools/update-confirmation.tool';
-import { SearchConfirmationTool } from '../tools/search-confirmation.tool';
 import { FinishOnboardingTool } from '../tools/finish-onboarding.tool';
 import { createToolNode } from '../nodes/tool.node';
 import { AgentContext, AgentState } from './agent.state';
@@ -33,15 +24,6 @@ export class OnboardingAssistantAgent implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly llmModelService: LlmModelService,
-    private readonly createServiceRequestTool: CreateServiceRequestTool,
-    private readonly searchServiceRequestTool: SearchServiceRequestTool,
-    private readonly updateServiceRequestTool: UpdateServiceRequestTool,
-    private readonly sendMessageTool: SendMessageTool,
-    private readonly searchConversationTool: SearchConversationTool,
-    private readonly createConfirmationTool: CreateConfirmationTool,
-    private readonly updateConfirmationTool: UpdateConfirmationTool,
-    private readonly searchConfirmationTool: SearchConfirmationTool,
-    private readonly searchUserTool: SearchUserTool,
     private readonly finishOnboardingTool: FinishOnboardingTool,
     private readonly postgresStore: PostgresStore,
   ) {
@@ -136,17 +118,6 @@ export class OnboardingAssistantAgent implements OnModuleInit {
   }
 
   private getTools(): StructuredTool[] {
-    return [
-      this.createServiceRequestTool,
-      this.searchServiceRequestTool,
-      this.updateServiceRequestTool,
-      this.searchConversationTool,
-      this.sendMessageTool,
-      this.searchUserTool,
-      this.createConfirmationTool,
-      this.updateConfirmationTool,
-      this.searchConfirmationTool,
-      this.finishOnboardingTool,
-    ];
+    return [this.finishOnboardingTool];
   }
 }

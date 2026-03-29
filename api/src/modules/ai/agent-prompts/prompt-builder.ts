@@ -3,6 +3,20 @@ interface PromptComponents {
   context: string;
   instructions?: string;
   variables: string;
+  system?: string;
+  rules?: string;
+  tools?: string;
+  memory?: string;
+}
+
+export const DEFAULT_AGENT_TIME_ZONE = 'America/Sao_Paulo';
+
+function formatDateTimeInAgentTimeZone(value: Date): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: DEFAULT_AGENT_TIME_ZONE,
+    dateStyle: 'short',
+    timeStyle: 'medium',
+  }).format(value);
 }
 
 function escapeXml(value: string): string {
@@ -17,6 +31,10 @@ function escapeXml(value: string): string {
  */
 export function buildPrompt(components: PromptComponents): string {
   const { persona, context, instructions, variables } = components;
+  const system = components.system ?? getBaseSystem();
+  const rules = components.rules ?? getBaseRules();
+  const tools = components.tools ?? getBaseTools();
+  const memory = components.memory ?? getBaseMemory();
 
   const parts: string[] = [];
 
@@ -38,19 +56,19 @@ export function buildPrompt(components: PromptComponents): string {
   }
 
   parts.push('  <sistema>');
-  parts.push(escapeXml(getBaseSystem()));
+  parts.push(escapeXml(system));
   parts.push('  </sistema>');
 
   parts.push('  <regras>');
-  parts.push(escapeXml(getBaseRules()));
+  parts.push(escapeXml(rules));
   parts.push('  </regras>');
 
   parts.push('  <ferramentas>');
-  parts.push(escapeXml(getBaseTools()));
+  parts.push(escapeXml(tools));
   parts.push('  </ferramentas>');
 
   parts.push('  <memoria>');
-  parts.push(escapeXml(getBaseMemory()));
+  parts.push(escapeXml(memory));
   parts.push('  </memoria>');
 
   parts.push('  <variáveis>');
@@ -114,9 +132,12 @@ export function getBaseVariables(variables: {
   businessType?: string;
 }): string {
   const lines = [
-    `- Data atual: ${new Date().toLocaleString('pt-BR')}`,
+    `- Data atual: ${formatDateTimeInAgentTimeZone(new Date())}`,
     `- Você está falando com ${variables.name}`,
-    `- A última mensagem do usuário foi: ${variables.lastInteractionDate.toLocaleString('pt-BR')}`,
+    `- A última mensagem do usuário foi: ${formatDateTimeInAgentTimeZone(
+      variables.lastInteractionDate,
+    )}`,
+    `- Fuso horário de referência: ${DEFAULT_AGENT_TIME_ZONE}`,
   ];
 
   if (variables.companyName?.trim()) {

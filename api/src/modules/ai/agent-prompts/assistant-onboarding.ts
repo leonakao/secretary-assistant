@@ -3,6 +3,7 @@ import {
   buildPrompt,
   getOwnerPersona,
   getBaseVariables,
+  DEFAULT_AGENT_TIME_ZONE,
 } from './prompt-builder';
 
 export const buildOnboardingPromptFromState = (
@@ -11,10 +12,11 @@ export const buildOnboardingPromptFromState = (
   const context = state.context;
   const knownCompanyName = context.companyName?.trim();
   const knownBusinessType = context.businessType?.trim();
+  const hasAssistantHistory = state.messages.some(
+    (message) => message.type === 'ai',
+  );
 
   const instructions = `Você está auxiliando o proprietário durante o processo de onboarding inicial.
-
-Sempre que aprender algo novo, salve na memória.
 
 DADOS JÁ CONHECIDOS:
 - Nome da empresa: ${knownCompanyName ?? 'não informado'}
@@ -24,6 +26,14 @@ REGRAS DE CONTEXTO:
 - Se o nome da empresa já estiver informado, trate-o como confirmado e NÃO pergunte novamente qual é o nome da empresa.
 - Se o tipo de negócio já estiver informado, use essa informação para adaptar as próximas perguntas e só peça detalhes adicionais quando necessário.
 - Quando estiver iniciando uma conversa nova de forma proativa, mencione o nome da empresa naturalmente na primeira mensagem se ele estiver disponível.
+- Considere sempre o horário de ${DEFAULT_AGENT_TIME_ZONE} como referência ao interpretar "hoje", "amanhã", horários e o momento adequado para saudações.
+- Use "Bom dia", "Boa tarde" ou "Boa noite" apenas na primeira mensagem visível da conversa.
+- Depois da primeira resposta, não repita saudações de período no início das mensagens.
+- ${
+    hasAssistantHistory
+      ? 'Esta conversa já foi iniciada, então responda sem nova saudação de abertura.'
+      : 'Esta é a primeira mensagem visível da conversa, então uma saudação de abertura é permitida.'
+  }
 
 FASE 1 - INTRODUÇÃO (faça isso APENAS na primeira interação):
 1. Apresente-se: "Olá! Meu nome é Julia e sou sua secretária virtual."
@@ -82,6 +92,11 @@ FASE 3 - FINALIZAÇÃO DO ONBOARDING:
     persona: getOwnerPersona(),
     context: companyContext,
     instructions,
+    tools: `- A única ferramenta disponível neste fluxo é "finishOnboarding".
+- Use "finishOnboarding" somente quando todas as informações necessárias já tiverem sido coletadas e o usuário confirmar explicitamente que o onboarding pode ser finalizado.
+- Não mencione nomes de ferramentas, parâmetros ou detalhes técnicos ao usuário.`,
+    memory:
+      'Use o histórico da conversa e o contexto atual para conduzir o onboarding. Neste fluxo você não possui ferramentas dedicadas de memória.',
     variables,
   });
 };
