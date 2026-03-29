@@ -257,10 +257,10 @@ describe('SessionGuard flow', () => {
     const companyController = new OnboardingCompanyController(
       createOnboardingCompany as never,
     );
-    const messagesController = new OnboardingMessagesController(
-      initializeOnboardingConversation as never,
-      { execute: vi.fn() } as never,
-    );
+    const messagesController = {
+      initialize: async (user: User) =>
+        initializeOnboardingConversation.execute(user),
+    } as Pick<OnboardingMessagesController, 'initialize'>;
     const { sessionGuard } = createGuardedContext();
     const request = {
       headers: {

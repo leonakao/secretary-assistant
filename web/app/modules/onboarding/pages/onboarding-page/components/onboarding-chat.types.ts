@@ -2,11 +2,13 @@ import type { OnboardingMessage } from '../../../api/onboarding.api';
 
 export type ComposerState =
   | 'idle'
+  | 'loading-history'
   | 'initializing'
   | 'sending-text'
   | 'recording-audio'
   | 'audio-preview'
-  | 'sending-audio';
+  | 'sending-audio'
+  | 'completing';
 
 export type PendingTranscriptItem =
   | { id: string; kind: 'assistant-loading' }

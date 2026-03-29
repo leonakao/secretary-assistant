@@ -25,61 +25,26 @@ function makeUserCompany(step: 'onboarding' | 'running' = 'onboarding') {
 }
 
 describe('GetOnboardingStateUseCase', () => {
-  it('returns null conversation when user has no company', async () => {
-    const useCase = new GetOnboardingStateUseCase(
-      { findOne: vi.fn().mockResolvedValue(null) } as any,
-      { getConversationMessages: vi.fn() } as any,
-    );
+  it('returns company bootstrap state when user has no company', async () => {
+    const useCase = new GetOnboardingStateUseCase({
+      findOne: vi.fn().mockResolvedValue(null),
+    } as any);
 
     const result = await useCase.execute(makeUser());
 
-    expect(result.conversation).toBeNull();
+    expect(result.company).toBeNull();
     expect(result.onboarding.step).toBe('company-bootstrap');
   });
 
-  it('marks conversation as uninitialized when transcript is empty', async () => {
-    const useCase = new GetOnboardingStateUseCase(
-      { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      { getConversationMessages: vi.fn().mockResolvedValue([]) } as any,
-    );
+  it('returns assistant-chat when an onboarding company exists', async () => {
+    const useCase = new GetOnboardingStateUseCase({
+      findOne: vi.fn().mockResolvedValue(makeUserCompany()),
+    } as any);
 
     const result = await useCase.execute(makeUser());
 
-    expect(result.conversation).toMatchObject({
-      threadId: 'onboarding:company-1:user-1',
-      isInitialized: false,
-      messages: [],
-    });
-  });
-
-  it('marks conversation as initialized when messages exist', async () => {
-    const useCase = new GetOnboardingStateUseCase(
-      { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      {
-        getConversationMessages: vi.fn().mockResolvedValue([
-          {
-            id: 'mem-1',
-            role: 'assistant',
-            content: 'Olá',
-            createdAt: new Date('2026-03-27T10:00:00.000Z'),
-          },
-        ]),
-      } as any,
-    );
-
-    const result = await useCase.execute(makeUser());
-
-    expect(result.conversation).toMatchObject({
-      isInitialized: true,
-      messages: [
-        {
-          id: 'mem-1',
-          role: 'assistant',
-          content: 'Olá',
-          createdAt: '2026-03-27T10:00:00.000Z',
-        },
-      ],
-    });
+    expect(result.company?.id).toBe('company-1');
+    expect(result.onboarding.step).toBe('assistant-chat');
   });
 
   it('prefers the active onboarding company over older company relations', async () => {
@@ -87,11 +52,7 @@ describe('GetOnboardingStateUseCase', () => {
       .fn()
       .mockResolvedValueOnce(makeUserCompany('onboarding'))
       .mockResolvedValueOnce(makeUserCompany('running'));
-    const getConversationMessages = vi.fn().mockResolvedValue([]);
-    const useCase = new GetOnboardingStateUseCase(
-      { findOne } as any,
-      { getConversationMessages } as any,
-    );
+    const useCase = new GetOnboardingStateUseCase({ findOne } as any);
 
     const result = await useCase.execute(makeUser());
 
@@ -102,7 +63,6 @@ describe('GetOnboardingStateUseCase', () => {
       }),
     );
     expect(findOne).toHaveBeenCalledTimes(1);
-    expect(getConversationMessages).toHaveBeenCalledWith('user-1', 'company-1');
     expect(result.onboarding.step).toBe('assistant-chat');
   });
 });

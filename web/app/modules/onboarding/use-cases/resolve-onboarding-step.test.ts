@@ -19,11 +19,6 @@ function makeData(
       requiresOnboarding: step !== 'complete',
       step,
     },
-    conversation: {
-      threadId: 'onboarding:company-1:user-1',
-      isInitialized: step !== 'company-bootstrap',
-      messages: [],
-    },
   };
 }
 

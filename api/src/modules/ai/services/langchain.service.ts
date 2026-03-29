@@ -30,9 +30,7 @@ export class LangchainService {
       : this.model;
 
     const response = await model.invoke([new HumanMessage(message)]);
-    return typeof response.content === 'string'
-      ? response.content
-      : JSON.stringify(response.content);
+    return this.extractTextContent(response.content);
   }
 
   /**
@@ -48,9 +46,7 @@ export class LangchainService {
     ];
 
     const response = await this.model.invoke(messages);
-    return typeof response.content === 'string'
-      ? response.content
-      : JSON.stringify(response.content);
+    return this.extractTextContent(response.content);
   }
 
   /**
@@ -73,9 +69,7 @@ export class LangchainService {
     });
 
     const response = await this.model.invoke(langchainMessages);
-    return typeof response.content === 'string'
-      ? response.content
-      : JSON.stringify(response.content);
+    return this.extractTextContent(response.content);
   }
 
   /**
@@ -86,9 +80,7 @@ export class LangchainService {
 
     for await (const chunk of stream) {
       if (chunk.content) {
-        yield typeof chunk.content === 'string'
-          ? chunk.content
-          : JSON.stringify(chunk.content);
+        yield this.extractTextContent(chunk.content);
       }
     }
   }
@@ -97,5 +89,30 @@ export class LangchainService {
     const model = this.llmModelService.getLlmModel('helper');
     model.maxTokens = maxTokens;
     return model;
+  }
+
+  private extractTextContent(content: unknown): string {
+    if (typeof content === 'string') {
+      return content;
+    }
+
+    if (Array.isArray(content)) {
+      return content
+        .map((item) => this.extractTextContent(item))
+        .filter((item) => item.trim().length > 0)
+        .join('');
+    }
+
+    if (content && typeof content === 'object') {
+      if ('text' in content && typeof content.text === 'string') {
+        return content.text;
+      }
+
+      if ('content' in content) {
+        return this.extractTextContent(content.content);
+      }
+    }
+
+    return JSON.stringify(content);
   }
 }

@@ -51,12 +51,16 @@ export const OnboardingComposer = forwardRef<
           onKeyDown={onKeyDown}
           disabled={isInputDisabled}
           placeholder={
-            composerState === 'initializing'
+            composerState === 'loading-history'
+              ? 'Loading your onboarding conversation...'
+              : composerState === 'initializing'
               ? 'Starting your onboarding conversation...'
               : composerState === 'recording-audio'
                 ? 'Recording audio...'
                 : composerState === 'sending-audio'
                   ? 'Transcribing your audio...'
+                  : composerState === 'completing'
+                    ? 'Finishing onboarding... Redirecting to your workspace.'
                   : 'Tell the assistant about your business...'
           }
           data-testid="onboarding-chat-input"
@@ -106,6 +110,8 @@ export const OnboardingComposer = forwardRef<
         Press Enter to send · Shift+Enter for new line · Hold the mic to record
         {composerState === 'recording-audio'
           ? ` · Recording ${formatDuration(recordingDurationMs)}`
+          : composerState === 'completing'
+            ? ' · Workspace redirect in progress'
           : ''}
       </p>
     </>

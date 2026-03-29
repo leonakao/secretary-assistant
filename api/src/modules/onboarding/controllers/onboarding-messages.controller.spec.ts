@@ -7,9 +7,25 @@ function makeUser() {
 }
 
 describe('OnboardingMessagesController', () => {
+  it('returns the onboarding transcript from the dedicated read endpoint', async () => {
+    const getOnboardingMessages = {
+      execute: vi.fn().mockResolvedValue({ threadId: 'thread-1', messages: [] }),
+    };
+    const controller = new OnboardingMessagesController(
+      getOnboardingMessages as any,
+      { execute: vi.fn() } as any,
+      { execute: vi.fn() } as any,
+    );
+
+    await controller.getMessages(makeUser());
+
+    expect(getOnboardingMessages.execute).toHaveBeenCalledWith(makeUser());
+  });
+
   it('uses the uploaded file mime type as canonical audio mime type', async () => {
     const sendOnboardingMessage = { execute: vi.fn().mockResolvedValue({}) };
     const controller = new OnboardingMessagesController(
+      { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
       sendOnboardingMessage as any,
     );
@@ -42,6 +58,7 @@ describe('OnboardingMessagesController', () => {
     const controller = new OnboardingMessagesController(
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
+      { execute: vi.fn() } as any,
     );
 
     await expect(
@@ -57,5 +74,34 @@ describe('OnboardingMessagesController', () => {
         },
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('accepts equivalent audio mime types after normalization', async () => {
+    const sendOnboardingMessage = { execute: vi.fn().mockResolvedValue({}) };
+    const controller = new OnboardingMessagesController(
+      { execute: vi.fn() } as any,
+      { execute: vi.fn() } as any,
+      sendOnboardingMessage as any,
+    );
+
+    await controller.sendMessage(
+      makeUser(),
+      {
+        kind: 'audio',
+        mimeType: 'audio/webm;codecs=opus',
+      },
+      {
+        buffer: Buffer.from('audio'),
+        mimetype: 'video/webm',
+      },
+    );
+
+    expect(sendOnboardingMessage.execute).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        kind: 'audio',
+        mimeType: 'audio/webm',
+      }),
+    );
   });
 });

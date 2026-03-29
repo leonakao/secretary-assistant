@@ -10,7 +10,8 @@ Regras obrigatorias:
 - Responda apenas a pergunta atual. Ignore agradecimentos, confirmacoes e texto de transicao.
 - Seja objetivo, consistente e pronto para ser enviado no chat.
 - Se a pergunta pedir lista, responda em lista.
-- Se o briefing nao tiver a informacao exata, diga claramente que você ainda não tem esse ponto definido e que devem tratar sobre isso em outro momento.
+- Se o briefing nao tiver a informacao exata, diga claramente que você ainda não tem esse ponto definido e peça pular essa pergunta.
+- Se o entrevistor tentar forçar uma definição de algo que não está no briefing, insista que isso deve ser tratado em outro momento.
 - Nao invente politicas, precos, horarios ou detalhes operacionais ausentes.
 - Nao explique sua logica.
 - Retorne somente o texto final da resposta.`;
@@ -40,6 +41,16 @@ function resolveFallbackAnswer(question: string): string | null {
     normalizedQuestion.includes('posso contar com voce')
   ) {
     return 'Sim, posso detalhar as próximas perguntas com base no briefing.';
+  }
+
+  if (
+    (normalizedQuestion.includes('posso finalizar o onboarding') &&
+      normalizedQuestion.includes('ativar o sistema')) ||
+    normalizedQuestion.includes('responda "sim" para finalizar') ||
+    normalizedQuestion.includes("responda 'sim' para finalizar") ||
+    normalizedQuestion.includes('responda sim para finalizar')
+  ) {
+    return 'Sim';
   }
 
   return null;
@@ -116,6 +127,15 @@ export async function generateInterviewAnswer({
 
   if (!apiKey) {
     throw new Error('OPENAI_API_KEY is required to generate interview answers.');
+  }
+
+  const fallbackAnswer = resolveFallbackAnswer(question);
+
+  if (fallbackAnswer) {
+    return {
+      answer: fallbackAnswer,
+      model: `${DEFAULT_INTERVIEW_HELPER_MODEL}:fallback`,
+    };
   }
 
   const model =

@@ -1,8 +1,4 @@
-import {
-  bootstrapAuthSession,
-  getSessionToken,
-  isUnauthorizedSessionError,
-} from './session';
+import { bootstrapAuthSession, getSessionToken, isUnauthorizedSessionError } from './session';
 import { getCurrentUser } from './api/get-current-user';
 import { ApiError } from '~/lib/api.client';
 
@@ -61,6 +57,26 @@ describe('bootstrapAuthSession', () => {
     ).resolves.toEqual(sessionUser);
 
     expect(getCurrentUser).toHaveBeenCalledWith('token-123');
+  });
+
+  it('times out when the current-user bootstrap never settles', async () => {
+    vi.useFakeTimers();
+    vi.mocked(getCurrentUser).mockReturnValue(new Promise(() => undefined));
+
+    const bootstrapPromise = bootstrapAuthSession(
+      async () => ({
+        __raw: 'token-123',
+      }),
+      500,
+    );
+    const expectation = expect(bootstrapPromise).rejects.toThrow(
+      'Session bootstrap timed out while validating the authenticated user.',
+    );
+
+    await vi.advanceTimersByTimeAsync(500);
+    await expectation;
+
+    vi.useRealTimers();
   });
 });
 

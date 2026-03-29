@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  getOnboardingMessages,
   initializeOnboardingConversation,
   sendOnboardingAudioMessage,
   sendOnboardingMessage,
+  type OnboardingConversation,
   type OnboardingStateResponse,
 } from './onboarding.api';
 import type { BoundApiClient } from '~/lib/api-client-context';
@@ -65,6 +67,20 @@ describe('onboarding api', () => {
     });
   });
 
+  it('loads onboarding messages from the dedicated endpoint', async () => {
+    const client = makeClient();
+    const response: OnboardingConversation = {
+      threadId: 'onboarding:company-1:user-1',
+      isInitialized: true,
+      messages: [],
+    };
+    client.fetchApi.mockResolvedValue(response);
+
+    await getOnboardingMessages(client);
+
+    expect(client.fetchApi).toHaveBeenCalledWith('/onboarding/messages');
+  });
+
   it('posts audio messages as multipart form data', async () => {
     const client = makeClient();
 
@@ -110,17 +126,12 @@ describe('onboarding api', () => {
     expect(body.get('mimeType')).toBe('audio/webm');
   });
 
-  it('includes initialization state in the onboarding state contract', () => {
+  it('keeps the onboarding state contract focused on onboarding status', () => {
     const response: OnboardingStateResponse = {
       company: null,
       onboarding: { requiresOnboarding: true, step: 'assistant-chat' },
-      conversation: {
-        threadId: 'onboarding:company-1:user-1',
-        isInitialized: false,
-        messages: [],
-      },
     };
 
-    expect(response.conversation?.isInitialized).toBe(false);
+    expect(response.onboarding.step).toBe('assistant-chat');
   });
 });

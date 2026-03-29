@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { LoaderCircle, Building2, MessageSquare, CheckCircle2 } from 'lucide-react';
 import { CompanyBootstrapForm } from './components/company-bootstrap-form';
@@ -14,6 +14,15 @@ export function OnboardingPage() {
     '/onboarding',
   );
 
+  const redirectToApp = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.location.replace('/app');
+      return;
+    }
+
+    void navigate('/app', { replace: true });
+  }, [navigate]);
+
   useEffect(() => {
     reload();
   }, []);
@@ -22,9 +31,9 @@ export function OnboardingPage() {
     if (!data) return;
 
     if (resolveOnboardingStep(data) === 'complete') {
-      void navigate('/app', { replace: true });
+      redirectToApp();
     }
-  }, [data, navigate]);
+  }, [data, redirectToApp]);
 
   if (isLoading) {
     return (
@@ -148,15 +157,8 @@ export function OnboardingPage() {
             </div>
             <div className="flex-1 overflow-hidden">
               <OnboardingChat
-                conversation={
-                  data.conversation ?? {
-                    threadId: null,
-                    isInitialized: false,
-                    messages: [],
-                  }
-                }
                 onComplete={() => {
-                  void navigate('/app', { replace: true });
+                  redirectToApp();
                 }}
               />
             </div>

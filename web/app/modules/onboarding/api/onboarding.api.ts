@@ -28,7 +28,6 @@ export interface OnboardingConversation {
 export interface OnboardingStateResponse {
   company: OnboardingCompany | null;
   onboarding: OnboardingState;
-  conversation: OnboardingConversation | null;
 }
 
 export interface CreateOnboardingCompanyInput {
@@ -67,6 +66,12 @@ export interface SendOnboardingAudioMessageInput {
 
 export async function getOnboardingState(client: BoundApiClient): Promise<OnboardingStateResponse> {
   return client.fetchApi<OnboardingStateResponse>('/onboarding/state');
+}
+
+export async function getOnboardingMessages(
+  client: BoundApiClient,
+): Promise<OnboardingConversation | null> {
+  return client.fetchApi<OnboardingConversation | null>('/onboarding/messages');
 }
 
 export async function createOnboardingCompany(

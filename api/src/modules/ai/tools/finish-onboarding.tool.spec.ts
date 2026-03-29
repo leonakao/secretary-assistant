@@ -101,4 +101,53 @@ describe('FinishOnboardingTool', () => {
     );
     expect(result).toContain('nenhum histórico de conversa foi encontrado');
   });
+
+  it('normalizes escaped markdown and strips serialized annotations before saving', async () => {
+    const companyRepository = {
+      findOneByOrFail: vi.fn().mockResolvedValue({
+        id: 'company-1',
+        name: 'Luna Clean',
+      }),
+      update: vi.fn().mockResolvedValue(undefined),
+    };
+    const memoryRepository = {
+      find: vi.fn().mockResolvedValue([
+        {
+          role: 'user',
+          content: 'Temos atendimento por WhatsApp.',
+          createdAt: new Date('2026-03-28T12:00:00.000Z'),
+        },
+      ]),
+    };
+    const langchainService = {
+      chat: vi
+        .fn()
+        .mockResolvedValue(
+          '# Luna Clean\\n\\n## Sobre a Empresa\\n- Limpeza residencial","annotations":[]}]',
+        ),
+    };
+    const tool = new FinishOnboardingTool(
+      companyRepository as any,
+      memoryRepository as any,
+      langchainService as any,
+    );
+
+    await tool.invoke(
+      {},
+      {
+        context: {
+          companyId: 'company-1',
+          userId: 'user-1',
+        },
+        messages: [],
+      } as any,
+    );
+
+    expect(companyRepository.update).toHaveBeenCalledWith(
+      { id: 'company-1' },
+      expect.objectContaining({
+        description: '# Luna Clean\n\n## Sobre a Empresa\n- Limpeza residencial',
+      }),
+    );
+  });
 });

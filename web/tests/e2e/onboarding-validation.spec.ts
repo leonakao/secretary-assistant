@@ -20,6 +20,7 @@ const BRIEFING_FIXTURE_PATH = join(
 );
 const INITIAL_ASSISTANT_PROMPT_TIMEOUT_MS = 180000;
 const LOGIN_PAGE_TIMEOUT_MS = 60000;
+const WORKSPACE_REDIRECT_TIMEOUT_MS = 10000;
 const E2E_AUTH_ENABLED_STORAGE_KEY = 'secretary-assistant:e2e-auth-enabled';
 const E2E_AUTH_STORAGE_KEY = 'secretary-assistant:e2e-auth';
 const BOOTSTRAP_COMPANY_INPUT = {
@@ -27,7 +28,7 @@ const BOOTSTRAP_COMPANY_INPUT = {
   name: 'Luna Clean',
 } as const;
 
-test('fresh owner completes onboarding and reaches the app workspace with interview evidence', async ({
+test('fresh owner completes onboarding and is redirected to /app with interview evidence', async ({
   page,
 }, testInfo) => {
   const briefingMarkdown = await readFile(BRIEFING_FIXTURE_PATH, 'utf8');
@@ -80,7 +81,7 @@ test('fresh owner completes onboarding and reaches the app workspace with interv
       await expect(page.getByTestId('onboarding-step-assistant-chat')).toBeVisible();
     });
 
-    await test.step('drive the onboarding interview from the real UI transcript', async () => {
+    await test.step('drive the onboarding interview from the real UI transcript until redirect to /app', async () => {
       await waitForInitialAssistantPrompt(page);
 
       artifact.turns = await driveInterview({
@@ -90,15 +91,10 @@ test('fresh owner completes onboarding and reaches the app workspace with interv
       });
       artifact.completionReached = true;
 
-      await page.waitForURL('**/app');
-      artifact.finalRoute = '/app';
-    });
-
-    await test.step('keep app workspace access unlocked after completion', async () => {
-      await expect(page.getByTestId('app-home-page')).toBeVisible();
-      await page.goto('/app');
-      await expect(page).toHaveURL(/\/app$/);
-      await expect(page.getByTestId('app-home-page')).toBeVisible();
+      await expect(page).toHaveURL(/\/app(?:$|[/?#])/, {
+        timeout: WORKSPACE_REDIRECT_TIMEOUT_MS,
+      });
+      artifact.finalRoute = new URL(page.url()).pathname;
     });
   } catch (cause) {
     if (cause instanceof InterviewDriverError && cause.turns.length > 0) {

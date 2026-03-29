@@ -6,16 +6,21 @@ import type {
   OnboardingConversation,
   SendOnboardingMessageResponse,
 } from '../../../api/onboarding.api';
+import { OnboardingChat } from './onboarding-chat';
 import type { BoundApiClient } from '~/lib/api-client-context';
 
 const {
   mockClient,
+  getMessagesMock,
   initializeMock,
   sendTextMock,
   sendAudioMock,
   getUserMediaMock,
 } = vi.hoisted(() => ({
   mockClient: {} as BoundApiClient,
+  getMessagesMock: vi.fn<
+    (client: BoundApiClient) => Promise<OnboardingConversation | null>
+  >(),
   initializeMock: vi.fn<
     (client: BoundApiClient) => Promise<InitializeOnboardingConversationResponse>
   >(),
@@ -45,6 +50,7 @@ vi.mock('../../../api/onboarding.api', async () => {
 
   return {
     ...actual,
+    getOnboardingMessages: getMessagesMock,
     initializeOnboardingConversation: initializeMock,
     sendOnboardingTextMessage: sendTextMock,
     sendOnboardingMessage: sendTextMock,
@@ -102,15 +108,16 @@ function makeSendResponse(
 
 class MockMediaRecorder {
   public mimeType = 'audio/webm';
-  private listeners = new Map<string, Array<(event?: Event | { data: Blob }) => void>>();
-
-  constructor(private readonly stream: MediaStream) {}
 
   addEventListener(
     event: string,
     callback: (event?: Event | { data: Blob }) => void,
     options?: { once?: boolean },
   ) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, []);
+    }
+
     const wrappedCallback = options?.once
       ? (payload?: Event | { data: Blob }) => {
           callback(payload);
@@ -135,6 +142,11 @@ class MockMediaRecorder {
       callback(new Event('stop'));
     }
   }
+
+  private readonly listeners = new Map<
+    string,
+    Array<(event?: Event | { data: Blob }) => void>
+  >();
 }
 
 beforeAll(() => {
@@ -170,18 +182,41 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  getMessagesMock.mockReset();
   initializeMock.mockReset();
   sendTextMock.mockReset();
   sendAudioMock.mockReset();
   getUserMediaMock.mockReset();
+  getMessagesMock.mockResolvedValue(makeConversation());
 });
 
 describe('OnboardingChat', () => {
-  it('initializes once for an uninitialized thread and merges the response idempotently', async () => {
-    const { OnboardingChat } = await import('./onboarding-chat');
-    const response = deferred<InitializeOnboardingConversationResponse>();
-    initializeMock.mockReturnValue(response.promise);
+  it('loads the transcript once when the screen mounts', async () => {
+    getMessagesMock.mockResolvedValue(
+      makeConversation({
+        messages: [
+          {
+            id: 'assistant-1',
+            role: 'assistant',
+            content: 'Loaded from history',
+            createdAt: '2026-03-27T12:00:00.000Z',
+          },
+        ],
+      }),
+    );
 
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
+
+    await waitFor(() => {
+      expect(getMessagesMock).toHaveBeenCalledWith(mockClient);
+    });
+
+    expect(screen.getByText('Loaded from history')).toBeInTheDocument();
+    expect(initializeMock).not.toHaveBeenCalled();
+  });
+
+  it('initializes once for an uninitialized thread and merges the response idempotently', async () => {
+    const response = deferred<InitializeOnboardingConversationResponse>();
     const existingMessage = {
       id: 'assistant-1',
       role: 'assistant' as const,
@@ -189,30 +224,20 @@ describe('OnboardingChat', () => {
       createdAt: '2026-03-27T12:00:00.000Z',
     };
 
-    const { rerender } = render(
-      <OnboardingChat
-        conversation={makeConversation({
-          isInitialized: false,
-          messages: [existingMessage],
-        })}
-        onComplete={vi.fn()}
-      />,
+    getMessagesMock.mockResolvedValue(
+      makeConversation({
+        isInitialized: false,
+        messages: [existingMessage],
+      }),
     );
+    initializeMock.mockReturnValue(response.promise);
 
-    expect(screen.getByTestId('assistant-init-skeleton')).toBeInTheDocument();
-    expect(initializeMock).toHaveBeenCalledTimes(1);
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
 
-    rerender(
-      <OnboardingChat
-        conversation={makeConversation({
-          isInitialized: false,
-          messages: [existingMessage],
-        })}
-        onComplete={vi.fn()}
-      />,
-    );
-
-    expect(initializeMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.getByTestId('assistant-init-skeleton')).toBeInTheDocument();
+      expect(initializeMock).toHaveBeenCalledTimes(1);
+    });
 
     response.resolve({
       company: null,
@@ -233,30 +258,29 @@ describe('OnboardingChat', () => {
   });
 
   it('skips initialization for an existing thread', async () => {
-    const { OnboardingChat } = await import('./onboarding-chat');
-
-    render(
-      <OnboardingChat
-        conversation={makeConversation({
-          messages: [
-            {
-              id: 'assistant-1',
-              role: 'assistant',
-              content: 'Existing message',
-              createdAt: '2026-03-27T12:00:00.000Z',
-            },
-          ],
-        })}
-        onComplete={vi.fn()}
-      />,
+    getMessagesMock.mockResolvedValue(
+      makeConversation({
+        messages: [
+          {
+            id: 'assistant-1',
+            role: 'assistant',
+            content: 'Existing message',
+            createdAt: '2026-03-27T12:00:00.000Z',
+          },
+        ],
+      }),
     );
 
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Existing message')).toBeInTheDocument();
+    });
+
     expect(initializeMock).not.toHaveBeenCalled();
-    expect(screen.getByText('Existing message')).toBeInTheDocument();
   });
 
   it('restores focus after a successful text send', async () => {
-    const { OnboardingChat } = await import('./onboarding-chat');
     sendTextMock.mockResolvedValue(
       makeSendResponse({
         userMessage: {
@@ -274,9 +298,11 @@ describe('OnboardingChat', () => {
       }),
     );
 
-    render(
-      <OnboardingChat conversation={makeConversation()} onComplete={vi.fn()} />,
-    );
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeEnabled();
+    });
 
     const textarea = screen.getByRole('textbox');
     fireEvent.change(textarea, {
@@ -302,12 +328,13 @@ describe('OnboardingChat', () => {
   });
 
   it('restores the draft and focus after a text send failure', async () => {
-    const { OnboardingChat } = await import('./onboarding-chat');
     sendTextMock.mockRejectedValue(new Error('Network failed.'));
 
-    render(
-      <OnboardingChat conversation={makeConversation()} onComplete={vi.fn()} />,
-    );
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeEnabled();
+    });
 
     const textarea = screen.getByRole('textbox');
     fireEvent.change(textarea, {
@@ -325,7 +352,6 @@ describe('OnboardingChat', () => {
   });
 
   it('records audio, shows a preview, and replaces the pending placeholder with the transcribed result', async () => {
-    const { OnboardingChat } = await import('./onboarding-chat');
     const audioResponse = deferred<SendOnboardingMessageResponse>();
     const stopTrack = vi.fn();
     getUserMediaMock.mockResolvedValue({
@@ -333,9 +359,11 @@ describe('OnboardingChat', () => {
     } as unknown as MediaStream);
     sendAudioMock.mockReturnValue(audioResponse.promise);
 
-    render(
-      <OnboardingChat conversation={makeConversation()} onComplete={vi.fn()} />,
-    );
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeEnabled();
+    });
 
     const micButton = screen.getByRole('button', { name: 'Hold to record audio' });
     fireEvent.pointerDown(micButton);
@@ -383,15 +411,16 @@ describe('OnboardingChat', () => {
   });
 
   it('restores the audio preview after an audio send failure', async () => {
-    const { OnboardingChat } = await import('./onboarding-chat');
     getUserMediaMock.mockResolvedValue({
       getTracks: () => [{ stop: vi.fn() }],
     } as unknown as MediaStream);
     sendAudioMock.mockRejectedValue(new Error('Transcription failed.'));
 
-    render(
-      <OnboardingChat conversation={makeConversation()} onComplete={vi.fn()} />,
-    );
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeEnabled();
+    });
 
     const textarea = screen.getByRole('textbox');
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Hold to record audio' }));
@@ -413,12 +442,13 @@ describe('OnboardingChat', () => {
   });
 
   it('surfaces recorder start failures in the shared chat error banner', async () => {
-    const { OnboardingChat } = await import('./onboarding-chat');
     getUserMediaMock.mockRejectedValue(new Error('Microphone permission denied.'));
 
-    render(
-      <OnboardingChat conversation={makeConversation()} onComplete={vi.fn()} />,
-    );
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeEnabled();
+    });
 
     const textarea = screen.getByRole('textbox');
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Hold to record audio' }));
@@ -433,14 +463,15 @@ describe('OnboardingChat', () => {
   });
 
   it('deletes the audio preview and refocuses the composer', async () => {
-    const { OnboardingChat } = await import('./onboarding-chat');
     getUserMediaMock.mockResolvedValue({
       getTracks: () => [{ stop: vi.fn() }],
     } as unknown as MediaStream);
 
-    render(
-      <OnboardingChat conversation={makeConversation()} onComplete={vi.fn()} />,
-    );
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeEnabled();
+    });
 
     const textarea = screen.getByRole('textbox');
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Hold to record audio' }));
@@ -460,14 +491,15 @@ describe('OnboardingChat', () => {
   });
 
   it('supports hold-to-record via keyboard interactions', async () => {
-    const { OnboardingChat } = await import('./onboarding-chat');
     getUserMediaMock.mockResolvedValue({
       getTracks: () => [{ stop: vi.fn() }],
     } as unknown as MediaStream);
 
-    render(
-      <OnboardingChat conversation={makeConversation()} onComplete={vi.fn()} />,
-    );
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeEnabled();
+    });
 
     const micButton = screen.getByRole('button', { name: 'Hold to record audio' });
     fireEvent.keyDown(micButton, { key: 'Enter' });
@@ -481,5 +513,39 @@ describe('OnboardingChat', () => {
     await waitFor(() => {
       expect(screen.getByText('Recorded audio')).toBeInTheDocument();
     });
+  });
+
+  it('blocks the composer and redirects after onboarding completion', async () => {
+    const onComplete = vi.fn();
+
+    sendTextMock.mockResolvedValue(
+      makeSendResponse({
+        onboarding: {
+          requiresOnboarding: false,
+          step: 'complete',
+        },
+      }),
+    );
+
+    render(createElement(OnboardingChat, { onComplete }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeEnabled();
+    });
+
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'Pode concluir.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send message' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeDisabled();
+    });
+
+    expect(screen.getByDisplayValue('')).toBeDisabled();
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    }, { timeout: 3500 });
   });
 });

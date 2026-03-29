@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { useApiClient } from '~/lib/api-client-context';
 import {
+  getOnboardingMessages,
   initializeOnboardingConversation,
   sendOnboardingAudioMessage,
   sendOnboardingTextMessage,
-  type OnboardingConversation,
   type OnboardingMessage,
 } from '../../../api/onboarding.api';
 import { OnboardingAudioPreview } from './onboarding-audio-preview';
@@ -17,19 +17,20 @@ import { mergeMessagesIdempotently } from './onboarding-chat.utils';
 import { useOnboardingAudioRecorder } from './use-onboarding-audio-recorder';
 
 interface OnboardingChatProps {
-  conversation: OnboardingConversation;
   onComplete: () => void;
 }
 
-export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps) {
+const COMPLETION_REDIRECT_DELAY_MS = 3000;
+
+export function OnboardingChat({ onComplete }: OnboardingChatProps) {
   const client = useApiClient();
-  const [messages, setMessages] = useState<OnboardingMessage[]>(conversation.messages);
+  const [messages, setMessages] = useState<OnboardingMessage[]>([]);
   const [draftText, setDraftText] = useState('');
-  const [composerState, setComposerState] = useState<ComposerState>(
-    conversation.isInitialized ? 'idle' : 'initializing',
-  );
+  const [composerState, setComposerState] = useState<ComposerState>('loading-history');
   const [error, setError] = useState<string | null>(null);
   const [pendingAudioMessageId, setPendingAudioMessageId] = useState<string | null>(null);
+  const [isConversationInitialized, setIsConversationInitialized] = useState(false);
+  const [hasLoadedConversation, setHasLoadedConversation] = useState(false);
   const {
     audioPreview,
     previewUrl,
@@ -42,11 +43,14 @@ export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const initializeAttemptedRef = useRef(false);
+  const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isBusy =
+    composerState === 'loading-history' ||
     composerState === 'initializing' ||
     composerState === 'sending-text' ||
-    composerState === 'sending-audio';
+    composerState === 'sending-audio' ||
+    composerState === 'completing';
   const isInputDisabled = isBusy || composerState === 'recording-audio';
   const transcriptItems = useMemo<TranscriptItem[]>(() => {
     const baseItems: TranscriptItem[] = [...messages];
@@ -83,9 +87,55 @@ export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps
   };
 
   useEffect(() => {
-    setMessages(conversation.messages);
-    setComposerState(conversation.isInitialized ? 'idle' : 'initializing');
-  }, [conversation.isInitialized, conversation.messages]);
+    return () => {
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadConversation = async () => {
+      setComposerState('loading-history');
+      setError(null);
+
+      try {
+        const conversation = await getOnboardingMessages(client);
+
+        if (isCancelled) {
+          return;
+        }
+
+        const nextMessages = conversation?.messages ?? [];
+        const nextIsInitialized = conversation?.isInitialized ?? false;
+
+        setMessages(nextMessages);
+        setIsConversationInitialized(nextIsInitialized);
+        setHasLoadedConversation(true);
+        setComposerState(nextIsInitialized ? 'idle' : 'initializing');
+      } catch (cause) {
+        if (isCancelled) {
+          return;
+        }
+
+        setHasLoadedConversation(true);
+        setComposerState('idle');
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : 'Failed to load onboarding messages. Please try again.',
+        );
+      }
+    };
+
+    void loadConversation();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [client]);
 
   useEffect(() => {
     adjustTextareaHeight();
@@ -133,12 +183,11 @@ export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps
         );
       }
 
+      setIsConversationInitialized(true);
       setComposerState('idle');
       focusComposer();
 
-      if (response.onboarding.step === 'complete') {
-        onComplete();
-      }
+      handleOnboardingStepChange(response.onboarding.step);
     } catch (cause) {
       setComposerState('idle');
       setError(
@@ -152,12 +201,30 @@ export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps
   };
 
   useEffect(() => {
-    if (conversation.isInitialized || initializeAttemptedRef.current) {
+    if (
+      !hasLoadedConversation ||
+      isConversationInitialized ||
+      initializeAttemptedRef.current
+    ) {
       return;
     }
 
     void runConversationInitialization().catch(() => undefined);
-  }, [client, conversation.isInitialized, onComplete]);
+  }, [client, hasLoadedConversation, isConversationInitialized]);
+
+  const handleOnboardingStepChange = (
+    step: 'company-bootstrap' | 'assistant-chat' | 'complete',
+  ) => {
+    if (step !== 'complete') {
+      return;
+    }
+
+    setComposerState('completing');
+    setError(null);
+    completionTimeoutRef.current = setTimeout(() => {
+      onComplete();
+    }, COMPLETION_REDIRECT_DELAY_MS);
+  };
 
   const handleTextSend = async () => {
     const message = draftText.trim();
@@ -191,11 +258,12 @@ export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps
           response.assistantMessage,
         ]);
       });
-      setComposerState('idle');
-      focusComposer();
+      setIsConversationInitialized(true);
+      handleOnboardingStepChange(response.onboarding.step);
 
-      if (response.onboarding.step === 'complete') {
-        onComplete();
+      if (response.onboarding.step !== 'complete') {
+        setComposerState('idle');
+        focusComposer();
       }
     } catch (cause) {
       setMessages((currentMessages) =>
@@ -279,14 +347,13 @@ export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps
           response.assistantMessage,
         ]),
       );
-      setComposerState('idle');
+      setIsConversationInitialized(true);
+      handleOnboardingStepChange(response.onboarding.step);
 
-      if (response.onboarding.step === 'complete') {
-        onComplete();
-        return;
+      if (response.onboarding.step !== 'complete') {
+        setComposerState('idle');
+        focusComposer();
       }
-
-      focusComposer();
     } catch (cause) {
       setPendingAudioMessageId(null);
       setComposerState('audio-preview');
@@ -338,9 +405,9 @@ export function OnboardingChat({ conversation, onComplete }: OnboardingChatProps
 
       <OnboardingChatErrorBanner
         error={error}
-        showRetry={!conversation.isInitialized && composerState === 'idle'}
+        showRetry={!isConversationInitialized && composerState === 'idle'}
         onRetry={
-          !conversation.isInitialized && composerState === 'idle'
+          !isConversationInitialized && composerState === 'idle'
             ? () => {
                 void runConversationInitialization().catch(() => undefined);
               }

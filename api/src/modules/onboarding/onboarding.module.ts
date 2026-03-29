@@ -11,6 +11,7 @@ import { OnboardingCompanyController } from './controllers/onboarding-company.co
 import { OnboardingStateController } from './controllers/onboarding-state.controller';
 import { OnboardingMessagesController } from './controllers/onboarding-messages.controller';
 import { CreateOnboardingCompanyUseCase } from './use-cases/create-onboarding-company.use-case';
+import { GetOnboardingMessagesUseCase } from './use-cases/get-onboarding-messages.use-case';
 import { GetOnboardingStateUseCase } from './use-cases/get-onboarding-state.use-case';
 import { SendOnboardingMessageUseCase } from './use-cases/send-onboarding-message.use-case';
 import { InitializeOnboardingConversationUseCase } from './use-cases/initialize-onboarding-conversation.use-case';
@@ -29,6 +30,7 @@ import { InitializeOnboardingConversationUseCase } from './use-cases/initialize-
   providers: [
     OnboardingConversationService,
     CreateOnboardingCompanyUseCase,
+    GetOnboardingMessagesUseCase,
     GetOnboardingStateUseCase,
     SendOnboardingMessageUseCase,
     InitializeOnboardingConversationUseCase,

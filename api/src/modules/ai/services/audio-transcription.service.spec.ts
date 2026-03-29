@@ -76,4 +76,33 @@ describe('AudioTranscriptionService', () => {
     expect(toFile).not.toHaveBeenCalled();
     expect(createMock).not.toHaveBeenCalled();
   });
+
+  it('normalizes common browser recording MIME aliases before transcribing', async () => {
+    const service = new AudioTranscriptionService(createConfigService('test'));
+
+    vi.mocked(toFile).mockResolvedValue(
+      {} as Awaited<ReturnType<typeof toFile>>,
+    );
+    createMock.mockResolvedValue({ text: 'ok' });
+
+    await expect(
+      service.transcribeAudio(Buffer.from('audio'), 'audio/webm;codecs=opus'),
+    ).resolves.toBe('ok');
+    await expect(
+      service.transcribeAudio(Buffer.from('audio'), 'audio/opus'),
+    ).resolves.toBe('ok');
+    await expect(
+      service.transcribeAudio(Buffer.from('audio'), 'video/webm'),
+    ).resolves.toBe('ok');
+
+    expect(toFile).toHaveBeenNthCalledWith(1, Buffer.from('audio'), 'audio.webm', {
+      type: 'audio/webm',
+    });
+    expect(toFile).toHaveBeenNthCalledWith(2, Buffer.from('audio'), 'audio.ogg', {
+      type: 'audio/ogg',
+    });
+    expect(toFile).toHaveBeenNthCalledWith(3, Buffer.from('audio'), 'audio.webm', {
+      type: 'audio/webm',
+    });
+  });
 });

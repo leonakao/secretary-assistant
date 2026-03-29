@@ -9,6 +9,18 @@ const mockBootstrapAuthSession = vi.fn();
 const mockIsUnauthorizedSessionError = vi.fn();
 const mockLocation = { pathname: '/app', search: '' };
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+}
+
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
 
@@ -90,6 +102,27 @@ describe('AuthenticatedAppShell', () => {
     });
   });
 
+  it('redirects unauthorized protected bootstrap failures back to login recovery', async () => {
+    mockBootstrapAuthSession.mockRejectedValue({ status: 401 });
+    mockIsUnauthorizedSessionError.mockReturnValue(true);
+    mockLocation.pathname = '/app/company';
+
+    render(<AuthenticatedAppShell />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('navigate-target')).toHaveTextContent(
+        '/login?mode=signin&redirectTo=%2Fapp%2Fcompany&sessionError=unauthorized',
+      );
+    });
+
+    expect(mockLogout).toHaveBeenCalledWith({
+      logoutParams: {
+        returnTo:
+          'http://localhost:5173/login?mode=signin&redirectTo=%2Fapp%2Fcompany&sessionError=unauthorized',
+      },
+    });
+  });
+
   it('renders shared navigation for eligible users', async () => {
     mockBootstrapAuthSession.mockResolvedValue({
       company: { name: 'Acme Co' },
@@ -110,6 +143,22 @@ describe('AuthenticatedAppShell', () => {
     expect(screen.getByTestId('shell-outlet')).toBeInTheDocument();
   });
 
+  it('shows a visible error instead of hanging when the session payload is malformed', async () => {
+    mockBootstrapAuthSession.mockResolvedValue({
+      company: { name: 'Acme Co' },
+      email: 'owner@example.com',
+      name: 'Owner',
+    });
+
+    render(<AuthenticatedAppShell />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Cannot read properties of undefined|Failed to process the authenticated workspace session/),
+      ).toBeInTheDocument();
+    });
+  });
+
   it('does not re-bootstrap the protected session on internal /app navigation', async () => {
     mockBootstrapAuthSession.mockResolvedValue({
       company: { name: 'Acme Co' },
@@ -126,6 +175,83 @@ describe('AuthenticatedAppShell', () => {
 
     mockLocation.pathname = '/app/company';
     view.rerender(<AuthenticatedAppShell />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('shell-outlet')).toBeInTheDocument();
+    });
+
+    expect(mockBootstrapAuthSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps loading the protected session across rerenders while bootstrap is still pending', async () => {
+    const pendingSession = deferred<{
+      company: { name: string };
+      email: string;
+      name: string;
+      onboarding: { requiresOnboarding: false; step: 'complete' };
+    }>();
+    mockBootstrapAuthSession.mockReturnValue(pendingSession.promise);
+
+    const initialClaims = vi.fn();
+    const nextClaims = vi.fn();
+    const initialLogout = vi.fn();
+    const nextLogout = vi.fn();
+
+    mockUseAppAuth
+      .mockReturnValueOnce({
+        getIdTokenClaims: initialClaims,
+        isAuthenticated: true,
+        isLoading: false,
+        logout: initialLogout,
+      })
+      .mockReturnValue({
+        getIdTokenClaims: nextClaims,
+        isAuthenticated: true,
+        isLoading: false,
+        logout: nextLogout,
+      });
+
+    const view = render(<AuthenticatedAppShell />);
+
+    expect(screen.getByText('Preparing your workspace...')).toBeInTheDocument();
+
+    view.rerender(<AuthenticatedAppShell />);
+
+    pendingSession.resolve({
+      company: { name: 'Acme Co' },
+      email: 'owner@example.com',
+      name: 'Owner',
+      onboarding: { requiresOnboarding: false, step: 'complete' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('shell-outlet')).toBeInTheDocument();
+    });
+
+    expect(mockBootstrapAuthSession).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the protected bootstrap alive when the app location changes before it resolves', async () => {
+    const pendingSession = deferred<{
+      company: { name: string };
+      email: string;
+      name: string;
+      onboarding: { requiresOnboarding: false; step: 'complete' };
+    }>();
+    mockBootstrapAuthSession.mockReturnValue(pendingSession.promise);
+    mockLocation.pathname = '/app';
+
+    const view = render(<AuthenticatedAppShell />);
+
+    mockLocation.pathname = '/app/company';
+    view.rerender(<AuthenticatedAppShell />);
+
+    pendingSession.resolve({
+      company: { name: 'Acme Co' },
+      email: 'owner@example.com',
+      name: 'Owner',
+      onboarding: { requiresOnboarding: false, step: 'complete' },
+    });
 
     await waitFor(() => {
       expect(screen.getByTestId('shell-outlet')).toBeInTheDocument();

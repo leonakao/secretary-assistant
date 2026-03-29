@@ -45,6 +45,12 @@ describe('interview-answer-agent helpers', () => {
     expect(
       __private__.resolveFallbackAnswer('Você está pronto para começar?'),
     ).toBe('Sim, estou pronto para começar.');
+
+    expect(
+      __private__.resolveFallbackAnswer(
+        'Posso finalizar o onboarding e ativar o sistema com base nas informações atuais? (Por favor responda "Sim" para finalizar ou "Ainda não" para continuar.)',
+      ),
+    ).toBe('Sim');
   });
 });
 
@@ -86,6 +92,24 @@ describe('generateInterviewAnswer', () => {
       answer: 'O telefone principal e +55 11 4000-1234.',
       model: 'gpt-5-nano',
     });
+  });
+
+  it('returns the deterministic finalization answer without calling the provider', async () => {
+    process.env.OPENAI_API_KEY = 'test-key';
+    global.fetch = vi.fn() as typeof fetch;
+
+    await expect(
+      generateInterviewAnswer({
+        briefingMarkdown: '# briefing',
+        question:
+          'Posso finalizar o onboarding e ativar o sistema com base nas informações atuais? (Por favor responda "Sim" para finalizar ou "Ainda não" para continuar.)',
+      }),
+    ).resolves.toEqual({
+      answer: 'Sim',
+      model: 'gpt-5-nano:fallback',
+    });
+
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('uses a fallback answer when the provider returns an empty payload for a confirmation prompt', async () => {

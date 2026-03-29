@@ -5,6 +5,7 @@ import { LoginPage } from './index';
 const mockNavigate = vi.fn();
 const mockLoginWithRedirect = vi.fn();
 const mockGetIdTokenClaims = vi.fn();
+const mockLogout = vi.fn();
 const mockUseAppAuth = vi.fn();
 const mockBootstrapAuthSession = vi.fn();
 const mockIsUnauthorizedSessionError = vi.fn();
@@ -36,6 +37,7 @@ vi.mock('~/modules/auth/session', () => ({
 }));
 
 vi.mock('~/lib/runtime-config.client', () => ({
+  getAuth0AppOrigin: () => 'http://localhost:5173',
   getAuth0RedirectUri: () => 'http://localhost:5173/login',
 }));
 
@@ -45,6 +47,7 @@ describe('LoginPage', () => {
     mockNavigate.mockReset();
     mockLoginWithRedirect.mockReset();
     mockGetIdTokenClaims.mockReset();
+    mockLogout.mockReset();
     mockUseAppAuth.mockReset();
     mockBootstrapAuthSession.mockReset();
     mockIsUnauthorizedSessionError.mockReset();
@@ -56,6 +59,7 @@ describe('LoginPage', () => {
       isAuthenticated: true,
       isLoading: false,
       loginWithRedirect: mockLoginWithRedirect,
+      logout: mockLogout,
     });
   });
 
@@ -94,6 +98,24 @@ describe('LoginPage', () => {
     expect(screen.getByText('Still unavailable')).toBeInTheDocument();
   });
 
+  it('redirects 401 bootstrap failures into login recovery instead of staying on active session', async () => {
+    mockBootstrapAuthSession.mockRejectedValue({
+      status: 401,
+    });
+    mockIsUnauthorizedSessionError.mockReturnValue(true);
+
+    render(<LoginPage />);
+
+    await waitFor(() => {
+      expect(mockLogout).toHaveBeenCalledWith({
+        logoutParams: {
+          returnTo:
+            'http://localhost:5173/login?mode=signin&redirectTo=%2Fapp&sessionError=unauthorized',
+        },
+      });
+    });
+  });
+
   it('preserves /app deep links after successful session bootstrap', async () => {
     mockSearchParams = new URLSearchParams(
       'mode=signin&redirectTo=%2Fapp%2Fcompany',
@@ -129,6 +151,56 @@ describe('LoginPage', () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
+  it('keeps the login bootstrap alive when auth callbacks rerender before it resolves', async () => {
+    let resolveBootstrap!: (value: {
+      onboarding: { requiresOnboarding: false; step: 'complete' };
+    }) => void;
+    const pendingBootstrap = new Promise<{
+      onboarding: { requiresOnboarding: false; step: 'complete' };
+    }>((resolve) => {
+      resolveBootstrap = resolve;
+    });
+
+    mockBootstrapAuthSession.mockReturnValue(pendingBootstrap);
+
+    const initialClaims = vi.fn();
+    const nextClaims = vi.fn();
+
+    mockUseAppAuth
+      .mockReturnValueOnce({
+        error: undefined,
+        getIdTokenClaims: initialClaims,
+        isAuthenticated: true,
+        isLoading: false,
+        loginWithRedirect: mockLoginWithRedirect,
+        logout: mockLogout,
+      })
+      .mockReturnValue({
+        error: undefined,
+        getIdTokenClaims: nextClaims,
+        isAuthenticated: true,
+        isLoading: false,
+        loginWithRedirect: mockLoginWithRedirect,
+        logout: mockLogout,
+      });
+
+    const view = render(<LoginPage />);
+
+    expect(screen.getByText('Resolving your session...')).toBeInTheDocument();
+
+    view.rerender(<LoginPage />);
+
+    resolveBootstrap({
+      onboarding: { requiresOnboarding: false, step: 'complete' },
+    });
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/app', { replace: true });
+    });
+
+    expect(mockBootstrapAuthSession).toHaveBeenCalledTimes(1);
+  });
+
   it('still prefers onboarding when the authenticated user requires onboarding', async () => {
     mockSearchParams = new URLSearchParams(
       'mode=signin&redirectTo=%2Fapp%2Fcompany',
@@ -153,6 +225,7 @@ describe('LoginPage', () => {
       isAuthenticated: false,
       isLoading: false,
       loginWithRedirect: mockLoginWithRedirect,
+      logout: mockLogout,
     });
     mockSearchParams = new URLSearchParams('mode=signup');
 

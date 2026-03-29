@@ -2,8 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { AlertTriangle, Bot, LoaderCircle, LogIn, UserRoundPlus } from 'lucide-react';
 import { Button } from '~/components/ui/button';
-import { getAuth0RedirectUri } from '~/lib/runtime-config.client';
-import { isUnauthorizedSessionRecovery } from '~/modules/auth/session-recovery';
+import {
+  getAuth0AppOrigin,
+  getAuth0RedirectUri,
+} from '~/lib/runtime-config.client';
+import {
+  buildUnauthorizedSessionRecoveryPath,
+  isUnauthorizedSessionRecovery,
+} from '~/modules/auth/session-recovery';
 import { useAppAuth } from '~/modules/auth/auth-provider';
 import {
   bootstrapAuthSession,
@@ -40,8 +46,26 @@ function resolveAuthReturnTo(nextMode: AuthMode, redirectTo: string): string {
   return redirectTo;
 }
 
+function logLoginDebug(message: string, details?: unknown): void {
+  if (details === undefined) {
+    console.log(`[auth/login-page] ${message}`);
+    return;
+  }
+
+  console.log(`[auth/login-page] ${message}`, details);
+}
+
+let loginPageInstanceSequence = 0;
+
 export function LoginPage() {
-  const { error, isAuthenticated, isLoading, loginWithRedirect, getIdTokenClaims } =
+  const {
+    error,
+    isAuthenticated,
+    isLoading,
+    loginWithRedirect,
+    getIdTokenClaims,
+    logout,
+  } =
     useAppAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -49,11 +73,34 @@ export function LoginPage() {
   const [sessionBootstrapError, setSessionBootstrapError] = useState<string | null>(null);
   const [sessionBootstrapAttempt, setSessionBootstrapAttempt] = useState(0);
   const hasBootstrappedSessionAttemptRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
+  const getIdTokenClaimsRef = useRef(getIdTokenClaims);
+  const logoutRef = useRef(logout);
+  const instanceIdRef = useRef(++loginPageInstanceSequence);
 
   const mode: AuthMode =
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
   const redirectTo = getSafeRedirectTarget(searchParams.get('redirectTo'));
   const isUnauthorizedRecovery = isUnauthorizedSessionRecovery(searchParams);
+
+  useEffect(() => {
+    getIdTokenClaimsRef.current = getIdTokenClaims;
+    logoutRef.current = logout;
+  }, [getIdTokenClaims, logout]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    logLoginDebug('Mounted login page instance', {
+      instanceId: instanceIdRef.current,
+    });
+
+    return () => {
+      logLoginDebug('Unmounted login page instance', {
+        instanceId: instanceIdRef.current,
+      });
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const handleAuth = (nextMode: AuthMode) =>
     loginWithRedirect({
@@ -70,7 +117,36 @@ export function LoginPage() {
     });
 
   useEffect(() => {
+    logLoginDebug('Rendered with auth state', {
+      instanceId: instanceIdRef.current,
+      isAuthenticated,
+      isLoading,
+      isResolvingSession,
+      isUnauthorizedRecovery,
+      mode,
+      redirectTo,
+      sessionBootstrapAttempt,
+      sessionBootstrapError,
+    });
+  }, [
+    isAuthenticated,
+    isLoading,
+    isResolvingSession,
+    isUnauthorizedRecovery,
+    mode,
+    redirectTo,
+    sessionBootstrapAttempt,
+    sessionBootstrapError,
+  ]);
+
+  useEffect(() => {
     if (isLoading || !isAuthenticated || isUnauthorizedRecovery) {
+      logLoginDebug('Skipping bootstrap effect', {
+        instanceId: instanceIdRef.current,
+        isLoading,
+        isAuthenticated,
+        isUnauthorizedRecovery,
+      });
       hasBootstrappedSessionAttemptRef.current = null;
       setSessionBootstrapError(null);
       setIsResolvingSession(false);
@@ -78,47 +154,99 @@ export function LoginPage() {
     }
 
     if (hasBootstrappedSessionAttemptRef.current === sessionBootstrapAttempt) {
+      logLoginDebug('Bootstrap already attempted for current counter', {
+        instanceId: instanceIdRef.current,
+        sessionBootstrapAttempt,
+      });
       return;
     }
 
     hasBootstrappedSessionAttemptRef.current = sessionBootstrapAttempt;
-    let cancelled = false;
     setIsResolvingSession(true);
     setSessionBootstrapError(null);
+    logLoginDebug('Starting session bootstrap', {
+      instanceId: instanceIdRef.current,
+      redirectTo,
+      sessionBootstrapAttempt,
+    });
 
-    void bootstrapAuthSession(() => getIdTokenClaims()).then(
+    void bootstrapAuthSession(() => getIdTokenClaimsRef.current()).then(
       (sessionUser) => {
-        if (!cancelled) {
+        if (!isMountedRef.current) {
+          logLoginDebug('Bootstrap resolved after unmount');
+          return;
+        }
+
+        try {
+          setIsResolvingSession(false);
           setSessionBootstrapError(null);
+          logLoginDebug('Bootstrap resolved successfully', {
+            instanceId: instanceIdRef.current,
+            sessionUser,
+          });
           const target = resolvePostLoginNavigationTarget(
             redirectTo,
             resolveAuthenticatedEntryTarget(sessionUser),
           );
+          logLoginDebug('Navigating after successful bootstrap', {
+            instanceId: instanceIdRef.current,
+            target,
+          });
           void navigate(target, { replace: true });
+        } catch (cause) {
+          setIsResolvingSession(false);
+          logLoginDebug('Bootstrap success handler failed', {
+            instanceId: instanceIdRef.current,
+            cause,
+          });
+          setSessionBootstrapError(
+            cause instanceof Error
+              ? cause.message
+              : 'We could not process your authenticated session.',
+          );
         }
       },
       (cause: unknown) => {
-        if (!cancelled) {
-          setIsResolvingSession(false);
-          if (!isUnauthorizedSessionError(cause)) {
-            setSessionBootstrapError(
-              cause instanceof Error
-                ? cause.message
-                : 'We could not validate your session. Please try again.',
-            );
-          }
+        if (!isMountedRef.current) {
+          logLoginDebug('Bootstrap rejected after unmount', {
+            instanceId: instanceIdRef.current,
+            cause,
+          });
+          return;
         }
+
+        setIsResolvingSession(false);
+        if (isUnauthorizedSessionError(cause)) {
+          const recoveryPath = buildUnauthorizedSessionRecoveryPath(redirectTo);
+          logLoginDebug('Bootstrap rejected with unauthorized error', {
+            instanceId: instanceIdRef.current,
+            recoveryPath,
+            cause,
+          });
+          logoutRef.current({
+            logoutParams: {
+              returnTo: new URL(recoveryPath, getAuth0AppOrigin()).toString(),
+            },
+          });
+          return;
+        }
+
+        logLoginDebug('Bootstrap rejected with non-401 error', {
+          instanceId: instanceIdRef.current,
+          cause,
+        });
+        setSessionBootstrapError(
+          cause instanceof Error
+            ? cause.message
+            : 'We could not validate your session. Please try again.',
+        );
       },
     );
-
-    return () => {
-      cancelled = true;
-    };
   }, [
-    getIdTokenClaims,
     isAuthenticated,
     isLoading,
     isUnauthorizedRecovery,
+    logout,
     navigate,
     redirectTo,
     sessionBootstrapAttempt,

@@ -1,22 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI, { toFile } from 'openai';
+import {
+  normalizeAudioMimeType,
+  SUPPORTED_AUDIO_MIME_TYPES,
+} from './audio-mime-type';
 
 @Injectable()
 export class AudioTranscriptionService {
-  private static readonly SUPPORTED_MIME_TYPES = new Set([
-    'audio/aac',
-    'audio/flac',
-    'audio/mp3',
-    'audio/mp4',
-    'audio/mpeg',
-    'audio/mpga',
-    'audio/ogg',
-    'audio/wav',
-    'audio/webm',
-    'audio/x-wav',
-  ]);
-
   private readonly client: OpenAI;
   private readonly model = 'gpt-4o-mini-transcribe';
 
@@ -57,11 +48,11 @@ export class AudioTranscriptionService {
   }
 
   private normalizeMimeType(mimeType: string): string {
-    const normalizedMimeType = mimeType.toLowerCase().split(';')[0].trim();
+    const normalizedMimeType = normalizeAudioMimeType(mimeType);
 
     if (
       !normalizedMimeType ||
-      !AudioTranscriptionService.SUPPORTED_MIME_TYPES.has(normalizedMimeType)
+      !SUPPORTED_AUDIO_MIME_TYPES.has(normalizedMimeType)
     ) {
       throw new BadRequestException('Unsupported audio MIME type');
     }

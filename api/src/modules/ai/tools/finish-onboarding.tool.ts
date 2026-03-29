@@ -91,10 +91,11 @@ Seções (inclua apenas se houver informação):
 ## Outras Informações
 
 Regras:
-- Comece DIRETO com # [Nome da Empresa]
+- Comece DIRETO com #Nome da Empresa
 - Use listas com - para múltiplos itens
 - Seja objetivo e direto
 - Não adicione informações que não estão na conversa
+- Não adicione informações que não foram definidas explicitamente ou que o usuário não respondeu
 - Complete TODAS as seções até o final
 
 CONVERSA:
@@ -103,13 +104,7 @@ ${conversationHistory}
 MARKDOWN:`;
 
     let description = await this.langchainService.chat(prompt, 8192);
-
-    const markdownStart = description.indexOf('# ');
-    if (markdownStart > 0) {
-      description = description.substring(markdownStart);
-    }
-
-    description = description.trim();
+    description = this.normalizeGeneratedMarkdown(description);
 
     await this.companyRepository.update(
       { id: companyId },
@@ -121,5 +116,28 @@ MARKDOWN:`;
     );
 
     return 'Onboarding finalizado com sucesso e empresa marcada como "running".';
+  }
+
+  private normalizeGeneratedMarkdown(rawDescription: string): string {
+    let description = rawDescription.trim();
+
+    const markdownStart = description.indexOf('# ');
+    if (markdownStart > 0) {
+      description = description.substring(markdownStart);
+    }
+
+    description = description
+      .replace(/\\"/g, '"')
+      .replace(/\\n/g, '\n')
+      .replace(/\\t/g, '\t');
+
+    const annotationsMarker = description.indexOf('","annotations":');
+    if (annotationsMarker >= 0) {
+      description = description.substring(0, annotationsMarker);
+    }
+
+    description = description.replace(/"\s*\}\s*\]\s*$/, '');
+
+    return description.trim();
   }
 }
