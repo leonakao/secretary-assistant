@@ -93,9 +93,11 @@ Seções (inclua apenas se houver informação):
 Regras:
 - Comece DIRETO com #Nome da Empresa
 - Use listas com - para múltiplos itens
+- Use sub-listas quando necessário para agrupar informações relacionadas
 - Seja objetivo e direto
 - Não adicione informações que não estão na conversa
 - Não adicione informações que não foram definidas explicitamente ou que o usuário não respondeu
+- 
 - Complete TODAS as seções até o final
 
 CONVERSA:
