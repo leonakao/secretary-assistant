@@ -67,9 +67,12 @@ export function OnboardingPage() {
   const currentStepIndex = steps.findIndex((s) => s.id === step);
 
   return (
-    <main className="flex min-h-screen bg-background" data-testid="onboarding-page">
+    <main
+      className="flex min-h-screen bg-background lg:h-screen lg:overflow-hidden"
+      data-testid="onboarding-page"
+    >
       {/* Sidebar */}
-      <aside className="hidden w-72 shrink-0 flex-col justify-between border-r border-border bg-[var(--color-surface-hero)] px-8 py-10 lg:flex">
+      <aside className="hidden w-72 shrink-0 flex-col justify-between border-r border-border bg-[var(--color-surface-hero)] px-8 py-10 lg:sticky lg:top-0 lg:flex lg:h-screen">
         <div className="space-y-10">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand">
@@ -121,7 +124,7 @@ export function OnboardingPage() {
       </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-y-auto">
         {step === 'company-bootstrap' ? (
           <div className="flex flex-1 items-center justify-center px-6 py-10">
             <div
