@@ -13,6 +13,8 @@ services:
       - 3000:3000
     env_file:
       - ./api/.env
+    environment:
+      - EVOLUTION_WEBHOOK_BASE_URL=http://api:3000
     depends_on:
       db:
         condition: service_healthy
@@ -47,7 +49,7 @@ services:
       - 5173:5173
 
   evolution-api:
-    image: atendai/evolution-api:v2.1.1
+    image: evoapicloud/evolution-api:v2.3.7
     container_name: evolution_api
     ports:
       - 8080:8080
@@ -55,7 +57,7 @@ services:
       - path: ./api/.env
         required: false
     environment:
-      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY:-change-me}
+      - EVOLUTION_WEBHOOK_BASE_URL=http://api:3000
       - DATABASE_ENABLED=true
       - DATABASE_PROVIDER=postgresql
       - DATABASE_CONNECTION_URI=postgresql://postgres:postgres@db:5432/postgres?schema=evolution
@@ -71,7 +73,6 @@ services:
       - WEBHOOK_GLOBAL_URL=http://api:3000/webhooks/evolution
       - WEBHOOK_GLOBAL_ENABLED=false
       - WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS=true
-      - CONFIG_SESSION_PHONE_VERSION=2.3000.1026080446
       - CONFIG_SESSION_PHONE_CLIENT="Secretary Assistant"
     volumes:
       - evolution_instances:/evolution/instances

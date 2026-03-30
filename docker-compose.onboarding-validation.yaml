@@ -44,6 +44,7 @@ services:
       NODE_ENV: development
       PORT: 3000
       E2E_AUTH_MODE: 'true'
+      EVOLUTION_WEBHOOK_BASE_URL: http://onboarding-validation-api:3000
     depends_on:
       onboarding-validation-db:
         condition: service_healthy

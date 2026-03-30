@@ -9,7 +9,9 @@ function makeUser() {
 describe('OnboardingMessagesController', () => {
   it('returns the onboarding transcript from the dedicated read endpoint', async () => {
     const getOnboardingMessages = {
-      execute: vi.fn().mockResolvedValue({ threadId: 'thread-1', messages: [] }),
+      execute: vi
+        .fn()
+        .mockResolvedValue({ threadId: 'thread-1', messages: [] }),
     };
     const controller = new OnboardingMessagesController(
       getOnboardingMessages as any,

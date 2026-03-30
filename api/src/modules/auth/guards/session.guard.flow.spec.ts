@@ -77,16 +77,16 @@ describe('SessionGuard flow', () => {
     };
 
     const configGetMock = vi.fn((key: string, fallback?: string) => {
-        if (key === 'E2E_AUTH_MODE') {
-          return 'true';
-        }
+      if (key === 'E2E_AUTH_MODE') {
+        return 'true';
+      }
 
-        if (key === 'NODE_ENV') {
-          return 'test';
-        }
+      if (key === 'NODE_ENV') {
+        return 'test';
+      }
 
-        return fallback;
-      });
+      return fallback;
+    });
 
     const configService: Pick<ConfigService, 'get'> = {
       get: configGetMock as unknown as Pick<ConfigService, 'get'>['get'],

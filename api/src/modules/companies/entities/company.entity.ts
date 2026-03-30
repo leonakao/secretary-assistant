@@ -25,6 +25,9 @@ export class Company {
   @Column({ type: 'boolean', default: false })
   isClientsSupportEnabled: boolean;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  evolutionInstanceName: string | null;
+
   @Column({ type: 'varchar', length: 50, default: 'running' })
   step: 'running' | 'onboarding';
 

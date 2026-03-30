@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Company } from 'src/modules/companies/entities/company.entity';
 import { UserCompany } from 'src/modules/companies/entities/user-company.entity';
+import { ProvisionCompanyWhatsAppInstanceService } from 'src/modules/companies/services/provision-company-whatsapp-instance.service';
 import {
   mapOnboardingState,
   type OnboardingCompanyResult,
@@ -23,6 +24,7 @@ export class CreateOnboardingCompanyUseCase {
     private readonly companyRepository: Repository<Company>,
     @InjectRepository(UserCompany)
     private readonly userCompanyRepository: Repository<UserCompany>,
+    private readonly provisionCompanyWhatsAppInstance: ProvisionCompanyWhatsAppInstanceService,
   ) {}
 
   async execute(
@@ -58,7 +60,10 @@ export class CreateOnboardingCompanyUseCase {
       }),
     );
 
-    userCompany.company = company;
+    const provisionedCompany =
+      await this.provisionCompanyWhatsAppInstance.tryProvision(company);
+
+    userCompany.company = provisionedCompany;
 
     const { company: companyResult, onboarding } = mapOnboardingState(
       userCompany as UserCompany & { company: Company },

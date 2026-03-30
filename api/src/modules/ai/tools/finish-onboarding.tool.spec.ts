@@ -22,7 +22,9 @@ describe('FinishOnboardingTool', () => {
     const langchainService = {
       chat: vi
         .fn()
-        .mockResolvedValue('# Luna Clean\n\n## Horário de Atendimento\n- Segunda a sexta'),
+        .mockResolvedValue(
+          '# Luna Clean\n\n## Horário de Atendimento\n- Segunda a sexta',
+        ),
     };
     const tool = new FinishOnboardingTool(
       companyRepository as any,
@@ -30,16 +32,13 @@ describe('FinishOnboardingTool', () => {
       langchainService as any,
     );
 
-    const result = await tool.invoke(
-      {},
-      {
-        context: {
-          companyId: 'company-1',
-          userId: 'user-1',
-        },
-        messages: [],
-      } as any,
-    );
+    const result = await tool.invoke({}, {
+      context: {
+        companyId: 'company-1',
+        userId: 'user-1',
+      },
+      messages: [],
+    } as any);
 
     expect(memoryRepository.find).toHaveBeenCalledWith({
       where: { sessionId: 'onboarding:company-1:user-1' },
@@ -48,7 +47,8 @@ describe('FinishOnboardingTool', () => {
     expect(companyRepository.update).toHaveBeenCalledWith(
       { id: 'company-1' },
       expect.objectContaining({
-        description: '# Luna Clean\n\n## Horário de Atendimento\n- Segunda a sexta',
+        description:
+          '# Luna Clean\n\n## Horário de Atendimento\n- Segunda a sexta',
         step: 'running',
         isClientsSupportEnabled: true,
       }),
@@ -76,16 +76,13 @@ describe('FinishOnboardingTool', () => {
       langchainService as any,
     );
 
-    const result = await tool.invoke(
-      {},
-      {
-        context: {
-          companyId: 'company-1',
-          userId: 'user-1',
-        },
-        messages: [],
-      } as any,
-    );
+    const result = await tool.invoke({}, {
+      context: {
+        companyId: 'company-1',
+        userId: 'user-1',
+      },
+      messages: [],
+    } as any);
 
     expect(memoryRepository.find).toHaveBeenCalledWith({
       where: { sessionId: 'onboarding:company-1:user-1' },
@@ -132,21 +129,19 @@ describe('FinishOnboardingTool', () => {
       langchainService as any,
     );
 
-    await tool.invoke(
-      {},
-      {
-        context: {
-          companyId: 'company-1',
-          userId: 'user-1',
-        },
-        messages: [],
-      } as any,
-    );
+    await tool.invoke({}, {
+      context: {
+        companyId: 'company-1',
+        userId: 'user-1',
+      },
+      messages: [],
+    } as any);
 
     expect(companyRepository.update).toHaveBeenCalledWith(
       { id: 'company-1' },
       expect.objectContaining({
-        description: '# Luna Clean\n\n## Sobre a Empresa\n- Limpeza residencial',
+        description:
+          '# Luna Clean\n\n## Sobre a Empresa\n- Limpeza residencial',
       }),
     );
   });

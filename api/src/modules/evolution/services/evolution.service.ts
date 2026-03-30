@@ -1,6 +1,28 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+interface EvolutionCreateInstanceParams {
+  instanceName: string;
+  integration?: 'WHATSAPP-BAILEYS' | 'WHATSAPP-BUSINESS';
+  token?: string;
+  qrcode?: boolean;
+  number?: string;
+  rejectCall?: boolean;
+  msgCall?: string;
+  groupsIgnore?: boolean;
+  alwaysOnline?: boolean;
+  readMessages?: boolean;
+  readStatus?: boolean;
+  syncFullHistory?: boolean;
+  webhook?: {
+    url: string;
+    byEvents?: boolean;
+    base64?: boolean;
+    headers?: Record<string, string>;
+    events?: string[];
+  };
+}
+
 @Injectable()
 export class EvolutionService {
   private readonly logger = new Logger(EvolutionService.name);
@@ -12,6 +34,37 @@ export class EvolutionService {
       this.configService.get<string>('EVOLUTION_API_URL') ||
       'http://evolution-api:8080';
     this.apiKey = this.configService.getOrThrow<string>('EVOLUTION_API_KEY');
+  }
+
+  async createInstance(params: EvolutionCreateInstanceParams): Promise<any> {
+    const response = await fetch(`${this.evolutionApiUrl}/instance/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: this.apiKey,
+      },
+      body: JSON.stringify({
+        integration: 'WHATSAPP-BAILEYS',
+        qrcode: true,
+        rejectCall: true,
+        groupsIgnore: true,
+        alwaysOnline: true,
+        readMessages: true,
+        readStatus: true,
+        syncFullHistory: false,
+        ...params,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      this.logger.error(`Failed to create instance: ${error}`);
+      throw new Error(`Failed to create instance: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    this.logger.log(`Instance created successfully: ${params.instanceName}`);
+    return result;
   }
 
   async sendTextMessage(params: {
@@ -106,6 +159,60 @@ export class EvolutionService {
     }
 
     return await response.json();
+  }
+
+  async getConnectionPayload(
+    instanceName: string,
+    number?: string,
+  ): Promise<any> {
+    const searchParams = new URLSearchParams();
+
+    if (number) {
+      searchParams.set('number', number);
+    }
+
+    const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : '';
+    const response = await fetch(
+      `${this.evolutionApiUrl}/instance/connect/${instanceName}${suffix}`,
+      {
+        method: 'GET',
+        headers: {
+          apikey: this.apiKey,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      this.logger.error(`Failed to get connection payload: ${error}`);
+      throw new Error(
+        `Failed to get connection payload: ${response.statusText}`,
+      );
+    }
+
+    return await response.json();
+  }
+
+  async logoutInstance(instanceName: string): Promise<any> {
+    const response = await fetch(
+      `${this.evolutionApiUrl}/instance/logout/${instanceName}`,
+      {
+        method: 'DELETE',
+        headers: {
+          apikey: this.apiKey,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      this.logger.error(`Failed to logout instance: ${error}`);
+      throw new Error(`Failed to logout instance: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    this.logger.log(`Instance logged out successfully: ${instanceName}`);
+    return result;
   }
 
   async sendPresence(params: {

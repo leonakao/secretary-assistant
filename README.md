@@ -38,9 +38,15 @@ Key variables to set in `api/.env`:
 | Variable | Description |
 |---|---|
 | `GOOGLE_API_KEY` | Google Gemini API key |
-| `EVOLUTION_API_KEY` | Shared with Evolution API service |
+| `EVOLUTION_API_KEY` | API key used by the NestJS app when calling Evolution |
+| `AUTHENTICATION_API_KEY` | API key expected by the Evolution API container; set it equal to `EVOLUTION_API_KEY` in local Docker setups |
 | `EVOLUTION_API_URL` | Evolution API base URL (default: `http://evolution-api:8080`) |
 | `EVOLUTION_API_TOKEN` | Webhook security token for Evolution API callbacks |
+
+For the default Docker stack, `api/.env` must include both `EVOLUTION_API_KEY`
+and `AUTHENTICATION_API_KEY` with the same value. The API uses
+`EVOLUTION_API_KEY` for outbound requests, while the Evolution container reads
+`AUTHENTICATION_API_KEY` directly from the same env file.
 
 Key variables to set in `web/.env`:
 

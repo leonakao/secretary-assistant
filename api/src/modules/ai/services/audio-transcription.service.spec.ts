@@ -95,14 +95,29 @@ describe('AudioTranscriptionService', () => {
       service.transcribeAudio(Buffer.from('audio'), 'video/webm'),
     ).resolves.toBe('ok');
 
-    expect(toFile).toHaveBeenNthCalledWith(1, Buffer.from('audio'), 'audio.webm', {
-      type: 'audio/webm',
-    });
-    expect(toFile).toHaveBeenNthCalledWith(2, Buffer.from('audio'), 'audio.ogg', {
-      type: 'audio/ogg',
-    });
-    expect(toFile).toHaveBeenNthCalledWith(3, Buffer.from('audio'), 'audio.webm', {
-      type: 'audio/webm',
-    });
+    expect(toFile).toHaveBeenNthCalledWith(
+      1,
+      Buffer.from('audio'),
+      'audio.webm',
+      {
+        type: 'audio/webm',
+      },
+    );
+    expect(toFile).toHaveBeenNthCalledWith(
+      2,
+      Buffer.from('audio'),
+      'audio.ogg',
+      {
+        type: 'audio/ogg',
+      },
+    );
+    expect(toFile).toHaveBeenNthCalledWith(
+      3,
+      Buffer.from('audio'),
+      'audio.webm',
+      {
+        type: 'audio/webm',
+      },
+    );
   });
 });
