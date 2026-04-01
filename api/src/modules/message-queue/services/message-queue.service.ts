@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -9,21 +9,30 @@ import {
   QueuedWhatsappMessage,
 } from '../entities/message-queue.entity';
 
+type EnqueueMessageParams =
+  | {
+      companyId: string;
+      conversationKey: string;
+      channel: MessageQueueChannel.WHATSAPP;
+      message: QueuedWhatsappMessage;
+    }
+  | {
+      companyId: string;
+      conversationKey: string;
+      channel: MessageQueueChannel.WEB_CHAT;
+      message: QueuedWebChatMessage;
+    };
+
 @Injectable()
 export class MessageQueueService {
-  private readonly logger = new Logger(MessageQueueService.name);
-
   constructor(
     @InjectRepository(MessageQueue)
     private readonly messageQueueRepository: Repository<MessageQueue>,
   ) {}
 
-  async enqueueWhatsapp(
-    companyId: string,
-    conversationKey: string,
-    message: QueuedWhatsappMessage,
-  ): Promise<MessageQueue> {
-    // Use atomic ON CONFLICT upsert to safely append messages
+  async enqueueMessage(params: EnqueueMessageParams): Promise<MessageQueue> {
+    // Use atomic ON CONFLICT upsert to safely append messages for any pending
+    // conversation, regardless of channel.
     const result = await this.messageQueueRepository.query(
       `
       INSERT INTO message_queue (id, company_id, conversation_key, channel, messages, status, enqueued_at, last_message_at)
@@ -35,46 +44,15 @@ export class MessageQueueService {
       RETURNING *
       `,
       [
-        companyId,
-        conversationKey,
-        MessageQueueChannel.WHATSAPP,
-        JSON.stringify([message]),
+        params.companyId,
+        params.conversationKey,
+        params.channel,
+        JSON.stringify([params.message]),
         MessageQueueStatus.PENDING,
       ],
     );
 
     return result[0];
-  }
-
-  async enqueueWebChat(
-    companyId: string,
-    conversationKey: string,
-    message: QueuedWebChatMessage,
-  ): Promise<MessageQueue> {
-    // Check if pending or processing item exists
-    const existing = await this.messageQueueRepository.findOne({
-      where: [
-        { conversationKey, status: MessageQueueStatus.PENDING },
-        { conversationKey, status: MessageQueueStatus.PROCESSING },
-      ],
-    });
-
-    if (existing) {
-      throw new ConflictException(
-        `A message is already pending or processing for conversation ${conversationKey}`,
-      );
-    }
-
-    // Create new item
-    const newItem = this.messageQueueRepository.create({
-      companyId,
-      conversationKey,
-      channel: MessageQueueChannel.WEB_CHAT,
-      messages: [message],
-      lastMessageAt: new Date(),
-    });
-
-    return this.messageQueueRepository.save(newItem);
   }
 
   async findReadyItems(debounceMs: number): Promise<MessageQueue[]> {

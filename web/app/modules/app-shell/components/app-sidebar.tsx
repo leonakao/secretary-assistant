@@ -21,7 +21,7 @@ export function AppSidebar({ onLogout, sessionUser }: AppSidebarProps) {
             <p className="text-sm font-semibold tracking-tight">
               Secretary Assistant
             </p>
-            <p className="text-xs text-white/50">Authenticated workspace</p>
+            <p className="text-xs text-white/50">Área autenticada</p>
           </div>
         </div>
 
@@ -43,7 +43,7 @@ export function AppSidebar({ onLogout, sessionUser }: AppSidebarProps) {
           variant="outline"
         >
           <LogOut className="h-4 w-4" />
-          Log out
+          Sair
         </Button>
       </div>
     </aside>

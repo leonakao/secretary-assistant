@@ -9,17 +9,17 @@ export function CtaSection() {
         <div className="mx-auto max-w-4xl text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-xs font-semibold text-brand">
             <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-            Free to get started
+            Grátis para começar
           </div>
 
           <h2 className="mt-6 text-3xl font-bold tracking-tight text-surface-hero-foreground sm:text-5xl">
-            Ready to stop answering
+            Pronto para parar de responder
             <br />
-            the same messages?
+            as mesmas mensagens?
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-7 text-surface-hero-muted">
-            Set up your AI secretary in minutes. Connect your WhatsApp, describe
-            your business, and let the agent handle the rest — 24 hours a day.
+            Configure sua secretária com IA em minutos. Conecte seu WhatsApp,
+            descreva seu negócio e deixe o agente cuidar do resto, 24 horas por dia.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -27,14 +27,14 @@ export function CtaSection() {
               to="/login?mode=signup"
               className="flex items-center gap-2 rounded-xl bg-brand px-8 py-3.5 text-sm font-semibold text-brand-foreground shadow-lg shadow-brand/20 transition-all hover:bg-brand-hover"
             >
-              Start for free
+              Comece grátis
               <ChevronRight className="h-4 w-4" />
             </Link>
             <Link
               to="/login?mode=signin"
               className="rounded-xl border border-surface-hero-muted/25 px-8 py-3.5 text-sm font-semibold text-surface-hero-muted transition-colors hover:border-surface-hero-muted/50 hover:text-surface-hero-foreground"
             >
-              Sign in to dashboard
+              Entrar no painel
             </Link>
           </div>
         </div>
@@ -57,7 +57,7 @@ export function CtaSection() {
             </span>
           </Link>
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Secretary Assistant. Built for small business owners.
+            © {new Date().getFullYear()} Secretary Assistant. Feito para pequenos negócios.
           </p>
         </div>
       </footer>

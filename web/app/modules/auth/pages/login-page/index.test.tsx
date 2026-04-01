@@ -87,7 +87,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("We couldn't validate your session"),
+        screen.getByText('Não foi possível validar sua sessão'),
       ).toBeInTheDocument();
     });
 
@@ -206,7 +206,7 @@ describe('LoginPage', () => {
 
     const view = render(<LoginPage />);
 
-    expect(screen.getByText('Resolving your session...')).toBeInTheDocument();
+    expect(screen.getByText('Resolvendo sua sessão...')).toBeInTheDocument();
 
     view.rerender(<LoginPage />);
 

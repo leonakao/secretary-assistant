@@ -18,9 +18,24 @@ export enum MessageQueueStatus {
   FAILED = 'failed',
 }
 
+export interface QueuedWhatsappRouteClient {
+  kind: 'client';
+  contactId: string;
+}
+
+export interface QueuedWhatsappRouteOwner {
+  kind: 'owner' | 'onboarding';
+  userId: string;
+}
+
+export type QueuedWhatsappRoute =
+  | QueuedWhatsappRouteClient
+  | QueuedWhatsappRouteOwner;
+
 export interface QueuedWhatsappMessage {
   instanceName: string;
   payload: unknown; // EvolutionMessagesUpsertPayload
+  route: QueuedWhatsappRoute;
 }
 
 export interface QueuedWebChatMessage {

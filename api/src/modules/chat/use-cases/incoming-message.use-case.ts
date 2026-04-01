@@ -2,16 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Contact } from '../../contacts/entities/contact.entity';
-import { User } from '../../users/entities/user.entity';
 import { UserCompany } from '../../companies/entities/user-company.entity';
 import { Company } from '../../companies/entities/company.entity';
 import { Memory } from '../entities/memory.entity';
 import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dto';
-import { ClientConversationStrategy } from '../strategies/client-conversation.strategy';
-import { OwnerConversationStrategy } from '../strategies/owner-conversation.strategy';
-import { OnboardingConversationStrategy } from '../strategies/onboarding-conversation.strategy';
-import { ConversationResponse } from '../strategies';
-import { MessageTextExtractorService } from '../../message-queue/services/message-text-extractor.service';
+import { MessageQueueService } from '../../message-queue/services/message-queue.service';
+import {
+  MessageQueueChannel,
+  type QueuedWhatsappRoute,
+} from '../../message-queue/entities/message-queue.entity';
+
+export interface IncomingMessageResult {
+  success: true;
+  ignored: boolean;
+  ignoredReason: string | null;
+}
 
 @Injectable()
 export class IncomingMessageUseCase {
@@ -19,37 +24,39 @@ export class IncomingMessageUseCase {
 
   constructor(
     @InjectRepository(Contact)
-    private contactRepository: Repository<Contact>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    private readonly contactRepository: Repository<Contact>,
     @InjectRepository(UserCompany)
-    private userCompanyRepository: Repository<UserCompany>,
+    private readonly userCompanyRepository: Repository<UserCompany>,
     @InjectRepository(Company)
-    private companyRepository: Repository<Company>,
+    private readonly companyRepository: Repository<Company>,
     @InjectRepository(Memory)
-    private memoryRepository: Repository<Memory>,
-    private clientStrategy: ClientConversationStrategy,
-    private ownerStrategy: OwnerConversationStrategy,
-    private onboardingStrategy: OnboardingConversationStrategy,
-    private messageTextExtractorService: MessageTextExtractorService,
+    private readonly memoryRepository: Repository<Memory>,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async execute(
     companyId: string,
     instanceName: string,
     payload: EvolutionMessagesUpsertPayload,
-    preExtractedText?: string,
-  ): Promise<ConversationResponse> {
+  ): Promise<IncomingMessageResult> {
     const { key } = payload;
-
     const remoteJid = key.remoteJid;
-    const phone = this.extractPhoneFromJid(remoteJid);
-    const messageText =
-      preExtractedText ?? (await this.extractOrTranscribeMessage(payload));
 
     const company = await this.companyRepository.findOne({
       where: { id: companyId },
     });
+
+    if (!company) {
+      return this.buildIgnoredResponse('company_not_found');
+    }
+
+    const ignoredReason = this.getIngressIgnoredReason(payload);
+    if (ignoredReason) {
+      return this.buildIgnoredResponse(ignoredReason);
+    }
+
+    const phone = this.extractPhoneFromJid(remoteJid);
+    const displayName = this.buildContactDisplayName(payload.pushName);
 
     const userCompany = await this.userCompanyRepository.findOne({
       where: {
@@ -60,91 +67,143 @@ export class IncomingMessageUseCase {
     });
 
     if (userCompany) {
-      const user = userCompany.user;
+      const route: QueuedWhatsappRoute =
+        company.step === 'onboarding'
+          ? { kind: 'onboarding', userId: userCompany.user.id }
+          : { kind: 'owner', userId: userCompany.user.id };
 
-      if (company?.step === 'onboarding') {
-        const { message } = await this.onboardingStrategy.handleConversation({
-          companyId,
-          instanceName,
-          remoteJid,
-          message: messageText,
-          userId: user.id,
-        });
-
-        return {
-          message,
-        };
-      }
-
-      const { message } = await this.ownerStrategy.handleConversation({
+      await this.enqueueWhatsappMessage(
         companyId,
+        phone,
         instanceName,
-        remoteJid,
-        message: messageText,
-        userId: user.id,
-      });
+        payload,
+        route,
+      );
 
-      return {
-        message,
-      };
+      return this.buildAcceptedResponse();
     }
 
-    const contact = await this.contactRepository.findOne({
+    const existingContact = await this.contactRepository.findOne({
       where: {
         companyId,
         phone,
       },
     });
 
-    if (!contact) {
-      this.logger.warn(
-        `No user or contact found for phone ${phone} in company ${companyId}`,
-      );
-      return {
-        message: '',
-      };
+    if (key.fromMe) {
+      if (!existingContact) {
+        return this.buildIgnoredResponse('from_me_without_existing_contact');
+      }
+
+      const immediateText = this.extractImmediateText(payload);
+      if (!immediateText) {
+        return this.buildIgnoredResponse('from_me_without_supported_text');
+      }
+
+      await this.handleFromMeMessage(companyId, existingContact, immediateText);
+      return this.buildIgnoredResponse('from_me_message');
     }
+
+    const contact =
+      existingContact ??
+      (await this.findOrCreateContact(companyId, phone, displayName));
 
     if (!this.shouldRespondToClient(company, contact)) {
       this.logger.log(
         `Clients support is disabled or filtered out for company ${companyId}. Ignoring message from contact ${phone}`,
       );
-      return {
-        message: '',
-      };
-    }
-
-    if (key.fromMe) {
-      await this.handleFromMeMessage(companyId, contact, messageText);
-      return {
-        message: '',
-      };
+      return this.buildIgnoredResponse('client_support_disabled_or_filtered');
     }
 
     if (contact.ignoreUntil && contact.ignoreUntil > new Date()) {
       this.logger.log(
         `Ignoring message from contact ${contact.id} until ${contact.ignoreUntil.toISOString()}`,
       );
-      return {
-        message: '',
-      };
+      return this.buildIgnoredResponse('contact_ignored_until');
     }
 
-    const { message } = await this.clientStrategy.handleConversation({
-      companyId,
-      instanceName,
-      remoteJid,
-      message: messageText,
+    await this.enqueueWhatsappMessage(companyId, phone, instanceName, payload, {
+      kind: 'client',
       contactId: contact.id,
     });
 
-    return {
-      message,
-    };
+    return this.buildAcceptedResponse();
   }
 
   private extractPhoneFromJid(remoteJid: string): string {
     return '+' + remoteJid.split('@')[0];
+  }
+
+  private buildContactDisplayName(pushName: string | undefined): string | null {
+    const normalizedName = pushName?.trim();
+    return normalizedName ? normalizedName : null;
+  }
+
+  private buildAcceptedResponse(): IncomingMessageResult {
+    return {
+      success: true,
+      ignored: false,
+      ignoredReason: null,
+    };
+  }
+
+  private buildIgnoredResponse(reason: string): IncomingMessageResult {
+    return {
+      success: true,
+      ignored: true,
+      ignoredReason: reason,
+    };
+  }
+
+  private async enqueueWhatsappMessage(
+    companyId: string,
+    phone: string,
+    instanceName: string,
+    payload: EvolutionMessagesUpsertPayload,
+    route: QueuedWhatsappRoute,
+  ): Promise<void> {
+    const conversationKey = `whatsapp:${companyId}:${phone}`;
+
+    await this.messageQueueService.enqueueMessage({
+      companyId,
+      conversationKey,
+      channel: MessageQueueChannel.WHATSAPP,
+      message: {
+        instanceName,
+        payload,
+        route,
+      },
+    });
+  }
+
+  private async findOrCreateContact(
+    companyId: string,
+    phone: string,
+    name: string | null,
+  ): Promise<Contact> {
+    const existingContact = await this.contactRepository.findOne({
+      where: {
+        companyId,
+        phone,
+      },
+    });
+
+    if (!existingContact) {
+      return this.contactRepository.save({
+        companyId,
+        phone,
+        name: name ?? phone,
+      });
+    }
+
+    if (name && existingContact.name !== name) {
+      return this.contactRepository.save({
+        ...existingContact,
+        name,
+      });
+    }
+
+    return existingContact;
   }
 
   private shouldRespondToClient(
@@ -217,20 +276,45 @@ export class IncomingMessageUseCase {
     return normalizedValue.length > 0 ? normalizedValue : null;
   }
 
-  /**
-   * Extract text from message or transcribe audio if it's an audio message
-   */
-  private async extractOrTranscribeMessage(
+  private extractImmediateText(
     payload: EvolutionMessagesUpsertPayload,
-  ): Promise<string> {
-    return this.messageTextExtractorService.extract(payload);
+  ): string | null {
+    const textMessage =
+      payload.message?.conversation ||
+      payload.message?.extendedTextMessage?.text;
+
+    if (typeof textMessage !== 'string') {
+      return null;
+    }
+
+    const normalizedText = textMessage.trim();
+    return normalizedText.length > 0 ? normalizedText : null;
   }
 
-  /**
-   * Handle fromMe messages - detect if a human is responding to a client
-   * If the message doesn't exist in our conversation memory, it means
-   * a human user is manually responding, so we update ignoreUntil
-   */
+  private getIngressIgnoredReason(
+    payload: EvolutionMessagesUpsertPayload,
+  ): string | null {
+    if (!this.isSupportedRemoteJid(payload.key.remoteJid)) {
+      return 'unsupported_remote_jid';
+    }
+
+    if (this.extractImmediateText(payload)) {
+      return null;
+    }
+
+    if (payload.message?.audioMessage?.url) {
+      return null;
+    }
+
+    return 'unsupported_message_type';
+  }
+
+  private isSupportedRemoteJid(remoteJid: string | undefined): boolean {
+    return (
+      typeof remoteJid === 'string' && remoteJid.endsWith('@s.whatsapp.net')
+    );
+  }
+
   private async handleFromMeMessage(
     companyId: string,
     contact: Contact,
@@ -249,18 +333,14 @@ export class IncomingMessageUseCase {
     });
 
     if (!existingMessage) {
-      // Message doesn't exist in memory - a human is responding
       this.logger.log(
-        `🧑 Human detected responding to contact ${contact.name}. Setting ignoreUntil to 6 hours.`,
+        `Human detected responding to contact ${contact.name}. Setting ignoreUntil to 6 hours.`,
       );
 
       const ignoreUntil = new Date();
       ignoreUntil.setHours(ignoreUntil.getHours() + 6);
 
-      await this.contactRepository.update(
-        { id: contact.id },
-        { ignoreUntil: ignoreUntil },
-      );
+      await this.contactRepository.update({ id: contact.id }, { ignoreUntil });
     }
   }
 }

@@ -5,7 +5,7 @@ export const meta: MetaFunction = () => [
   { title: 'App | Secretary Assistant' },
   {
     name: 'description',
-    content: 'Authenticated workspace for Secretary Assistant owners.',
+    content: 'Área autenticada para proprietários do Secretary Assistant.',
   },
 ];
 

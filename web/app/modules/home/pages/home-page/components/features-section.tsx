@@ -7,16 +7,16 @@ export function FeaturesSection() {
         {/* Section header */}
         <div className="mb-16 max-w-2xl">
           <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-brand">
-            Features
+            Recursos
           </p>
           <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Everything your business
+            Tudo o que o seu negócio
             <br />
-            needs to scale support.
+            precisa para escalar o atendimento.
           </h2>
           <p className="mt-4 text-lg leading-7 text-muted-foreground">
-            From the first customer message to a confirmed service appointment —
-            your AI secretary handles it without you lifting a finger.
+            Da primeira mensagem do cliente até um atendimento confirmado,
+            sua secretária com IA cuida de tudo sem exigir ação manual.
           </p>
         </div>
 
@@ -30,21 +30,20 @@ export function FeaturesSection() {
               </div>
               <div>
                 <h3 className="mb-3 text-xl font-bold text-background">
-                  AI-powered conversations
+                  Conversas com IA
                 </h3>
                 <p className="max-w-md text-sm leading-6 text-background/60">
-                  Your agent understands context, tone, and intent. It replies
-                  naturally to customer questions — and knows when to create a
-                  service request, when to ask for more info, and when to hand
-                  off to you.
+                  Seu agente entende contexto, tom e intenção. Ele responde de
+                  forma natural às dúvidas dos clientes e sabe quando criar uma
+                  solicitação, pedir mais detalhes ou transferir para você.
                 </p>
               </div>
               {/* Inline stat row */}
               <div className="flex flex-wrap gap-6">
                 {[
-                  { label: 'Avg. response time', value: '< 2s' },
-                  { label: 'Languages supported', value: 'Any' },
-                  { label: 'Human handoff', value: 'Instant' },
+                  { label: 'Tempo médio de resposta', value: '< 2s' },
+                  { label: 'Idiomas suportados', value: 'Qualquer um' },
+                  { label: 'Transferência para humano', value: 'Instantânea' },
                 ].map(({ label, value }) => (
                   <div key={label}>
                     <p className="text-2xl font-bold text-brand">{value}</p>
@@ -63,11 +62,11 @@ export function FeaturesSection() {
               <MessageSquare className="h-5 w-5 text-brand" />
             </div>
             <h3 className="mb-2 font-semibold text-card-foreground">
-              WhatsApp native
+              Nativo no WhatsApp
             </h3>
             <p className="text-sm leading-6 text-muted-foreground">
-              Connects directly to your number via Evolution API. No new apps
-              for your customers — they message you like always.
+              Conecta direto ao seu número via Evolution API. Seus clientes
+              continuam falando com você do mesmo jeito de sempre.
             </p>
           </div>
 
@@ -77,11 +76,11 @@ export function FeaturesSection() {
               <Clock className="h-5 w-5 text-brand" />
             </div>
             <h3 className="mb-2 font-semibold text-foreground">
-              24/7 availability
+              Disponível 24/7
             </h3>
             <p className="text-sm leading-6 text-muted-foreground">
-              Your secretary never sleeps. Customers get instant answers at
-              any hour, even on weekends and holidays.
+              Sua secretária não dorme. Clientes recebem respostas imediatas a
+              qualquer hora, inclusive fins de semana e feriados.
             </p>
           </div>
 
@@ -91,11 +90,11 @@ export function FeaturesSection() {
               <Zap className="h-5 w-5 text-brand-foreground" />
             </div>
             <h3 className="mb-2 font-semibold text-brand-foreground">
-              Service request tracking
+              Gestão de solicitações
             </h3>
             <p className="text-sm leading-6 text-brand-foreground/70">
-              The agent creates and tracks requests automatically — keeping
-              you and your customers informed at every step.
+              O agente cria e acompanha solicitações automaticamente, mantendo
+              você e seus clientes informados em cada etapa.
             </p>
           </div>
 
@@ -105,11 +104,11 @@ export function FeaturesSection() {
               <Settings className="h-5 w-5 text-brand" />
             </div>
             <h3 className="mb-2 font-semibold text-card-foreground">
-              Simple setup
+              Configuração simples
             </h3>
             <p className="text-sm leading-6 text-muted-foreground">
-              Set your business name, services, and agent personality from a
-              clean dashboard. Live in minutes.
+              Defina nome da empresa, serviços e personalidade do agente em um
+              painel limpo. Fica pronto em minutos.
             </p>
           </div>
 
@@ -119,11 +118,11 @@ export function FeaturesSection() {
               <Shield className="h-5 w-5 text-brand" />
             </div>
             <h3 className="mb-2 font-semibold text-card-foreground">
-              Smart escalation
+              Escalonamento inteligente
             </h3>
             <p className="text-sm leading-6 text-muted-foreground">
-              When a situation genuinely needs your attention, the agent
-              routes the conversation to you — and only then.
+              Quando a situação realmente precisa da sua atenção, o agente
+              direciona a conversa para você, e só então.
             </p>
           </div>
         </div>

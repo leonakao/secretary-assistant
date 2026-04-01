@@ -4,12 +4,16 @@ import { EvolutionWebhookController } from './evolution-webhook.controller';
 
 function makeController(
   overrides: Partial<{
-    messageQueueService: any;
+    incomingMessageUseCase: any;
     configService: any;
   }> = {},
 ) {
-  const messageQueueService = overrides.messageQueueService ?? {
-    enqueueWhatsapp: vi.fn().mockResolvedValue({ id: 'item-1' }),
+  const incomingMessageUseCase = overrides.incomingMessageUseCase ?? {
+    execute: vi.fn().mockResolvedValue({
+      success: true,
+      ignored: false,
+      ignoredReason: null,
+    }),
   };
   const configService = overrides.configService ?? {
     get: vi.fn().mockReturnValue('secret-token'),
@@ -17,10 +21,10 @@ function makeController(
 
   return {
     controller: new EvolutionWebhookController(
-      messageQueueService,
+      incomingMessageUseCase,
       configService,
     ),
-    messageQueueService,
+    incomingMessageUseCase,
     configService,
   };
 }
@@ -40,7 +44,7 @@ function makePayload(remoteJid = '551199999999@s.whatsapp.net') {
 
 describe('EvolutionWebhookController', () => {
   describe('POST /webhooks/evolution/:companyId/messages-upsert', () => {
-    it('returns { success: true } immediately without invoking AI processing', async () => {
+    it('returns the result from the incoming message use case', async () => {
       const { controller } = makeController();
 
       const result = await controller.handleMessages(
@@ -49,11 +53,15 @@ describe('EvolutionWebhookController', () => {
         makePayload(),
       );
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({
+        success: true,
+        ignored: false,
+        ignoredReason: null,
+      });
     });
 
-    it('enqueues the message to message_queue without a synchronous AI call', async () => {
-      const { controller, messageQueueService } = makeController();
+    it('delegates webhook handling to IncomingMessageUseCase', async () => {
+      const { controller, incomingMessageUseCase } = makeController();
 
       await controller.handleMessages(
         'company-1',
@@ -61,40 +69,28 @@ describe('EvolutionWebhookController', () => {
         makePayload(),
       );
 
-      expect(messageQueueService.enqueueWhatsapp).toHaveBeenCalledOnce();
-      expect(messageQueueService.enqueueWhatsapp).toHaveBeenCalledWith(
+      expect(incomingMessageUseCase.execute).toHaveBeenCalledOnce();
+      expect(incomingMessageUseCase.execute).toHaveBeenCalledWith(
         'company-1',
-        expect.any(String),
-        expect.objectContaining({ instanceName: 'instance-1' }),
+        'instance-1',
+        expect.objectContaining({
+          key: expect.objectContaining({
+            remoteJid: '551199999999@s.whatsapp.net',
+          }),
+        }),
       );
     });
 
-    it('builds conversation key as whatsapp:{companyId}:+{phone} from remoteJid', async () => {
-      const { controller, messageQueueService } = makeController();
-
-      await controller.handleMessages(
-        'company-1',
-        'secret-token',
-        makePayload('551199999999@s.whatsapp.net'),
-      );
-
-      expect(messageQueueService.enqueueWhatsapp).toHaveBeenCalledWith(
-        'company-1',
-        'whatsapp:company-1:+551199999999',
-        expect.anything(),
-      );
-    });
-
-    it('includes full Evolution payload in the queued message', async () => {
-      const { controller, messageQueueService } = makeController();
-      const payload = makePayload();
+    it('passes the full Evolution data payload to the use case', async () => {
+      const { controller, incomingMessageUseCase } = makeController();
+      const payload = makePayload('551199999999@s.whatsapp.net');
 
       await controller.handleMessages('company-1', 'secret-token', payload);
 
-      expect(messageQueueService.enqueueWhatsapp).toHaveBeenCalledWith(
+      expect(incomingMessageUseCase.execute).toHaveBeenCalledWith(
         'company-1',
-        expect.any(String),
-        { instanceName: 'instance-1', payload: payload.data },
+        'instance-1',
+        payload.data,
       );
     });
 
@@ -107,7 +103,7 @@ describe('EvolutionWebhookController', () => {
     });
 
     it('skips token check when EVOLUTION_API_TOKEN is not configured', async () => {
-      const { controller, messageQueueService } = makeController({
+      const { controller, incomingMessageUseCase } = makeController({
         configService: { get: vi.fn().mockReturnValue(undefined) },
       });
 
@@ -117,8 +113,52 @@ describe('EvolutionWebhookController', () => {
         makePayload(),
       );
 
-      expect(result).toEqual({ success: true });
-      expect(messageQueueService.enqueueWhatsapp).toHaveBeenCalled();
+      expect(result).toEqual({
+        success: true,
+        ignored: false,
+        ignoredReason: null,
+      });
+      expect(incomingMessageUseCase.execute).toHaveBeenCalled();
+    });
+
+    it('returns ignored=true with reason when the message type is unsupported', async () => {
+      const { controller, incomingMessageUseCase } = makeController({
+        incomingMessageUseCase: {
+          execute: vi.fn().mockResolvedValue({
+            success: true,
+            ignored: true,
+            ignoredReason: 'unsupported_message_type',
+          }),
+        },
+      });
+
+      const result = await controller.handleMessages(
+        'company-1',
+        'secret-token',
+        {
+          instance: 'instance-1',
+          data: {
+            key: {
+              remoteJid: '551199999999@s.whatsapp.net',
+              fromMe: false,
+              id: 'msg-1',
+            },
+            message: {
+              imageMessage: {
+                url: 'https://example.com/image.jpg',
+                mimetype: 'image/jpeg',
+              },
+            },
+          },
+        } as any,
+      );
+
+      expect(result).toEqual({
+        success: true,
+        ignored: true,
+        ignoredReason: 'unsupported_message_type',
+      });
+      expect(incomingMessageUseCase.execute).toHaveBeenCalled();
     });
   });
 });

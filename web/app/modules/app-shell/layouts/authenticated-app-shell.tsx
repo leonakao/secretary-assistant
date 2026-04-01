@@ -107,7 +107,7 @@ export function AuthenticatedAppShell() {
           setError(
             cause instanceof Error
               ? cause.message
-              : 'Failed to process the authenticated workspace session.',
+              : 'Falha ao processar a sessão autenticada da área de trabalho.',
           );
         }
       },
@@ -135,7 +135,7 @@ export function AuthenticatedAppShell() {
         setError(
           cause instanceof Error
             ? cause.message
-            : 'Failed to load the authenticated workspace.',
+            : 'Falha ao carregar a área autenticada.',
         );
         setIsRecoveringSession(false);
         setRecoveryRedirectTo(null);
@@ -156,7 +156,7 @@ export function AuthenticatedAppShell() {
     return (
       <main className="flex min-h-screen items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
         <LoaderCircle className="h-4 w-4 animate-spin" />
-        Loading authentication state...
+        Carregando estado de autenticação...
       </main>
     );
   }
@@ -182,7 +182,7 @@ export function AuthenticatedAppShell() {
     return (
       <main className="flex min-h-screen items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
         <LoaderCircle className="h-4 w-4 animate-spin" />
-        Your session expired. Redirecting to sign in...
+        Sua sessão expirou. Redirecionando para o login...
       </main>
     );
   }
@@ -201,7 +201,7 @@ export function AuthenticatedAppShell() {
     return (
       <main className="flex min-h-screen items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
         <LoaderCircle className="h-4 w-4 animate-spin" />
-        Preparing your workspace...
+        Preparando sua área de trabalho...
       </main>
     );
   }

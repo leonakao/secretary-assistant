@@ -8,8 +8,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MessageQueueService } from '../../message-queue/services/message-queue.service';
 import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dto';
+import {
+  IncomingMessageResult,
+  IncomingMessageUseCase,
+} from '../use-cases/incoming-message.use-case';
 
 interface WebhookPayload<T> {
   instance: string;
@@ -21,31 +24,21 @@ export class EvolutionWebhookController {
   private readonly logger = new Logger(EvolutionWebhookController.name);
 
   constructor(
-    private messageQueueService: MessageQueueService,
+    private readonly incomingMessageUseCase: IncomingMessageUseCase,
     private readonly configService: ConfigService,
   ) {}
 
-  @Post('/messages-upsert')
+  @Post('messages-upsert')
   async handleMessages(
     @Param('companyId') companyId: string,
     @Headers('x-evolution-token') evolutionToken: string | undefined,
     @Body() payload: WebhookPayload<EvolutionMessagesUpsertPayload>,
-  ) {
+  ): Promise<IncomingMessageResult> {
     this.assertWebhookToken(evolutionToken);
     this.logger.log('Received messages from Evolution API');
     const { instance, data } = payload;
 
-    // Extract phone from remoteJid
-    const phone = '+' + data.key.remoteJid.split('@')[0];
-    const conversationKey = `whatsapp:${companyId}:${phone}`;
-
-    // Enqueue the message
-    await this.messageQueueService.enqueueWhatsapp(companyId, conversationKey, {
-      instanceName: instance,
-      payload: data,
-    });
-
-    return { success: true };
+    return this.incomingMessageUseCase.execute(companyId, instance, data);
   }
 
   private assertWebhookToken(receivedToken: string | undefined) {

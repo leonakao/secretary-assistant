@@ -2,19 +2,19 @@ import { Bot, Check, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router';
 
 const chatMessages = [
-  { from: 'client', text: 'Hi! I need to schedule a repair for my AC unit.', time: '09:41' },
+  { from: 'client', text: 'Olá! Preciso agendar um reparo no meu ar-condicionado.', time: '09:41' },
   {
     from: 'agent',
-    text: "Hi! I'm the Secretary Assistant for CoolFix Services. I'd be happy to help you schedule a repair. Could you share your address and preferred time?",
+    text: 'Olá! Sou a Secretary Assistant da CoolFix Services. Posso te ajudar a agendar o reparo. Você pode me enviar seu endereço e o melhor horário?',
     time: '09:41',
   },
-  { from: 'client', text: 'Sure! 340 Oak Street, tomorrow afternoon.', time: '09:43' },
+  { from: 'client', text: 'Claro! Rua Oak, 340, amanhã à tarde.', time: '09:43' },
   {
     from: 'agent',
-    text: 'Perfect — I created a service request for tomorrow at 2pm. You\'ll get a confirmation shortly. Anything else?',
+    text: 'Perfeito. Criei uma solicitação para amanhã às 14h. Você receberá a confirmação em instantes. Posso ajudar em mais alguma coisa?',
     time: '09:43',
   },
-  { from: 'client', text: 'That was fast! Thank you 👍', time: '09:44' },
+  { from: 'client', text: 'Foi rápido! Obrigado 👍', time: '09:44' },
 ];
 
 export function HeroSection() {
@@ -35,13 +35,13 @@ export function HeroSection() {
             to="/login?mode=signin"
             className="text-sm font-medium text-surface-hero-muted transition-colors hover:text-surface-hero-foreground"
           >
-            Sign in
+            Entrar
           </Link>
           <Link
             to="/login?mode=signup"
             className="flex items-center gap-1.5 rounded-full bg-brand px-4 py-1.5 text-sm font-semibold text-brand-foreground transition-colors hover:bg-brand-mid"
           >
-            Get started
+            Começar
             <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -53,28 +53,28 @@ export function HeroSection() {
         <div className="space-y-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-xs font-semibold text-brand">
             <span className="h-1.5 w-1.5 rounded-full bg-brand" />
-            WhatsApp AI agent · live in minutes
+            Agente de IA para WhatsApp · pronto em minutos
           </div>
 
           <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-surface-hero-foreground sm:text-5xl lg:text-6xl">
-            Your business,
+            Seu negócio,
             <br />
-            <span className="text-brand-mid">answered 24/7</span>
+            <span className="text-brand-mid">respondendo 24/7</span>
             <br />
-            on WhatsApp.
+            no WhatsApp.
           </h1>
 
           <p className="max-w-lg text-lg leading-7 text-surface-hero-muted">
-            Deploy a personal AI secretary that handles your customer
-            conversations on WhatsApp — creating service requests, answering
-            questions, and escalating only when you need to step in.
+            Coloque no ar uma secretária com IA que atende seus clientes no
+            WhatsApp, cria solicitações de serviço, responde dúvidas e só
+            escalona quando você realmente precisa entrar.
           </p>
 
           <ul className="space-y-2.5 text-sm text-surface-hero-muted">
             {[
-              'Set up in under 5 minutes',
-              'Service request tracking built in',
-              'Escalates to you when it matters',
+              'Configure em menos de 5 minutos',
+              'Acompanhamento de solicitações já incluso',
+              'Escalona para você quando importa',
             ].map((item) => (
               <li key={item} className="flex items-center gap-2.5">
                 <Check className="h-4 w-4 text-brand-mid" />
@@ -88,13 +88,13 @@ export function HeroSection() {
               to="/login?mode=signup"
               className="flex items-center justify-center gap-2 rounded-xl bg-brand px-7 py-3.5 text-sm font-semibold text-brand-foreground shadow-lg shadow-brand/20 transition-all hover:bg-brand-hover hover:shadow-brand/30"
             >
-              Start for free
+              Comece grátis
             </Link>
             <a
               href="#features"
               className="flex items-center justify-center gap-2 rounded-xl border border-surface-hero-muted/25 px-7 py-3.5 text-sm font-semibold text-surface-hero-muted transition-colors hover:border-surface-hero-muted/50 hover:text-surface-hero-foreground"
             >
-              See how it works
+              Veja como funciona
             </a>
           </div>
         </div>
@@ -111,7 +111,7 @@ export function HeroSection() {
                 <p className="text-sm font-semibold text-surface-hero-foreground">
                   CoolFix Services
                 </p>
-                <p className="text-xs text-brand-mid">AI Secretary · online</p>
+                <p className="text-xs text-brand-mid">Secretária com IA · online</p>
               </div>
               <div className="flex gap-1">
                 {[0, 1, 2].map((i) => (
@@ -170,10 +170,10 @@ export function HeroSection() {
             </div>
             <div>
               <p className="text-xs font-semibold text-surface-hero-foreground">
-                Service request created
+                Solicitação criada
               </p>
               <p className="text-[10px] text-surface-hero-muted">
-                AC Repair · Tomorrow 2pm
+                Reparo no ar-condicionado · Amanhã às 14h
               </p>
             </div>
           </div>

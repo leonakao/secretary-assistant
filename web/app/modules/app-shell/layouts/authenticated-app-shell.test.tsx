@@ -133,7 +133,7 @@ describe('AuthenticatedAppShell', () => {
     render(<AuthenticatedAppShell />);
 
     await waitFor(() => {
-      expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Painel').length).toBeGreaterThan(0);
     });
 
     expect(screen.getAllByText('Minha empresa').length).toBeGreaterThan(0);
@@ -153,7 +153,7 @@ describe('AuthenticatedAppShell', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Cannot read properties of undefined|Failed to process the authenticated workspace session/),
+        screen.getByText(/Cannot read properties of undefined|Falha ao processar a sessão autenticada da área de trabalho/),
       ).toBeInTheDocument();
     });
   });
@@ -214,7 +214,7 @@ describe('AuthenticatedAppShell', () => {
 
     const view = render(<AuthenticatedAppShell />);
 
-    expect(screen.getByText('Preparing your workspace...')).toBeInTheDocument();
+    expect(screen.getByText('Preparando sua área de trabalho...')).toBeInTheDocument();
 
     view.rerender(<AuthenticatedAppShell />);
 

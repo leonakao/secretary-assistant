@@ -4,6 +4,18 @@ import { Request, Response, NextFunction } from 'express';
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
   private readonly logger = new Logger('HTTP');
+  private readonly redactedKeys = [
+    'apikey',
+    'api_key',
+    'authorization',
+    'base64',
+    'password',
+    'secret',
+    'token',
+    'x-api-key',
+    'x-evolution-token',
+    'x-internal-token',
+  ];
 
   use(req: Request, res: Response, next: NextFunction): void {
     const { method, originalUrl, ip, body } = req;
@@ -32,7 +44,7 @@ export class LoggerMiddleware implements NestMiddleware {
 
       // Add request body if present
       if (body && Object.keys(body).length > 0) {
-        parts.push(`ReqBody: ${JSON.stringify(body)}`);
+        parts.push(`ReqBody: ${JSON.stringify(this.sanitizeForLogs(body))}`);
       }
 
       // Add response body if present
@@ -42,7 +54,9 @@ export class LoggerMiddleware implements NestMiddleware {
             typeof responseBody === 'string'
               ? JSON.parse(responseBody)
               : responseBody;
-          parts.push(`ResBody: ${JSON.stringify(parsedBody)}`);
+          parts.push(
+            `ResBody: ${JSON.stringify(this.sanitizeForLogs(parsedBody))}`,
+          );
         } catch {
           parts.push(`ResBody: ${responseBody}`);
         }
@@ -60,5 +74,24 @@ export class LoggerMiddleware implements NestMiddleware {
     });
 
     next();
+  }
+
+  private sanitizeForLogs(value: unknown): unknown {
+    if (Array.isArray(value)) {
+      return value.map((item) => this.sanitizeForLogs(item));
+    }
+
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, nestedValue]) => [
+          key,
+          this.redactedKeys.includes(key.toLowerCase())
+            ? '[redacted]'
+            : this.sanitizeForLogs(nestedValue),
+        ]),
+      );
+    }
+
+    return value;
   }
 }

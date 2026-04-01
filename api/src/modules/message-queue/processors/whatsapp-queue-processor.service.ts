@@ -4,7 +4,7 @@ import {
   QueuedWhatsappMessage,
 } from '../entities/message-queue.entity';
 import { MessageTextExtractorService } from '../services/message-text-extractor.service';
-import { IncomingMessageUseCase } from '../../chat/use-cases/incoming-message.use-case';
+import { ProcessIncomingWhatsappMessageService } from '../../chat/services/process-incoming-whatsapp-message.service';
 import { EvolutionService } from '../../evolution/services/evolution.service';
 import type { EvolutionMessagesUpsertPayload } from '../../chat/dto/evolution-message.dto';
 
@@ -14,7 +14,7 @@ export class WhatsappQueueProcessorService {
 
   constructor(
     private messageTextExtractorService: MessageTextExtractorService,
-    private incomingMessageUseCase: IncomingMessageUseCase,
+    private processIncomingWhatsappMessage: ProcessIncomingWhatsappMessageService,
     private evolutionService: EvolutionService,
   ) {}
 
@@ -33,7 +33,7 @@ export class WhatsappQueueProcessorService {
         const text = await this.messageTextExtractorService.extract(
           queuedMsg.payload as EvolutionMessagesUpsertPayload,
         );
-        if (text.trim()) {
+        if (text?.trim()) {
           texts.push(text);
         }
       } catch (error) {
@@ -44,8 +44,8 @@ export class WhatsappQueueProcessorService {
     }
 
     if (texts.length === 0) {
-      this.logger.warn(
-        `No valid messages found to process for queue item ${item.id}`,
+      this.logger.log(
+        `Ignoring queue item ${item.id} because it has no processable text/audio messages`,
       );
       return;
     }
@@ -53,6 +53,7 @@ export class WhatsappQueueProcessorService {
     const joinedText = texts.join('\n\n');
     const firstMessage = messages[0];
     const instanceName = firstMessage.instanceName;
+    const route = firstMessage.route;
     const remoteJid = (firstMessage.payload as EvolutionMessagesUpsertPayload)
       .key.remoteJid;
 
@@ -64,13 +65,13 @@ export class WhatsappQueueProcessorService {
     });
 
     try {
-      // Call IncomingMessageUseCase with pre-extracted text
-      await this.incomingMessageUseCase.execute(
+      await this.processIncomingWhatsappMessage.execute({
         companyId,
         instanceName,
-        firstMessage.payload as EvolutionMessagesUpsertPayload,
-        joinedText,
-      );
+        remoteJid,
+        message: joinedText,
+        route,
+      });
     } finally {
       // Always clear composing indicator, even on error
       await this.evolutionService.sendPresence({

@@ -13,6 +13,7 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { User } from '../../users/entities/user.entity';
 import { UserCompany } from '../../companies/entities/user-company.entity';
 import { MessageQueueService } from '../../message-queue/services/message-queue.service';
+import { MessageQueueChannel } from '../../message-queue/entities/message-queue.entity';
 import { SendWebChatMessageDto } from '../dto/send-web-chat-message.dto';
 
 @Controller('chat/messages')
@@ -40,11 +41,12 @@ export class WebChatController {
     }
 
     const conversationKey = `web_chat:${dto.companyId}:${user.id}`;
-    const item = await this.messageQueueService.enqueueWebChat(
-      dto.companyId,
+    const item = await this.messageQueueService.enqueueMessage({
+      companyId: dto.companyId,
       conversationKey,
-      { userId: user.id, text: dto.message },
-    );
+      channel: MessageQueueChannel.WEB_CHAT,
+      message: { userId: user.id, text: dto.message },
+    });
     return { status: 'pending', userMessageId: item.id };
   }
 }

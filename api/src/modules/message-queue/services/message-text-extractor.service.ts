@@ -11,7 +11,9 @@ export class MessageTextExtractorService {
   /**
    * Extract text from message or transcribe audio if it's an audio message
    */
-  async extract(payload: EvolutionMessagesUpsertPayload): Promise<string> {
+  async extract(
+    payload: EvolutionMessagesUpsertPayload,
+  ): Promise<string | null> {
     const { message: messageContent } = payload;
 
     // Check for text messages first
@@ -41,7 +43,7 @@ export class MessageTextExtractorService {
       }
     }
 
-    // No text or audio found
-    throw new Error('No text or audio found in message');
+    // Unsupported message types such as reactions, protocol updates, etc.
+    return null;
   }
 }

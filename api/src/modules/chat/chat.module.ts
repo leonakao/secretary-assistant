@@ -7,6 +7,7 @@ import { UserCompany } from '../companies/entities/user-company.entity';
 import { AiModule } from '../ai/ai.module';
 import { EvolutionModule } from '../evolution/evolution.module';
 import { ChatService } from './services/chat.service';
+import { ProcessIncomingWhatsappMessageService } from './services/process-incoming-whatsapp-message.service';
 import { EvolutionMessageProvider } from './providers/evolution-message.provider';
 import { IncomingMessageUseCase } from './use-cases/incoming-message.use-case';
 import { EvolutionWebhookController } from './controllers/evolution-webhook.controller';
@@ -41,6 +42,7 @@ import { AuthModule } from '../auth/auth.module';
   controllers: [EvolutionWebhookController, WebChatController],
   providers: [
     ChatService,
+    ProcessIncomingWhatsappMessageService,
     EvolutionMessageProvider,
     IncomingMessageUseCase,
     ClientConversationStrategy,
@@ -54,6 +56,7 @@ import { AuthModule } from '../auth/auth.module';
   exports: [
     TypeOrmModule,
     ChatService,
+    ProcessIncomingWhatsappMessageService,
     EvolutionMessageProvider,
     IncomingMessageUseCase,
     'MESSAGE_PROVIDER',

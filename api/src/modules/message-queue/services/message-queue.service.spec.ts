@@ -1,4 +1,3 @@
-import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { MessageQueueService } from './message-queue.service';
 import {
@@ -24,7 +23,6 @@ function makeQueueItem(overrides = {}) {
 function makeRepo(overrides = {}) {
   return {
     query: vi.fn().mockResolvedValue([makeQueueItem()]),
-    findOne: vi.fn().mockResolvedValue(null),
     create: vi.fn().mockImplementation((data: any) => data),
     save: vi
       .fn()
@@ -40,19 +38,21 @@ function makeService(repo = makeRepo()) {
 }
 
 describe('MessageQueueService', () => {
-  describe('enqueueWhatsapp', () => {
+  describe('enqueueMessage', () => {
     it('inserts a new pending row for a first message from a conversation key', async () => {
       const repo = makeRepo();
       const { service } = makeService(repo);
 
-      const result = await service.enqueueWhatsapp(
-        'company-1',
-        'whatsapp:company-1:+551199999999',
-        {
+      const result = await service.enqueueMessage({
+        companyId: 'company-1',
+        conversationKey: 'whatsapp:company-1:+551199999999',
+        channel: MessageQueueChannel.WHATSAPP,
+        message: {
           instanceName: 'instance-1',
+          route: { kind: 'client', contactId: 'contact-1' },
           payload: { key: { remoteJid: '551199999999@s.whatsapp.net' } },
         },
-      );
+      });
 
       expect(repo.query).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO message_queue'),
@@ -70,14 +70,16 @@ describe('MessageQueueService', () => {
       });
       const { service } = makeService(repo);
 
-      await service.enqueueWhatsapp(
-        'company-1',
-        'whatsapp:company-1:+551199999999',
-        {
+      await service.enqueueMessage({
+        companyId: 'company-1',
+        conversationKey: 'whatsapp:company-1:+551199999999',
+        channel: MessageQueueChannel.WHATSAPP,
+        message: {
           instanceName: 'instance-1',
+          route: { kind: 'client', contactId: 'contact-1' },
           payload: { key: { remoteJid: '551199999999@s.whatsapp.net' } },
         },
-      );
+      });
 
       expect(repo.query).toHaveBeenCalledWith(
         expect.stringContaining('ON CONFLICT'),
@@ -97,91 +99,115 @@ describe('MessageQueueService', () => {
       const repo = makeRepo({ query: vi.fn().mockResolvedValue([newRow]) });
       const { service } = makeService(repo);
 
-      const result = await service.enqueueWhatsapp(
-        'company-1',
-        'whatsapp:company-1:+551199999999',
-        {
+      const result = await service.enqueueMessage({
+        companyId: 'company-1',
+        conversationKey: 'whatsapp:company-1:+551199999999',
+        channel: MessageQueueChannel.WHATSAPP,
+        message: {
           instanceName: 'instance-1',
+          route: { kind: 'client', contactId: 'contact-1' },
           payload: { key: { remoteJid: '551199999999@s.whatsapp.net' } },
         },
-      );
+      });
 
       expect(result.id).toBe('item-2');
     });
-  });
 
-  describe('enqueueWebChat', () => {
     it('creates a new web_chat queue item when no pending item exists', async () => {
-      const savedItem = {
-        ...makeQueueItem({ channel: MessageQueueChannel.WEB_CHAT }),
-        id: 'item-new',
-      };
       const repo = makeRepo({
-        findOne: vi.fn().mockResolvedValue(null),
-        create: vi.fn().mockImplementation((data: any) => data),
-        save: vi.fn().mockResolvedValue(savedItem),
+        query: vi
+          .fn()
+          .mockResolvedValue([
+            makeQueueItem({
+              channel: MessageQueueChannel.WEB_CHAT,
+              id: 'item-new',
+            }),
+          ]),
       });
       const { service } = makeService(repo);
 
-      const result = await service.enqueueWebChat(
-        'company-1',
-        'web_chat:company-1:user-1',
-        { userId: 'user-1', text: 'Hello' },
-      );
+      const result = await service.enqueueMessage({
+        companyId: 'company-1',
+        conversationKey: 'web_chat:company-1:user-1',
+        channel: MessageQueueChannel.WEB_CHAT,
+        message: { userId: 'user-1', text: 'Hello' },
+      });
 
       expect(result.id).toBe('item-new');
     });
 
-    it('throws ConflictException when a pending item exists for the same conversation key', async () => {
+    it('appends to an existing pending web_chat item instead of rejecting', async () => {
       const repo = makeRepo({
-        findOne: vi
+        query: vi
           .fn()
-          .mockResolvedValue(
-            makeQueueItem({ status: MessageQueueStatus.PENDING }),
-          ),
+          .mockResolvedValue([
+            makeQueueItem({
+              channel: MessageQueueChannel.WEB_CHAT,
+            }),
+          ]),
       });
       const { service } = makeService(repo);
 
-      await expect(
-        service.enqueueWebChat('company-1', 'web_chat:company-1:user-1', {
+      const result = await service.enqueueMessage({
+        companyId: 'company-1',
+        conversationKey: 'web_chat:company-1:user-1',
+        channel: MessageQueueChannel.WEB_CHAT,
+        message: {
           userId: 'user-1',
           text: 'Hello again',
-        }),
-      ).rejects.toBeInstanceOf(ConflictException);
+        },
+      });
+
+      expect(repo.query).toHaveBeenCalledWith(
+        expect.stringContaining('ON CONFLICT'),
+        expect.anything(),
+      );
+      expect(result.id).toBe('item-1');
     });
 
-    it('throws ConflictException when a processing item exists for the same conversation key', async () => {
+    it('allows a new web_chat message when the previous item is processing', async () => {
       const repo = makeRepo({
-        findOne: vi
+        query: vi
           .fn()
-          .mockResolvedValue(
-            makeQueueItem({ status: MessageQueueStatus.PROCESSING }),
-          ),
+          .mockResolvedValue([
+            makeQueueItem({
+              channel: MessageQueueChannel.WEB_CHAT,
+              id: 'item-processing+1',
+            }),
+          ]),
       });
       const { service } = makeService(repo);
 
-      await expect(
-        service.enqueueWebChat('company-1', 'web_chat:company-1:user-1', {
+      const result = await service.enqueueMessage({
+        companyId: 'company-1',
+        conversationKey: 'web_chat:company-1:user-1',
+        channel: MessageQueueChannel.WEB_CHAT,
+        message: {
           userId: 'user-1',
           text: 'Hello again',
-        }),
-      ).rejects.toBeInstanceOf(ConflictException);
+        },
+      });
+
+      expect(result.id).toBe('item-processing+1');
     });
 
     it('allows a new message once the previous item is done', async () => {
-      const savedItem = { ...makeQueueItem(), id: 'item-done+1' };
       const repo = makeRepo({
-        findOne: vi.fn().mockResolvedValue(null), // no pending/processing row
-        create: vi.fn().mockImplementation((data: any) => data),
-        save: vi.fn().mockResolvedValue(savedItem),
+        query: vi.fn().mockResolvedValue([
+          makeQueueItem({
+            channel: MessageQueueChannel.WEB_CHAT,
+            id: 'item-done+1',
+          }),
+        ]),
       });
       const { service } = makeService(repo);
 
-      const result = await service.enqueueWebChat(
-        'company-1',
-        'web_chat:company-1:user-1',
-        { userId: 'user-1', text: 'New message' },
-      );
+      const result = await service.enqueueMessage({
+        companyId: 'company-1',
+        conversationKey: 'web_chat:company-1:user-1',
+        channel: MessageQueueChannel.WEB_CHAT,
+        message: { userId: 'user-1', text: 'New message' },
+      });
 
       expect(result.id).toBe('item-done+1');
     });

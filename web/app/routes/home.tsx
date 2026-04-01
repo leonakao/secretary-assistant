@@ -6,7 +6,7 @@ export const meta: MetaFunction = () => [
   {
     name: 'description',
     content:
-      'AI-powered WhatsApp secretary for small business owners. Automate customer support with your personal AI agent.',
+      'Secretária de WhatsApp com IA para pequenos negócios. Automatize o atendimento com seu agente de IA.',
   },
 ];
 

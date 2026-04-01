@@ -1,6 +1,7 @@
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { WebChatController } from './web-chat.controller';
+import { MessageQueueChannel } from '../../message-queue/entities/message-queue.entity';
 
 function makeUser(overrides = {}) {
   return { id: 'user-1', name: 'Alice', ...overrides } as any;
@@ -18,7 +19,7 @@ function makeController(
       .mockResolvedValue({ userId: 'user-1', companyId: 'company-1' }),
   };
   const messageQueueService = overrides.messageQueueService ?? {
-    enqueueWebChat: vi.fn().mockResolvedValue({ id: 'item-1' }),
+    enqueueMessage: vi.fn().mockResolvedValue({ id: 'item-1' }),
   };
 
   return {
@@ -52,11 +53,12 @@ describe('WebChatController', () => {
         message: 'Hello',
       });
 
-      expect(messageQueueService.enqueueWebChat).toHaveBeenCalledWith(
-        'company-1',
-        'web_chat:company-1:user-1',
-        { userId: 'user-1', text: 'Hello' },
-      );
+      expect(messageQueueService.enqueueMessage).toHaveBeenCalledWith({
+        companyId: 'company-1',
+        conversationKey: 'web_chat:company-1:user-1',
+        channel: MessageQueueChannel.WEB_CHAT,
+        message: { userId: 'user-1', text: 'Hello' },
+      });
     });
 
     it('throws ForbiddenException when user does not belong to the specified company', async () => {
@@ -74,27 +76,8 @@ describe('WebChatController', () => {
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
-    it('throws ConflictException when a message is already pending for the same conversation', async () => {
-      const { controller } = makeController({
-        messageQueueService: {
-          enqueueWebChat: vi
-            .fn()
-            .mockRejectedValue(
-              new ConflictException('A message is already pending'),
-            ),
-        },
-      });
-
-      await expect(
-        controller.sendMessage(makeUser(), {
-          companyId: 'company-1',
-          message: 'Hello again',
-        }),
-      ).rejects.toBeInstanceOf(ConflictException);
-    });
-
-    it('does not call enqueueWebChat when company membership check fails', async () => {
-      const messageQueueService = { enqueueWebChat: vi.fn() };
+    it('does not call enqueueMessage when company membership check fails', async () => {
+      const messageQueueService = { enqueueMessage: vi.fn() };
       const { controller } = makeController({
         userCompanyRepository: { findOne: vi.fn().mockResolvedValue(null) },
         messageQueueService,
@@ -107,7 +90,7 @@ describe('WebChatController', () => {
         }),
       ).rejects.toBeInstanceOf(ForbiddenException);
 
-      expect(messageQueueService.enqueueWebChat).not.toHaveBeenCalled();
+      expect(messageQueueService.enqueueMessage).not.toHaveBeenCalled();
     });
   });
 });

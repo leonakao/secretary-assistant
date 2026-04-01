@@ -132,7 +132,7 @@ export function LoginPage() {
           setSessionBootstrapError(
             cause instanceof Error
               ? cause.message
-              : 'We could not process your authenticated session.',
+              : 'Não foi possível processar sua sessão autenticada.',
           );
         }
       },
@@ -155,7 +155,7 @@ export function LoginPage() {
         setSessionBootstrapError(
           cause instanceof Error
             ? cause.message
-            : 'We could not validate your session. Please try again.',
+            : 'Não foi possível validar sua sessão. Tente novamente.',
         );
       },
     );
@@ -195,7 +195,7 @@ export function LoginPage() {
           to="/"
           className="text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          ← Back to home
+          ← Voltar para a home
         </Link>
       </nav>
 
@@ -215,8 +215,8 @@ export function LoginPage() {
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {isResolvingSession
-                      ? 'Resolving your session...'
-                      : 'Checking your session...'}
+                      ? 'Resolvendo sua sessão...'
+                      : 'Verificando sua sessão...'}
                   </p>
                 </div>
               ) : sessionBootstrapError ? (
@@ -226,7 +226,7 @@ export function LoginPage() {
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-foreground">
-                      We couldn&apos;t validate your session
+                      Não foi possível validar sua sessão
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {sessionBootstrapError}
@@ -238,7 +238,7 @@ export function LoginPage() {
                     onClick={() => setSessionBootstrapAttempt((current) => current + 1)}
                     size="sm"
                   >
-                    Try again
+                    Tentar novamente
                   </Button>
                 </div>
               ) : isAuthenticated && !isUnauthorizedRecovery ? (
@@ -247,9 +247,9 @@ export function LoginPage() {
                     <LoaderCircle className="h-5 w-5 animate-spin text-brand" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-brand">Active session</p>
+                    <p className="text-sm font-semibold text-brand">Sessão ativa</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Taking you to the right place...
+                      Levando você para o lugar certo...
                     </p>
                   </div>
                 </div>
@@ -264,17 +264,17 @@ export function LoginPage() {
                     </div>
                     <h1 className="text-xl font-bold tracking-tight text-foreground">
                       {isUnauthorizedRecovery
-                        ? 'Session rejected'
+                        ? 'Sessão rejeitada'
                         : mode === 'signup'
-                          ? 'Create your account'
-                          : 'Welcome back'}
+                          ? 'Crie sua conta'
+                          : 'Bem-vindo de volta'}
                     </h1>
                     <p className="text-sm text-muted-foreground">
                       {isUnauthorizedRecovery
-                        ? 'Sign in again to start a fresh session.'
+                        ? 'Entre novamente para iniciar uma nova sessão.'
                         : mode === 'signup'
-                          ? 'Get your AI secretary up and running.'
-                          : 'Sign in to your Secretary Assistant dashboard.'}
+                          ? 'Coloque sua secretária com IA para funcionar.'
+                          : 'Entre para acessar o painel do Secretary Assistant.'}
                     </p>
                   </div>
 
@@ -284,9 +284,9 @@ export function LoginPage() {
                       <div className="flex items-start gap-2.5">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                         <p className="text-amber-700 dark:text-amber-300">
-                          The API rejected your session with{' '}
-                          <strong>401 Unauthorized</strong>. Sign in again to retry
-                          with a fresh token.
+                          A API rejeitou sua sessão com{' '}
+                          <strong>401 Unauthorized</strong>. Entre novamente para
+                          tentar com um token novo.
                         </p>
                       </div>
                     </div>
@@ -308,7 +308,7 @@ export function LoginPage() {
                       size="lg"
                     >
                       <LogIn className="h-4 w-4" />
-                      Sign in
+                      Entrar
                     </Button>
                     <Button
                       className="w-full rounded-xl"
@@ -318,15 +318,15 @@ export function LoginPage() {
                       variant="outline"
                     >
                       <UserRoundPlus className="h-4 w-4" />
-                      Create account
+                      Criar conta
                     </Button>
                   </div>
 
                   {/* Footer hint */}
                   <p className="text-center text-xs leading-5 text-muted-foreground">
                     {isUnauthorizedRecovery
-                      ? 'Sign in forces a fresh Auth0 login prompt.'
-                      : 'New here? Start with "Create account". Already a member? Sign in to go straight to your dashboard.'}
+                      ? 'Entrar força uma nova autenticação no Auth0.'
+                      : 'É novo por aqui? Comece em "Criar conta". Já faz parte? Entre para ir direto ao painel.'}
                   </p>
                 </div>
               )}
@@ -335,9 +335,9 @@ export function LoginPage() {
 
           {/* Below card link */}
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            By continuing, you agree to our{' '}
+            Ao continuar, você concorda com nossos{' '}
             <span className="text-foreground underline-offset-4 hover:underline cursor-pointer">
-              Terms of Service
+              Termos de Serviço
             </span>
             .
           </p>

@@ -2,11 +2,11 @@ import type { MetaFunction } from 'react-router';
 import { LoginPage } from '~/modules/auth/pages/login-page';
 
 export const meta: MetaFunction = () => [
-  { title: 'Sign In | Secretary Assistant' },
+  { title: 'Entrar | Secretary Assistant' },
   {
     name: 'description',
     content:
-      'Sign in or sign up to access the protected Secretary Assistant dashboard.',
+      'Entre ou crie sua conta para acessar a área protegida do Secretary Assistant.',
   },
 ];
 
