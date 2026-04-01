@@ -33,26 +33,44 @@ export class GetManagedWhatsAppSettingsUseCase {
 
     if (!instanceName) {
       return {
-        settings: {
-          companyId: company.id,
+        settings: this.buildSettings(company, {
           evolutionInstanceName: null,
           hasProvisionedInstance: false,
           connectionStatus: 'not-provisioned',
-          agentEnabled: company.isClientsSupportEnabled,
-        },
+        }),
       };
     }
 
     const status = await this.evolutionService.getInstanceStatus(instanceName);
 
     return {
-      settings: {
-        companyId: company.id,
+      settings: this.buildSettings(company, {
         evolutionInstanceName: instanceName,
         hasProvisionedInstance: true,
         connectionStatus: this.mapConnectionStatus(status),
-        agentEnabled: company.isClientsSupportEnabled,
-      },
+      }),
+    };
+  }
+
+  private buildSettings(
+    company: UserCompany['company'],
+    overrides: Pick<
+      ManagedWhatsAppSettingsResponse['settings'],
+      'evolutionInstanceName' | 'hasProvisionedInstance' | 'connectionStatus'
+    >,
+  ): ManagedWhatsAppSettingsResponse['settings'] {
+    return {
+      companyId: company.id,
+      evolutionInstanceName: overrides.evolutionInstanceName,
+      hasProvisionedInstance: overrides.hasProvisionedInstance,
+      connectionStatus: overrides.connectionStatus,
+      agentEnabled: company.isClientsSupportEnabled,
+      agentReplyScope: company.agentReplyScope ?? 'all',
+      agentReplyNamePattern: company.agentReplyNamePattern ?? null,
+      agentReplyListMode: company.agentReplyListMode ?? null,
+      agentReplyListEntries: Array.isArray(company.agentReplyListEntries)
+        ? company.agentReplyListEntries
+        : [],
     };
   }
 

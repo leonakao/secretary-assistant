@@ -6,6 +6,7 @@ import {
   getManagedWhatsAppSettings,
   provisionManagedWhatsAppInstance,
   refreshManagedWhatsAppStatus,
+  updateManagedAgentReplySettings,
   updateManagedAgentState,
 } from './settings.api';
 
@@ -89,6 +90,34 @@ describe('settings.api', () => {
         enabled: false,
       }),
     });
+  });
+
+  it('updates the managed agent reply settings', async () => {
+    const client = createClient();
+    vi.mocked(client.fetchApi).mockResolvedValue({ settings: {} });
+
+    await updateManagedAgentReplySettings(
+      {
+        scope: 'specific',
+        namePattern: 'cliente',
+        listMode: 'whitelist',
+        listEntries: ['vip'],
+      },
+      client,
+    );
+
+    expect(client.fetchApi).toHaveBeenCalledWith(
+      '/companies/me/agent-reply-settings',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          scope: 'specific',
+          namePattern: 'cliente',
+          listMode: 'whitelist',
+          listEntries: ['vip'],
+        }),
+      },
+    );
   });
 
   it('disconnects the managed WhatsApp session', async () => {

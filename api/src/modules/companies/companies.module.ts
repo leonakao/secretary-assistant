@@ -13,6 +13,7 @@ import { ProvisionManagedWhatsAppInstanceUseCase } from './use-cases/provision-m
 import { RefreshManagedWhatsAppStatusUseCase } from './use-cases/refresh-managed-whatsapp-status.use-case';
 import { DisconnectManagedWhatsAppUseCase } from './use-cases/disconnect-managed-whatsapp.use-case';
 import { UpdateManagedAgentStateUseCase } from './use-cases/update-managed-agent-state.use-case';
+import { UpdateManagedAgentReplySettingsUseCase } from './use-cases/update-managed-agent-reply-settings.use-case';
 import { UpdateManagedCompanyKnowledgeBaseUseCase } from './use-cases/update-managed-company-knowledge-base.use-case';
 import { UpdateManagedCompanyProfileUseCase } from './use-cases/update-managed-company-profile.use-case';
 import { BuildCompanyEvolutionInstanceNameService } from './services/build-company-evolution-instance-name.service';
@@ -33,6 +34,7 @@ import { ProvisionCompanyWhatsAppInstanceService } from './services/provision-co
     RefreshManagedWhatsAppStatusUseCase,
     DisconnectManagedWhatsAppUseCase,
     UpdateManagedAgentStateUseCase,
+    UpdateManagedAgentReplySettingsUseCase,
     BuildCompanyEvolutionInstanceNameService,
     ProvisionCompanyWhatsAppInstanceService,
     UpdateManagedCompanyProfileUseCase,

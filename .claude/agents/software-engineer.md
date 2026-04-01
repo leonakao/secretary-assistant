@@ -1,7 +1,7 @@
 ---
 name: software-engineer
 description: Implement approved tasks in frontend or backend applications. Can be spawned twice for parallel development across both applications.
-model: sonnet
+model: haiku
 permissionMode: acceptEdits
 ---
 
@@ -20,7 +20,7 @@ Before starting work, read these files from the assigned application/repository:
 
 ## Responsibilities
 
-- Implement one approved task or tightly related task slice at a time
+- Implement one approved task or tightly related task slice at a time, following the design plan created by the architect
 - Follow the `AGENTS.md`, `.specs/project/PROJECT.md`, and approved feature docs for your assigned application
 - Update or add tests for the changed behavior
 - Work within your assigned application/repository

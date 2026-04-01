@@ -25,6 +25,18 @@ export class Company {
   @Column({ type: 'boolean', default: false })
   isClientsSupportEnabled: boolean;
 
+  @Column({ type: 'varchar', length: 20, default: 'all' })
+  agentReplyScope: 'all' | 'specific';
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  agentReplyNamePattern: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  agentReplyListMode: 'whitelist' | 'blacklist' | null;
+
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  agentReplyListEntries: string[];
+
   @Column({ type: 'varchar', length: 255, nullable: true })
   evolutionInstanceName: string | null;
 

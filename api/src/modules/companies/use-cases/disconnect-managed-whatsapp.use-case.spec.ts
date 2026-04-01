@@ -16,6 +16,10 @@ function makeManagedUserCompany(overrides?: Partial<any>) {
       id: 'company-1',
       evolutionInstanceName: 'sa-company-company-1',
       isClientsSupportEnabled: false,
+      agentReplyScope: 'all',
+      agentReplyNamePattern: null,
+      agentReplyListMode: null,
+      agentReplyListEntries: [],
       ...overrides,
     },
   };
@@ -46,6 +50,10 @@ describe('DisconnectManagedWhatsAppUseCase', () => {
         connectionStatus: 'disconnected',
         evolutionInstanceName: 'sa-company-company-1',
         agentEnabled: false,
+        agentReplyScope: 'all',
+        agentReplyNamePattern: null,
+        agentReplyListMode: null,
+        agentReplyListEntries: [],
       },
     });
   });
@@ -56,6 +64,10 @@ describe('DisconnectManagedWhatsAppUseCase', () => {
         makeManagedUserCompany({
           evolutionInstanceName: 'sa-company-company-1',
           isClientsSupportEnabled: false,
+          agentReplyScope: 'specific',
+          agentReplyNamePattern: 'vip',
+          agentReplyListMode: 'whitelist',
+          agentReplyListEntries: ['cliente premium'],
         }),
       ),
     } as any;
@@ -76,6 +88,10 @@ describe('DisconnectManagedWhatsAppUseCase', () => {
         connectionStatus: 'disconnected',
         evolutionInstanceName: 'sa-company-company-1',
         agentEnabled: false,
+        agentReplyScope: 'specific',
+        agentReplyNamePattern: 'vip',
+        agentReplyListMode: 'whitelist',
+        agentReplyListEntries: ['cliente premium'],
       },
     });
   });

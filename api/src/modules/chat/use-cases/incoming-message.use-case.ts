@@ -87,15 +87,6 @@ export class IncomingMessageUseCase {
       };
     }
 
-    if (!company?.isClientsSupportEnabled) {
-      this.logger.log(
-        `Clients support is disabled for company ${companyId}. Ignoring message from contact ${phone}`,
-      );
-      return {
-        message: '',
-      };
-    }
-
     const contact = await this.contactRepository.findOne({
       where: {
         companyId,
@@ -106,6 +97,15 @@ export class IncomingMessageUseCase {
     if (!contact) {
       this.logger.warn(
         `No user or contact found for phone ${phone} in company ${companyId}`,
+      );
+      return {
+        message: '',
+      };
+    }
+
+    if (!this.shouldRespondToClient(company, contact)) {
+      this.logger.log(
+        `Clients support is disabled or filtered out for company ${companyId}. Ignoring message from contact ${phone}`,
       );
       return {
         message: '',
@@ -143,6 +143,76 @@ export class IncomingMessageUseCase {
 
   private extractPhoneFromJid(remoteJid: string): string {
     return '+' + remoteJid.split('@')[0];
+  }
+
+  private shouldRespondToClient(
+    company: Company | null,
+    contact: Contact,
+  ): boolean {
+    if (!company?.isClientsSupportEnabled) {
+      return false;
+    }
+
+    const scope = company.agentReplyScope ?? 'all';
+    if (scope === 'all') {
+      return true;
+    }
+
+    const namePattern = this.normalizeOptionalValue(
+      company.agentReplyNamePattern,
+    );
+    const listEntries = this.normalizeValues(company.agentReplyListEntries);
+    const matchesNamePattern = namePattern
+      ? contact.name.toLowerCase().includes(namePattern)
+      : true;
+
+    if (!matchesNamePattern) {
+      return false;
+    }
+
+    if (!namePattern && listEntries.length === 0) {
+      return false;
+    }
+
+    if (!company.agentReplyListMode || listEntries.length === 0) {
+      return true;
+    }
+
+    const matchesList = this.buildContactSearchFields(contact).some((field) =>
+      listEntries.some((entry) => field.includes(entry)),
+    );
+
+    if (company.agentReplyListMode === 'whitelist') {
+      return matchesList;
+    }
+
+    return !matchesList;
+  }
+
+  private buildContactSearchFields(contact: Contact): string[] {
+    return [contact.name, contact.phone, contact.instagram]
+      .filter((value): value is string => typeof value === 'string')
+      .map((value) => value.toLowerCase());
+  }
+
+  private normalizeValues(values: unknown): string[] {
+    if (!Array.isArray(values)) {
+      return [];
+    }
+
+    return values
+      .filter((value): value is string => typeof value === 'string')
+      .map((value) => value.trim().toLowerCase())
+      .filter((value) => value.length > 0);
+  }
+
+  private normalizeOptionalValue(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const normalizedValue = value.trim().toLowerCase();
+    return normalizedValue.length > 0 ? normalizedValue : null;
   }
 
   /**

@@ -50,7 +50,7 @@ describe('FinishOnboardingTool', () => {
         description:
           '# Luna Clean\n\n## Horário de Atendimento\n- Segunda a sexta',
         step: 'running',
-        isClientsSupportEnabled: true,
+        isClientsSupportEnabled: false,
       }),
     );
     expect(result).toContain('Onboarding finalizado com sucesso');

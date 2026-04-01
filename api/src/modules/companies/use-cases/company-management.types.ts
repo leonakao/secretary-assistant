@@ -18,12 +18,20 @@ export type ManagedWhatsAppConnectionStatus =
   | 'connected'
   | 'unknown';
 
+export type ManagedAgentReplyScope = 'all' | 'specific';
+
+export type ManagedAgentReplyListMode = 'whitelist' | 'blacklist' | null;
+
 export interface ManagedWhatsAppSettingsResult {
   companyId: string;
   evolutionInstanceName: string | null;
   hasProvisionedInstance: boolean;
   connectionStatus: ManagedWhatsAppConnectionStatus;
   agentEnabled: boolean;
+  agentReplyScope: ManagedAgentReplyScope;
+  agentReplyNamePattern: string | null;
+  agentReplyListMode: ManagedAgentReplyListMode;
+  agentReplyListEntries: string[];
 }
 
 export interface ManagedWhatsAppSettingsResponse {

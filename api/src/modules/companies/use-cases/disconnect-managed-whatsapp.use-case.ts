@@ -47,6 +47,12 @@ export class DisconnectManagedWhatsAppUseCase {
         hasProvisionedInstance: true,
         connectionStatus: 'disconnected',
         agentEnabled: company.isClientsSupportEnabled,
+        agentReplyScope: company.agentReplyScope ?? 'all',
+        agentReplyNamePattern: company.agentReplyNamePattern ?? null,
+        agentReplyListMode: company.agentReplyListMode ?? null,
+        agentReplyListEntries: Array.isArray(company.agentReplyListEntries)
+          ? company.agentReplyListEntries
+          : [],
       },
     };
   }

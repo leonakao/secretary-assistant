@@ -18,6 +18,7 @@ describe('CompaniesMeWhatsAppController', () => {
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
+      { execute: vi.fn() } as any,
     );
 
     await controller.getWhatsAppSettings(user);
@@ -33,6 +34,7 @@ describe('CompaniesMeWhatsAppController', () => {
     const controller = new CompaniesMeWhatsAppController(
       { execute: vi.fn() } as any,
       provisionManagedWhatsAppInstance as any,
+      { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
@@ -53,6 +55,7 @@ describe('CompaniesMeWhatsAppController', () => {
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
       getManagedWhatsAppConnectionPayload as any,
+      { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
@@ -77,6 +80,7 @@ describe('CompaniesMeWhatsAppController', () => {
       refreshManagedWhatsAppStatus as any,
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
+      { execute: vi.fn() } as any,
     );
 
     await controller.refreshWhatsAppStatus(user);
@@ -96,11 +100,42 @@ describe('CompaniesMeWhatsAppController', () => {
       { execute: vi.fn() } as any,
       updateManagedAgentState as any,
       { execute: vi.fn() } as any,
+      { execute: vi.fn() } as any,
     );
 
     await controller.updateAgentState(user, { enabled: false });
 
     expect(updateManagedAgentState.execute).toHaveBeenCalledWith(user, false);
+  });
+
+  it('routes agent reply settings updates to the dedicated use case', async () => {
+    const user = makeUser();
+    const updateManagedAgentReplySettings = {
+      execute: vi.fn().mockResolvedValue({}),
+    };
+    const controller = new CompaniesMeWhatsAppController(
+      { execute: vi.fn() } as any,
+      { execute: vi.fn() } as any,
+      { execute: vi.fn() } as any,
+      { execute: vi.fn() } as any,
+      { execute: vi.fn() } as any,
+      updateManagedAgentReplySettings as any,
+      { execute: vi.fn() } as any,
+    );
+
+    await controller.updateAgentReplySettings(user, {
+      scope: 'specific',
+      namePattern: 'cliente',
+      listMode: 'blacklist',
+      listEntries: ['spam'],
+    });
+
+    expect(updateManagedAgentReplySettings.execute).toHaveBeenCalledWith(user, {
+      scope: 'specific',
+      namePattern: 'cliente',
+      listMode: 'blacklist',
+      listEntries: ['spam'],
+    });
   });
 
   it('routes WhatsApp disconnect to the dedicated use case', async () => {
@@ -109,6 +144,7 @@ describe('CompaniesMeWhatsAppController', () => {
       execute: vi.fn().mockResolvedValue({}),
     };
     const controller = new CompaniesMeWhatsAppController(
+      { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,
       { execute: vi.fn() } as any,

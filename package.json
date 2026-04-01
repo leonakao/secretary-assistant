@@ -2,6 +2,7 @@
   "scripts": {
     "onboarding-validation:up": "sh -c 'docker compose --env-file .env.test -f docker-compose.onboarding-validation.yaml down --remove-orphans -v && docker compose --env-file .env.test -f docker-compose.onboarding-validation.yaml up -d --build --renew-anon-volumes && until curl -sf \"http://127.0.0.1:4173/login?mode=signup\" >/dev/null && curl -sf http://127.0.0.1:3300/health >/dev/null; do sleep 2; done'",
     "onboarding-validation:test": "sh -c 'set -a && [ -f ./api/.env ] && . ./api/.env; [ -f ./web/.env ] && . ./web/.env; [ -f ./.env.test ] && . ./.env.test; set +a && pnpm --dir web test:e2e:onboarding-validation'",
+    "settings:test": "sh -c 'set -a && [ -f ./api/.env ] && . ./api/.env; [ -f ./.env.test ] && . ./.env.test; set +a && pnpm --dir web exec playwright test tests/e2e/settings-api-integration.spec.ts'",
     "onboarding-validation:down": "docker compose --env-file .env.test -f docker-compose.onboarding-validation.yaml down --remove-orphans -v"
   },
   "volta": {

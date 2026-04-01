@@ -14,6 +14,10 @@ function makeUserCompany(overrides?: Partial<any>) {
       id: 'company-1',
       evolutionInstanceName: 'sa-company-company-1',
       isClientsSupportEnabled: true,
+      agentReplyScope: 'all',
+      agentReplyNamePattern: null,
+      agentReplyListMode: null,
+      agentReplyListEntries: [],
       ...overrides,
     },
   };
@@ -43,6 +47,10 @@ describe('GetManagedWhatsAppSettingsUseCase', () => {
         hasProvisionedInstance: false,
         connectionStatus: 'not-provisioned',
         agentEnabled: true,
+        agentReplyScope: 'all',
+        agentReplyNamePattern: null,
+        agentReplyListMode: null,
+        agentReplyListEntries: [],
       },
     });
   });
@@ -64,6 +72,43 @@ describe('GetManagedWhatsAppSettingsUseCase', () => {
       'sa-company-company-1',
     );
     expect(result.settings.connectionStatus).toBe('connected');
+    expect(result.settings.agentReplyScope).toBe('all');
+  });
+
+  it('returns persisted reply settings fields in the managed settings payload', async () => {
+    const useCase = new GetManagedWhatsAppSettingsUseCase(
+      {
+        findOne: vi.fn().mockResolvedValue(
+          makeUserCompany({
+            agentReplyScope: 'specific',
+            agentReplyNamePattern: 'cliente',
+            agentReplyListMode: 'whitelist',
+            agentReplyListEntries: ['vip', 'orcamento'],
+          }),
+        ),
+      } as any,
+      {
+        getInstanceStatus: vi
+          .fn()
+          .mockResolvedValue({ instance: { state: 'connecting' } }),
+      } as any,
+    );
+
+    const result = await useCase.execute(makeUser());
+
+    expect(result).toEqual({
+      settings: {
+        companyId: 'company-1',
+        evolutionInstanceName: 'sa-company-company-1',
+        hasProvisionedInstance: true,
+        connectionStatus: 'connecting',
+        agentEnabled: true,
+        agentReplyScope: 'specific',
+        agentReplyNamePattern: 'cliente',
+        agentReplyListMode: 'whitelist',
+        agentReplyListEntries: ['vip', 'orcamento'],
+      },
+    });
   });
 
   it('throws when the user has no managed company', async () => {

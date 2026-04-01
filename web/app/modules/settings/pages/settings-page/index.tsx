@@ -7,10 +7,12 @@ import {
   getManagedWhatsAppSettings,
   refreshManagedWhatsAppStatus,
   provisionManagedWhatsAppInstance,
+  updateManagedAgentReplySettings,
   updateManagedAgentState,
   type ManagedWhatsAppConnectionPayload,
   type ManagedWhatsAppSettings,
 } from '../../api/settings.api';
+import { AgentReplySettingsCard } from '../../components/agent-reply-settings-card';
 import { SettingsPageSkeleton } from '../../components/settings-page-skeleton';
 import { WhatsAppSettingsCard } from '../../components/whatsapp-settings-card';
 
@@ -43,11 +45,16 @@ export function SettingsPage() {
     null,
   );
   const [agentStateError, setAgentStateError] = useState<string | null>(null);
+  const [agentReplySettingsError, setAgentReplySettingsError] = useState<string | null>(
+    null,
+  );
   const [isFetchingConnectionPayload, setIsFetchingConnectionPayload] =
     useState(false);
   const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isUpdatingAgentState, setIsUpdatingAgentState] = useState(false);
+  const [isUpdatingAgentReplySettings, setIsUpdatingAgentReplySettings] =
+    useState(false);
 
   const loadInitialSettings = useEffectEvent(
     async (cancelled: { current: boolean }) => {
@@ -62,6 +69,7 @@ export function SettingsPage() {
         setLoadError(null);
         setConnectionActionError(null);
         setAgentStateError(null);
+        setAgentReplySettingsError(null);
         setIsLoading(false);
       } catch (cause: unknown) {
         if (cancelled.current) {
@@ -177,6 +185,26 @@ export function SettingsPage() {
     }
   };
 
+  const handleUpdateAgentReplySettings = async (
+    input: Parameters<typeof updateManagedAgentReplySettings>[0],
+  ) => {
+    try {
+      setIsUpdatingAgentReplySettings(true);
+      setAgentReplySettingsError(null);
+
+      const response = await updateManagedAgentReplySettings(input, client);
+      setSettings(response.settings);
+    } catch (cause: unknown) {
+      setAgentReplySettingsError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível atualizar as regras de resposta do agente.',
+      );
+    } finally {
+      setIsUpdatingAgentReplySettings(false);
+    }
+  };
+
   if (isLoading) {
     return <SettingsPageSkeleton />;
   }
@@ -225,8 +253,8 @@ export function SettingsPage() {
               </h1>
             </div>
             <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
-              Gerencie a conexão do WhatsApp e decida quando o agente deve
-              responder automaticamente aos clientes.
+              Gerencie a conexão do WhatsApp, o estado operacional do agente e
+              quais contatos podem receber resposta automática.
             </p>
           </div>
 
@@ -238,16 +266,24 @@ export function SettingsPage() {
       </section>
 
       <WhatsAppSettingsCard
-        agentStateError={agentStateError}
         connectionActionError={connectionActionError}
         connectionPayload={connectionPayload}
         isDisconnecting={isDisconnecting}
         isConnecting={isFetchingConnectionPayload}
         isRefreshingStatus={isRefreshingStatus}
-        isUpdatingAgentState={isUpdatingAgentState}
         onConnect={handleConnect}
         onDisconnect={handleDisconnect}
         onRefreshStatus={handleRefreshStatus}
+        settings={settings}
+      />
+
+      <AgentReplySettingsCard
+        agentEnabled={settings.agentEnabled}
+        agentStateError={agentStateError}
+        error={agentReplySettingsError}
+        isUpdatingAgentState={isUpdatingAgentState}
+        isSaving={isUpdatingAgentReplySettings}
+        onSave={handleUpdateAgentReplySettings}
         onToggleAgentState={handleToggleAgentState}
         settings={settings}
       />

@@ -7,12 +7,20 @@ export type ManagedWhatsAppConnectionStatus =
   | 'connected'
   | 'unknown';
 
+export type ManagedAgentReplyScope = 'all' | 'specific';
+
+export type ManagedAgentReplyListMode = 'whitelist' | 'blacklist' | null;
+
 export interface ManagedWhatsAppSettings {
   companyId: string;
   evolutionInstanceName: string | null;
   hasProvisionedInstance: boolean;
   connectionStatus: ManagedWhatsAppConnectionStatus;
   agentEnabled: boolean;
+  agentReplyScope: ManagedAgentReplyScope;
+  agentReplyNamePattern: string | null;
+  agentReplyListMode: ManagedAgentReplyListMode;
+  agentReplyListEntries: string[];
 }
 
 export interface ManagedWhatsAppConnectionPayload {
@@ -32,6 +40,13 @@ export interface ManagedWhatsAppConnectionPayloadResponse {
 
 export interface UpdateManagedAgentStateInput {
   enabled: boolean;
+}
+
+export interface UpdateManagedAgentReplySettingsInput {
+  scope: ManagedAgentReplyScope;
+  namePattern: string | null;
+  listMode: ManagedAgentReplyListMode;
+  listEntries: string[];
 }
 
 export async function getManagedWhatsAppSettings(
@@ -81,6 +96,19 @@ export async function updateManagedAgentState(
 ): Promise<ManagedWhatsAppSettingsResponse> {
   return client.fetchApi<ManagedWhatsAppSettingsResponse>(
     '/companies/me/agent-state',
+    {
+      method: 'POST',
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export async function updateManagedAgentReplySettings(
+  input: UpdateManagedAgentReplySettingsInput,
+  client: BoundApiClient,
+): Promise<ManagedWhatsAppSettingsResponse> {
+  return client.fetchApi<ManagedWhatsAppSettingsResponse>(
+    '/companies/me/agent-reply-settings',
     {
       method: 'POST',
       body: JSON.stringify(input),

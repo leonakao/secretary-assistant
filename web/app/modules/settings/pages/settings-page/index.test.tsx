@@ -11,6 +11,7 @@ const {
   getManagedWhatsAppSettingsMock,
   provisionManagedWhatsAppInstanceMock,
   refreshManagedWhatsAppStatusMock,
+  updateManagedAgentReplySettingsMock,
   updateManagedAgentStateMock,
 } = vi.hoisted(() => ({
   mockClient: {} as BoundApiClient,
@@ -19,6 +20,7 @@ const {
   getManagedWhatsAppSettingsMock: vi.fn(),
   provisionManagedWhatsAppInstanceMock: vi.fn(),
   refreshManagedWhatsAppStatusMock: vi.fn(),
+  updateManagedAgentReplySettingsMock: vi.fn(),
   updateManagedAgentStateMock: vi.fn(),
 }));
 
@@ -46,6 +48,7 @@ vi.mock('../../api/settings.api', async () => {
     getManagedWhatsAppSettings: getManagedWhatsAppSettingsMock,
     provisionManagedWhatsAppInstance: provisionManagedWhatsAppInstanceMock,
     refreshManagedWhatsAppStatus: refreshManagedWhatsAppStatusMock,
+    updateManagedAgentReplySettings: updateManagedAgentReplySettingsMock,
     updateManagedAgentState: updateManagedAgentStateMock,
   };
 });
@@ -59,6 +62,10 @@ function makeSettings(
     hasProvisionedInstance: true,
     connectionStatus: 'connected',
     agentEnabled: true,
+    agentReplyScope: 'all',
+    agentReplyNamePattern: null,
+    agentReplyListMode: null,
+    agentReplyListEntries: [],
     ...overrides,
   };
 }
@@ -69,6 +76,7 @@ beforeEach(() => {
   getManagedWhatsAppConnectionPayloadMock.mockReset();
   provisionManagedWhatsAppInstanceMock.mockReset();
   refreshManagedWhatsAppStatusMock.mockReset();
+  updateManagedAgentReplySettingsMock.mockReset();
   updateManagedAgentStateMock.mockReset();
 });
 
@@ -89,6 +97,9 @@ describe('SettingsPage', () => {
     });
 
     expect(screen.getByText('WhatsApp do agente')).toBeInTheDocument();
+    expect(
+      screen.getByText('Estado e respostas do agente'),
+    ).toBeInTheDocument();
     expect(getManagedWhatsAppSettingsMock).toHaveBeenCalledTimes(1);
     expect(
       screen.getByTestId('whatsapp-settings-agent-enabled-label'),
@@ -482,7 +493,7 @@ describe('SettingsPage', () => {
     ).toHaveTextContent('Desligado');
     expect(
       screen.getByText(
-        'O agente está pausado, mas o WhatsApp pode seguir conectado.',
+        'Ligue o agente para configurar quem ele deve responder automaticamente.',
       ),
     ).toBeInTheDocument();
   });
@@ -511,5 +522,110 @@ describe('SettingsPage', () => {
     expect(
       screen.getByTestId('whatsapp-settings-agent-enabled-label'),
     ).toHaveTextContent('Ligado');
+  });
+
+  it('updates the reply filters for specific contacts', async () => {
+    const { SettingsPage } = await import('./index');
+    getManagedWhatsAppSettingsMock.mockResolvedValue({
+      settings: makeSettings({
+        agentReplyScope: 'all',
+      }),
+    });
+    updateManagedAgentReplySettingsMock.mockResolvedValue({
+      settings: makeSettings({
+        agentReplyScope: 'specific',
+        agentReplyNamePattern: 'cliente',
+        agentReplyListMode: 'whitelist',
+        agentReplyListEntries: ['vip', 'prioridade'],
+      }),
+    });
+
+    render(<SettingsPage />);
+
+    await screen.findByText('Estado e respostas do agente');
+
+    fireEvent.click(screen.getByTestId('agent-reply-scope-specific'));
+    fireEvent.change(screen.getByTestId('agent-reply-name-pattern-input'), {
+      target: { value: 'cliente' },
+    });
+    fireEvent.click(screen.getByTestId('agent-reply-list-mode-whitelist'));
+    fireEvent.change(screen.getByTestId('agent-reply-list-entries-textarea'), {
+      target: { value: 'vip\nprioridade' },
+    });
+    fireEvent.click(screen.getByTestId('agent-reply-save-button'));
+
+    await waitFor(() => {
+      expect(updateManagedAgentReplySettingsMock).toHaveBeenCalledWith(
+        {
+          scope: 'specific',
+          namePattern: 'cliente',
+          listMode: 'whitelist',
+          listEntries: ['vip', 'prioridade'],
+        },
+        mockClient,
+      );
+    });
+
+    expect(
+      screen.getByTestId('agent-reply-list-entries-textarea'),
+    ).toHaveValue('vip\nprioridade');
+  });
+
+  it('saves the all scope after switching back from specific contacts', async () => {
+    const { SettingsPage } = await import('./index');
+    getManagedWhatsAppSettingsMock.mockResolvedValue({
+      settings: makeSettings({
+        agentReplyScope: 'specific',
+        agentReplyNamePattern: 'cliente',
+        agentReplyListMode: 'whitelist',
+        agentReplyListEntries: ['vip', 'prioridade'],
+      }),
+    });
+    updateManagedAgentReplySettingsMock.mockResolvedValue({
+      settings: makeSettings({
+        agentReplyScope: 'all',
+        agentReplyNamePattern: 'cliente',
+        agentReplyListMode: 'whitelist',
+        agentReplyListEntries: ['vip', 'prioridade'],
+      }),
+    });
+
+    render(<SettingsPage />);
+
+    await screen.findByText('Estado e respostas do agente');
+
+    fireEvent.click(screen.getByTestId('agent-reply-scope-all'));
+    fireEvent.click(screen.getByTestId('agent-reply-save-button'));
+
+    await waitFor(() => {
+      expect(updateManagedAgentReplySettingsMock).toHaveBeenCalledWith(
+        {
+          scope: 'all',
+          namePattern: 'cliente',
+          listMode: 'whitelist',
+          listEntries: ['vip', 'prioridade'],
+        },
+        mockClient,
+      );
+    });
+  });
+
+  it('warns when specific-contact mode has no filters configured', async () => {
+    const { SettingsPage } = await import('./index');
+    getManagedWhatsAppSettingsMock.mockResolvedValue({
+      settings: makeSettings({
+        agentReplyScope: 'specific',
+        agentReplyNamePattern: null,
+        agentReplyListMode: null,
+        agentReplyListEntries: [],
+      }),
+    });
+
+    render(<SettingsPage />);
+
+    await screen.findByText('Estado e respostas do agente');
+    expect(
+      screen.getByTestId('agent-reply-specific-empty-hint'),
+    ).toBeInTheDocument();
   });
 });

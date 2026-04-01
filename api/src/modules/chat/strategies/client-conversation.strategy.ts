@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -16,17 +17,24 @@ import { FindPendingConfirmationsService } from 'src/modules/service-requests/se
 @Injectable()
 export class ClientConversationStrategy implements ConversationStrategy {
   private readonly logger = new Logger(ClientConversationStrategy.name);
+  private readonly deterministicE2eRepliesEnabled: boolean;
 
   constructor(
     @InjectRepository(Contact)
     private readonly contactRepository: Repository<Contact>,
     @InjectRepository(Company)
     private readonly companyRepository: Repository<Company>,
+    private readonly configService: ConfigService,
     private readonly chatService: ChatService,
     private readonly clientAssistantAgent: ClientAssistantAgent,
     private readonly extractAiMessageService: ExtractAiMessageService,
     private readonly findPendingConfirmations: FindPendingConfirmationsService,
-  ) {}
+  ) {
+    this.deterministicE2eRepliesEnabled =
+      this.configService.get<string>('E2E_AUTH_MODE', 'false') === 'true' &&
+      this.configService.get<string>('NODE_ENV', 'development') !==
+        'production';
+  }
 
   async handleConversation(params: {
     companyId: string;
@@ -52,6 +60,21 @@ export class ClientConversationStrategy implements ConversationStrategy {
       role: 'user',
       content: params.message,
     });
+
+    if (this.deterministicE2eRepliesEnabled) {
+      const message = this.buildDeterministicReply(contact, company, params);
+
+      await this.chatService.addMessageToMemory({
+        sessionId: params.contactId,
+        companyId: params.companyId,
+        role: 'assistant',
+        content: message,
+      });
+
+      return {
+        message,
+      };
+    }
 
     this.logger.log(`Processing owner message: ${params.message}`);
 
@@ -116,5 +139,27 @@ export class ClientConversationStrategy implements ConversationStrategy {
     return {
       message: finalMessage,
     };
+  }
+
+  private buildDeterministicReply(
+    contact: Contact,
+    company: Company,
+    params: {
+      message: string;
+    },
+  ): string {
+    const firstName = contact.name.trim().split(/\s+/)[0] || 'cliente';
+    const companyName = company.name.trim() || 'atendimento';
+    const normalizedMessage = params.message.replace(/\s+/g, ' ').trim();
+    const summarizedMessage =
+      normalizedMessage.length > 96
+        ? `${normalizedMessage.slice(0, 93).trimEnd()}...`
+        : normalizedMessage;
+
+    if (!summarizedMessage) {
+      return `Oi, ${firstName}! Recebi sua mensagem para ${companyName} e vou continuar por aqui.`;
+    }
+
+    return `Oi, ${firstName}! Recebi sua mensagem para ${companyName}: "${summarizedMessage}".`;
   }
 }

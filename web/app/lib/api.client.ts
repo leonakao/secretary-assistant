@@ -9,8 +9,9 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     public readonly statusText: string,
+    message?: string,
   ) {
-    super(`API error: ${status} ${statusText}`);
+    super(message ?? `API error: ${status} ${statusText}`);
     this.name = 'ApiError';
   }
 }
@@ -22,10 +23,26 @@ export async function fetchApi<T>(
   const response = await fetchApiResponse(path, options);
 
   if (!response.ok) {
-    throw new ApiError(response.status, response.statusText);
+    throw await buildApiError(response);
   }
 
   return response.json() as Promise<T>;
+}
+
+async function buildApiError(response: Response): Promise<ApiError> {
+  let message: string | undefined;
+
+  try {
+    const errorBody = (await response.clone().json()) as { message?: unknown };
+
+    if (typeof errorBody.message === 'string' && errorBody.message.trim()) {
+      message = errorBody.message;
+    }
+  } catch {
+    // Ignore non-JSON error bodies and fall back to the HTTP status text.
+  }
+
+  return new ApiError(response.status, response.statusText, message);
 }
 
 export async function fetchApiResponse(

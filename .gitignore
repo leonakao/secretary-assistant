@@ -392,13 +392,14 @@ Network Trash Folder
 Temporary Items
 .apdisk
 
-=======
 # Local
 .env
 .env.onboarding-validation
 dist
+.artifacts/
 .webpack
 .serverless/**/*.zip
 .pnpm-store
 .react-router
 test-results/
+web/test-artifacts/

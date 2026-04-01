@@ -29,6 +29,18 @@ const COMPLETED_MANAGED_COMPANY = {
   updatedAt: '2026-03-28T12:00:00.000Z',
 };
 
+const COMPLETED_SETTINGS = {
+  agentEnabled: false,
+  agentReplyListEntries: [],
+  agentReplyListMode: null,
+  agentReplyNamePattern: null,
+  agentReplyScope: 'all' as const,
+  companyId: 'company-existing-owner',
+  connectionStatus: 'not-provisioned' as const,
+  evolutionInstanceName: null,
+  hasProvisionedInstance: false,
+};
+
 test('existing owner can navigate across the authenticated app shell', async ({
   page,
 }) => {
@@ -47,6 +59,13 @@ test('existing owner can navigate across the authenticated app shell', async ({
 
     await route.fulfill({
       body: JSON.stringify({ company: COMPLETED_MANAGED_COMPANY }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+  await page.route('**/companies/me/whatsapp-settings', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ settings: COMPLETED_SETTINGS }),
       contentType: 'application/json',
       status: 200,
     });
@@ -83,7 +102,8 @@ test('existing owner can navigate across the authenticated app shell', async ({
 
     await expect(page).toHaveURL(/\/app\/settings$/);
     await expect(page.getByTestId('settings-page')).toBeVisible();
-    await expect(page.getByText('Settings placeholder')).toBeVisible();
+    await expect(page.getByText('Configurações do app')).toBeVisible();
+    await expect(page.getByText('WhatsApp do agente')).toBeVisible();
   });
 
   await test.step('return to app home from the authenticated shell', async () => {
@@ -113,6 +133,13 @@ test('unauthenticated deep link to company returns to the same app page after si
 
     await route.fulfill({
       body: JSON.stringify({ company: COMPLETED_MANAGED_COMPANY }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+  await page.route('**/companies/me/whatsapp-settings', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({ settings: COMPLETED_SETTINGS }),
       contentType: 'application/json',
       status: 200,
     });

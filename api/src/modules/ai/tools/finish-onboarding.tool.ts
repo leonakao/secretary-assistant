@@ -113,7 +113,7 @@ MARKDOWN:`;
       {
         description,
         step: 'running',
-        isClientsSupportEnabled: true,
+        isClientsSupportEnabled: false,
       },
     );
 

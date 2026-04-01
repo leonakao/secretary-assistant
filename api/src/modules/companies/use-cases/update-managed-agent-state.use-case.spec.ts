@@ -16,6 +16,10 @@ function makeManagedUserCompany() {
       id: 'company-1',
       evolutionInstanceName: 'sa-company-company-1',
       isClientsSupportEnabled: true,
+      agentReplyScope: 'specific',
+      agentReplyNamePattern: 'vip',
+      agentReplyListMode: 'blacklist',
+      agentReplyListEntries: ['spam'],
     },
   };
 }
@@ -47,6 +51,11 @@ describe('UpdateManagedAgentStateUseCase', () => {
     const result = await useCase.execute(makeUser(), false);
 
     expect(company.isClientsSupportEnabled).toBe(false);
+    expect(company.evolutionInstanceName).toBe('sa-company-company-1');
+    expect(company.agentReplyScope).toBe('specific');
+    expect(company.agentReplyNamePattern).toBe('vip');
+    expect(company.agentReplyListMode).toBe('blacklist');
+    expect(company.agentReplyListEntries).toEqual(['spam']);
     expect(repository.manager.save).toHaveBeenCalledWith(company);
     expect(getManagedWhatsAppSettings.execute).toHaveBeenCalledWith(makeUser());
     expect(result).toEqual({
