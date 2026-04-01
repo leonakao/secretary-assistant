@@ -73,6 +73,9 @@ function makeUseCase(options?: {
   const audioTranscriptionService = {
     transcribeAudio: vi.fn(),
   } as any;
+  const messageTextExtractorService = {
+    extract: vi.fn().mockResolvedValue('Oi'),
+  } as any;
 
   return {
     contactRepository,
@@ -86,7 +89,7 @@ function makeUseCase(options?: {
       clientStrategy,
       ownerStrategy,
       onboardingStrategy,
-      audioTranscriptionService,
+      messageTextExtractorService,
     ),
   };
 }

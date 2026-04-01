@@ -22,12 +22,19 @@ export function OnboardingTranscript({
         <div className="space-y-4">
           {items.map((item) => {
             if (isPendingTranscriptItem(item)) {
-              if (item.kind === 'assistant-loading') {
+              if (
+                item.kind === 'assistant-initializing' ||
+                item.kind === 'assistant-typing'
+              ) {
                 return (
                   <div
                     key={item.id}
                     className="flex items-end gap-2.5 justify-start"
-                    data-testid="assistant-init-skeleton"
+                    data-testid={
+                      item.kind === 'assistant-initializing'
+                        ? 'assistant-init-skeleton'
+                        : 'assistant-typing-placeholder'
+                    }
                   >
                     <div className="mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand/10">
                       <Bot className="h-3.5 w-3.5 text-brand" />
@@ -35,7 +42,9 @@ export function OnboardingTranscript({
                     <div className="max-w-[75%] rounded-2xl rounded-bl-sm bg-muted px-4 py-3">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <LoaderCircle className="h-4 w-4 animate-spin" />
-                        Assistant is getting ready...
+                        {item.kind === 'assistant-initializing'
+                          ? 'Assistente se preparando...'
+                          : 'Assistente digitando...'}
                       </div>
                     </div>
                   </div>
@@ -51,7 +60,7 @@ export function OnboardingTranscript({
                   <div className="max-w-[75%] rounded-2xl rounded-br-sm bg-brand px-4 py-2.5 text-sm text-white">
                     <span className="inline-flex items-center gap-2">
                       <LoaderCircle className="h-4 w-4 animate-spin" />
-                      Transcribing audio...
+                      Transcrevendo áudio...
                     </span>
                   </div>
                 </div>

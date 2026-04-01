@@ -6,6 +6,11 @@ import { OnboardingConversationService } from '../services/onboarding-conversati
 import type { User } from 'src/modules/users/entities/user.entity';
 import { findPreferredUserCompanyForOnboardingState } from '../utils/find-active-user-company';
 import { buildOnboardingThreadId } from '../utils/build-onboarding-thread-id';
+import { ChatStateService } from 'src/modules/message-queue/services/chat-state.service';
+import {
+  mapOnboardingState,
+  type OnboardingStateResult,
+} from '../utils/map-onboarding-state';
 
 interface ConversationMessage {
   id: string;
@@ -15,9 +20,11 @@ interface ConversationMessage {
 }
 
 export interface GetOnboardingMessagesResult {
-  threadId: string;
-  messages: ConversationMessage[];
+  threadId: string | null;
   isInitialized: boolean;
+  messages: ConversationMessage[];
+  onboarding: OnboardingStateResult['onboarding'];
+  isTyping: boolean;
 }
 
 @Injectable()
@@ -26,6 +33,7 @@ export class GetOnboardingMessagesUseCase {
     @InjectRepository(UserCompany)
     private readonly userCompanyRepository: Repository<UserCompany>,
     private readonly onboardingConversationService: OnboardingConversationService,
+    private readonly chatStateService: ChatStateService,
   ) {}
 
   async execute(user: User): Promise<GetOnboardingMessagesResult | null> {
@@ -35,7 +43,15 @@ export class GetOnboardingMessagesUseCase {
     );
 
     if (!userCompany) {
-      return null;
+      // Return null result with empty values
+      const defaultState = mapOnboardingState(null);
+      return {
+        threadId: null,
+        isInitialized: false,
+        messages: [],
+        onboarding: defaultState.onboarding,
+        isTyping: false,
+      };
     }
 
     const messages =
@@ -44,15 +60,25 @@ export class GetOnboardingMessagesUseCase {
         userCompany.companyId,
       );
 
+    // Get onboarding state
+    const onboardingState = mapOnboardingState(userCompany);
+
+    // Get typing indicator state
+    const conversationKey = `onboarding:${user.id}:${userCompany.companyId}`;
+    const typingState = await this.chatStateService.getState(conversationKey);
+    const isTyping = typingState === 'typing';
+
     return {
       threadId: buildOnboardingThreadId(user.id, userCompany.companyId),
+      isInitialized: messages.length > 0,
       messages: messages.map((message) => ({
         id: message.id,
         role: message.role as 'user' | 'assistant',
         content: message.content,
         createdAt: message.createdAt.toISOString(),
       })),
-      isInitialized: messages.length > 0,
+      onboarding: onboardingState.onboarding,
+      isTyping,
     };
   }
 }

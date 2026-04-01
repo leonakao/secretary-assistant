@@ -27,7 +27,9 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
       onSuccess();
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : 'Failed to create company. Please try again.',
+        cause instanceof Error
+          ? cause.message
+          : 'Falha ao criar a empresa. Tente novamente.',
       );
       setIsSubmitting(false);
     }

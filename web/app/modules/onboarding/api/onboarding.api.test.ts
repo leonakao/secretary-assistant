@@ -73,6 +73,8 @@ describe('onboarding api', () => {
       threadId: 'onboarding:company-1:user-1',
       isInitialized: true,
       messages: [],
+      onboarding: { requiresOnboarding: true, step: 'assistant-chat' },
+      isTyping: false,
     };
     client.fetchApi.mockResolvedValue(response);
 

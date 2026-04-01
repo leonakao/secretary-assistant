@@ -48,12 +48,12 @@ function resolveAuthReturnTo(nextMode: AuthMode, redirectTo: string): string {
 
 export function LoginPage() {
   const {
+    clearSession,
     error,
     isAuthenticated,
     isLoading,
     loginWithRedirect,
     getIdTokenClaims,
-    logout,
   } =
     useAppAuth();
   const navigate = useNavigate();
@@ -63,8 +63,8 @@ export function LoginPage() {
   const [sessionBootstrapAttempt, setSessionBootstrapAttempt] = useState(0);
   const hasBootstrappedSessionAttemptRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
+  const clearSessionRef = useRef(clearSession);
   const getIdTokenClaimsRef = useRef(getIdTokenClaims);
-  const logoutRef = useRef(logout);
 
   const mode: AuthMode =
     searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
@@ -72,9 +72,9 @@ export function LoginPage() {
   const isUnauthorizedRecovery = isUnauthorizedSessionRecovery(searchParams);
 
   useEffect(() => {
+    clearSessionRef.current = clearSession;
     getIdTokenClaimsRef.current = getIdTokenClaims;
-    logoutRef.current = logout;
-  }, [getIdTokenClaims, logout]);
+  }, [clearSession, getIdTokenClaims]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -144,10 +144,10 @@ export function LoginPage() {
         setIsResolvingSession(false);
         if (isUnauthorizedSessionError(cause)) {
           const recoveryPath = buildUnauthorizedSessionRecoveryPath(redirectTo);
-          logoutRef.current({
-            logoutParams: {
-              returnTo: new URL(recoveryPath, getAuth0AppOrigin()).toString(),
-            },
+          void clearSessionRef.current().finally(() => {
+            window.location.replace(
+              new URL(recoveryPath, getAuth0AppOrigin()).toString(),
+            );
           });
           return;
         }
@@ -163,7 +163,6 @@ export function LoginPage() {
     isAuthenticated,
     isLoading,
     isUnauthorizedRecovery,
-    logout,
     navigate,
     redirectTo,
     sessionBootstrapAttempt,

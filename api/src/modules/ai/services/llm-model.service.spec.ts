@@ -16,8 +16,9 @@ describe('LlmModelService', () => {
     const model = service.getLlmModel('helper');
 
     expect(model).toBeInstanceOf(ChatOpenAI);
-    expect(model.model).toBe('gpt-5-nano');
+    expect(model.model).toBe('gpt-5.4-nano');
     expect(model.maxTokens).toBe(8192);
+    expect(model.reasoning).toEqual({ effort: 'none' });
     expect(model.useResponsesApi).toBe(true);
   });
 
@@ -27,8 +28,9 @@ describe('LlmModelService', () => {
     const model = service.getLlmModel('user-interaction');
 
     expect(model).toBeInstanceOf(ChatOpenAI);
-    expect(model.model).toBe('gpt-5-mini');
+    expect(model.model).toBe('gpt-5.4-mini');
     expect(model.maxTokens).toBe(2048);
+    expect(model.reasoning).toEqual({ effort: 'low' });
     expect(model.useResponsesApi).toBe(true);
   });
 

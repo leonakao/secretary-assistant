@@ -98,7 +98,6 @@ export function WhatsAppSettingsCard(props: WhatsAppSettingsCardProps) {
   const isConnected = settings.connectionStatus === 'connected';
   const shouldShowConnect = settings.connectionStatus !== 'connected';
   const connectButtonLabel = 'Conectar WhatsApp';
-  const hasExpiration = Boolean(connectionPayload?.expiresAt);
   const shouldShowPayload =
     connectionPayload &&
     (connectionPayload.qrCodeBase64 || connectionPayload.expiresAt);

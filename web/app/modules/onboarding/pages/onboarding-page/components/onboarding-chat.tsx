@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { useApiClient } from '~/lib/api-client-context';
 import {
@@ -6,6 +6,7 @@ import {
   initializeOnboardingConversation,
   sendOnboardingAudioMessage,
   sendOnboardingTextMessage,
+  type OnboardingConversation,
   type OnboardingMessage,
 } from '../../../api/onboarding.api';
 import { OnboardingAudioPreview } from './onboarding-audio-preview';
@@ -15,12 +16,26 @@ import { OnboardingTranscript } from './onboarding-transcript';
 import type { ComposerState, TranscriptItem } from './onboarding-chat.types';
 import { mergeMessagesIdempotently } from './onboarding-chat.utils';
 import { useOnboardingAudioRecorder } from './use-onboarding-audio-recorder';
+import { useOnboardingPolling } from './use-onboarding-polling';
 
 interface OnboardingChatProps {
   onComplete: () => void;
 }
 
 const COMPLETION_REDIRECT_DELAY_MS = 3000;
+let conversationBootstrapPromise: Promise<OnboardingConversation | null> | null = null;
+
+function loadConversationOnce(client: ReturnType<typeof useApiClient>) {
+  if (conversationBootstrapPromise) {
+    return conversationBootstrapPromise;
+  }
+
+  conversationBootstrapPromise = getOnboardingMessages(client).finally(() => {
+    conversationBootstrapPromise = null;
+  });
+
+  return conversationBootstrapPromise;
+}
 
 export function OnboardingChat({ onComplete }: OnboardingChatProps) {
   const client = useApiClient();
@@ -44,11 +59,16 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const initializeAttemptedRef = useRef(false);
   const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAssistantCountRef = useRef<number>(0);
+  const pendingUserMessageIdRef = useRef<string | null>(null);
+  const lastSentTextRef = useRef<string>('');
+  const optimisticMessageIdRef = useRef<string>('');
 
   const isBusy =
     composerState === 'loading-history' ||
     composerState === 'initializing' ||
     composerState === 'sending-text' ||
+    composerState === 'awaiting-reply' ||
     composerState === 'sending-audio' ||
     composerState === 'completing';
   const isInputDisabled = isBusy || composerState === 'recording-audio';
@@ -56,7 +76,17 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
     const baseItems: TranscriptItem[] = [...messages];
 
     if (composerState === 'initializing') {
-      baseItems.push({ id: 'assistant-loading', kind: 'assistant-loading' });
+      baseItems.push({
+        id: 'assistant-initializing',
+        kind: 'assistant-initializing',
+      });
+    }
+
+    if (composerState === 'awaiting-reply') {
+      baseItems.push({
+        id: 'assistant-typing',
+        kind: 'assistant-typing',
+      });
     }
 
     if (pendingAudioMessageId) {
@@ -102,7 +132,7 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
       setError(null);
 
       try {
-        const conversation = await getOnboardingMessages(client);
+        const conversation = await loadConversationOnce(client);
 
         if (isCancelled) {
           return;
@@ -125,7 +155,7 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
         setError(
           cause instanceof Error
             ? cause.message
-            : 'Failed to load onboarding messages. Please try again.',
+            : 'Falha ao carregar as mensagens do onboarding. Tente novamente.',
         );
       }
     };
@@ -193,7 +223,7 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
       setError(
         cause instanceof Error
           ? cause.message
-          : 'Failed to start the onboarding conversation. Please try again.',
+          : 'Falha ao iniciar a conversa de onboarding. Tente novamente.',
       );
       focusComposer();
       throw cause;
@@ -226,6 +256,48 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
     }, COMPLETION_REDIRECT_DELAY_MS);
   };
 
+  const handlePollResponse = useCallback((conversation: OnboardingConversation) => {
+    if (
+      pendingUserMessageIdRef.current !== null &&
+      conversation.messages.some(
+        (message) => message.id === pendingUserMessageIdRef.current,
+      )
+    ) {
+      setPendingAudioMessageId(null);
+    }
+  }, []);
+
+  const handlePollSuccess = useCallback(
+    (conversation: OnboardingConversation) => {
+      setMessages(conversation.messages);
+      setComposerState('idle');
+      handleOnboardingStepChange(conversation.onboarding.step);
+      focusComposer();
+    },
+    [handleOnboardingStepChange],
+  );
+
+  const handlePollTimeout = useCallback(() => {
+    setMessages((prev) => prev.filter((m) => m.id !== optimisticMessageIdRef.current));
+    setPendingAudioMessageId(null);
+    setComposerState('idle');
+    setDraftText(lastSentTextRef.current);
+    setError('Nenhuma resposta foi recebida em 30 segundos. Tente novamente.');
+  }, []);
+
+  // Polling effect for awaiting-reply state
+  useOnboardingPolling({
+    enabled: composerState === 'awaiting-reply',
+    client,
+    expectedAssistantCount: pendingAssistantCountRef.current,
+    pendingUserMessageId: pendingUserMessageIdRef.current,
+    intervalMs: 2000,
+    timeoutMs: 30000,
+    onPoll: handlePollResponse,
+    onSuccess: handlePollSuccess,
+    onTimeout: handlePollTimeout,
+  });
+
   const handleTextSend = async () => {
     const message = draftText.trim();
 
@@ -240,6 +312,11 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
       createdAt: new Date().toISOString(),
     };
 
+    optimisticMessageIdRef.current = optimisticUserMessage.id;
+    pendingAssistantCountRef.current = [...messages, optimisticUserMessage].filter(
+      (currentMessage) => currentMessage.role === 'assistant',
+    ).length;
+    pendingUserMessageIdRef.current = null;
     setComposerState('sending-text');
     setError(null);
     setDraftText('');
@@ -248,23 +325,11 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
     try {
       const response = await sendOnboardingTextMessage({ message }, client);
 
-      setMessages((currentMessages) => {
-        const withoutOptimistic = currentMessages.filter(
-          (currentMessage) => currentMessage.id !== optimisticUserMessage.id,
-        );
+      pendingUserMessageIdRef.current = response.userMessageId;
+      lastSentTextRef.current = message;
 
-        return mergeMessagesIdempotently(withoutOptimistic, [
-          response.userMessage,
-          response.assistantMessage,
-        ]);
-      });
       setIsConversationInitialized(true);
-      handleOnboardingStepChange(response.onboarding.step);
-
-      if (response.onboarding.step !== 'complete') {
-        setComposerState('idle');
-        focusComposer();
-      }
+      setComposerState('awaiting-reply');
     } catch (cause) {
       setMessages((currentMessages) =>
         currentMessages.filter(
@@ -276,7 +341,7 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
       setError(
         cause instanceof Error
           ? cause.message
-          : 'Failed to send message. Please try again.',
+          : 'Falha ao enviar a mensagem. Tente novamente.',
       );
       focusComposer();
     }
@@ -325,6 +390,10 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
 
     const pendingId = `pending-audio-${Date.now()}`;
 
+    pendingAssistantCountRef.current = messages.filter(
+      (currentMessage) => currentMessage.role === 'assistant',
+    ).length;
+    pendingUserMessageIdRef.current = null;
     setComposerState('sending-audio');
     setPendingAudioMessageId(pendingId);
     setError(null);
@@ -339,28 +408,19 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
         client,
       );
 
+      pendingUserMessageIdRef.current = response.userMessageId;
       clearAudioPreview();
-      setPendingAudioMessageId(null);
-      setMessages((currentMessages) =>
-        mergeMessagesIdempotently(currentMessages, [
-          response.userMessage,
-          response.assistantMessage,
-        ]),
-      );
-      setIsConversationInitialized(true);
-      handleOnboardingStepChange(response.onboarding.step);
+      setPendingAudioMessageId(response.userMessageId);
 
-      if (response.onboarding.step !== 'complete') {
-        setComposerState('idle');
-        focusComposer();
-      }
+      setIsConversationInitialized(true);
+      setComposerState('awaiting-reply');
     } catch (cause) {
       setPendingAudioMessageId(null);
       setComposerState('audio-preview');
       setError(
         cause instanceof Error
           ? cause.message
-          : 'Failed to send audio. Please try again.',
+          : 'Falha ao enviar o áudio. Tente novamente.',
       );
       focusComposer();
     }
@@ -405,13 +465,20 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
 
       <OnboardingChatErrorBanner
         error={error}
-        showRetry={!isConversationInitialized && composerState === 'idle'}
+        showRetry={
+          (!isConversationInitialized && composerState === 'idle') ||
+          (error !== null && draftText.trim().length > 0 && composerState === 'idle')
+        }
         onRetry={
           !isConversationInitialized && composerState === 'idle'
             ? () => {
                 void runConversationInitialization().catch(() => undefined);
               }
-            : null
+            : error !== null && draftText.trim().length > 0 && composerState === 'idle'
+              ? () => {
+                  void handleTextSend();
+                }
+              : null
         }
       />
 

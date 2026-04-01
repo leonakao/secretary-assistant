@@ -7,6 +7,7 @@ import { User } from '../users/entities/user.entity';
 import { AiModule } from '../ai/ai.module';
 import { AuthModule } from '../auth/auth.module';
 import { CompaniesModule } from '../companies/companies.module';
+import { MessageQueueModule } from '../message-queue/message-queue.module';
 import { OnboardingConversationService } from './services/onboarding-conversation.service';
 import { OnboardingCompanyController } from './controllers/onboarding-company.controller';
 import { OnboardingStateController } from './controllers/onboarding-state.controller';
@@ -23,6 +24,7 @@ import { InitializeOnboardingConversationUseCase } from './use-cases/initialize-
     forwardRef(() => AiModule),
     AuthModule,
     CompaniesModule,
+    MessageQueueModule,
   ],
   controllers: [
     OnboardingCompanyController,

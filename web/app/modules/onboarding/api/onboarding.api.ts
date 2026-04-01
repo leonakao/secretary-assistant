@@ -23,6 +23,8 @@ export interface OnboardingConversation {
   threadId: string | null;
   isInitialized: boolean;
   messages: OnboardingMessage[];
+  onboarding: OnboardingState;
+  isTyping: boolean;
 }
 
 export interface OnboardingStateResponse {
@@ -45,10 +47,8 @@ export interface SendOnboardingMessageInput {
 }
 
 export interface SendOnboardingMessageResponse {
-  company: OnboardingCompany | null;
-  onboarding: OnboardingState;
-  userMessage: OnboardingMessage;
-  assistantMessage: OnboardingMessage;
+  status: 'pending';
+  userMessageId: string;
 }
 
 export interface InitializeOnboardingConversationResponse {

@@ -56,6 +56,7 @@ function makeService(
     memoryRepo: any;
     agent: any;
     extractor: any;
+    chatStateService: any;
   }> = {},
 ) {
   const userRepo = overrides.userRepo ?? {
@@ -80,6 +81,11 @@ function makeService(
   const extractor = overrides.extractor ?? {
     extractFromChunkMessages: vi.fn().mockReturnValue('Hello!'),
   };
+  const chatStateService = overrides.chatStateService ?? {
+    setTyping: vi.fn().mockResolvedValue(undefined),
+    clearTyping: vi.fn().mockResolvedValue(undefined),
+    getState: vi.fn().mockResolvedValue(null),
+  };
 
   const service = new OnboardingConversationService(
     userRepo,
@@ -87,9 +93,18 @@ function makeService(
     memoryRepo,
     agent,
     extractor,
+    chatStateService,
   );
 
-  return { service, userRepo, userCompanyRepo, memoryRepo, agent, extractor };
+  return {
+    service,
+    userRepo,
+    userCompanyRepo,
+    memoryRepo,
+    agent,
+    extractor,
+    chatStateService,
+  };
 }
 
 describe('OnboardingConversationService', () => {
@@ -185,8 +200,9 @@ describe('OnboardingConversationService', () => {
       const userCompanyRepo = {
         findOne: vi
           .fn()
-          .mockResolvedValueOnce(makeUserCompany('onboarding'))
-          .mockResolvedValueOnce(makeUserCompany('running')),
+          .mockResolvedValueOnce(makeUserCompany('onboarding')) // saveUserMessage → loadConversationAccess
+          .mockResolvedValueOnce(makeUserCompany('running')) // run() → direct findOne for generateAssistantReply
+          .mockResolvedValueOnce(makeUserCompany('running')), // loadOnboardingState
         manager: undefined,
       };
       const { service } = makeService({ userCompanyRepo });
@@ -366,6 +382,102 @@ describe('OnboardingConversationService', () => {
       );
       expect(queryBuilder.setLock).toHaveBeenCalledWith('pessimistic_write');
       expect(queryBuilder.getOne).toHaveBeenCalled();
+    });
+  });
+
+  describe('saveUserMessage', () => {
+    it('persists a user message and returns it', async () => {
+      const { service, memoryRepo } = makeService();
+
+      const result = await service.saveUserMessage('user-1', 'company-1', 'Oi');
+
+      expect(memoryRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'user', content: 'Oi' }),
+      );
+      expect(result).toMatchObject({ role: 'user', content: 'Oi' });
+    });
+
+    it('throws NotFoundException when user is not found', async () => {
+      const { service } = makeService({
+        userRepo: { findOneBy: vi.fn().mockResolvedValue(null) },
+      });
+
+      await expect(
+        service.saveUserMessage('ghost', 'company-1', 'Hi'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('generateAndSaveAssistantReplyAsync', () => {
+    it('sets typing indicator at the start and clears it when done', async () => {
+      const chatStateService = {
+        setTyping: vi.fn().mockResolvedValue(undefined),
+        clearTyping: vi.fn().mockResolvedValue(undefined),
+        getState: vi.fn().mockResolvedValue(null),
+      };
+      const memoryRepo = {
+        save: createSaveMock(),
+        find: vi.fn().mockResolvedValue([]),
+        findOne: vi
+          .fn()
+          .mockResolvedValue(makeMemory({ role: 'user', content: 'Oi' })),
+      };
+      const { service } = makeService({ chatStateService, memoryRepo });
+
+      await service.generateAndSaveAssistantReplyAsync('user-1', 'company-1');
+
+      expect(chatStateService.setTyping).toHaveBeenCalledWith(
+        'onboarding:user-1:company-1',
+      );
+      expect(chatStateService.clearTyping).toHaveBeenCalledWith(
+        'onboarding:user-1:company-1',
+      );
+    });
+
+    it('always clears the typing indicator even when generation fails', async () => {
+      const chatStateService = {
+        setTyping: vi.fn().mockResolvedValue(undefined),
+        clearTyping: vi.fn().mockResolvedValue(undefined),
+        getState: vi.fn().mockResolvedValue(null),
+      };
+      const memoryRepo = {
+        save: createSaveMock(),
+        find: vi.fn().mockResolvedValue([]),
+        findOne: vi
+          .fn()
+          .mockResolvedValue(makeMemory({ role: 'user', content: 'Oi' })),
+      };
+      const agent = {
+        streamConversation: vi.fn().mockRejectedValue(new Error('AI failure')),
+      };
+      const { service } = makeService({ chatStateService, memoryRepo, agent });
+
+      // Should not throw — errors are caught internally
+      await expect(
+        service.generateAndSaveAssistantReplyAsync('user-1', 'company-1'),
+      ).resolves.toBeUndefined();
+
+      expect(chatStateService.clearTyping).toHaveBeenCalledWith(
+        'onboarding:user-1:company-1',
+      );
+    });
+
+    it('does not throw when there is no user message to reply to', async () => {
+      const memoryRepo = {
+        save: createSaveMock(),
+        find: vi.fn().mockResolvedValue([]),
+        findOne: vi.fn().mockResolvedValue(null), // no last user message
+      };
+      const chatStateService = {
+        setTyping: vi.fn().mockResolvedValue(undefined),
+        clearTyping: vi.fn().mockResolvedValue(undefined),
+        getState: vi.fn().mockResolvedValue(null),
+      };
+      const { service } = makeService({ memoryRepo, chatStateService });
+
+      await expect(
+        service.generateAndSaveAssistantReplyAsync('user-1', 'company-1'),
+      ).resolves.toBeUndefined();
     });
   });
 

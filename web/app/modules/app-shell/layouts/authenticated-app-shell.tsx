@@ -10,19 +10,11 @@ import {
 import type { SessionUser } from '~/modules/auth/api/get-current-user';
 import { resolveAuthenticatedEntryTarget } from '~/modules/auth/use-cases/resolve-authenticated-entry-target';
 import {
-  getAuth0AppOrigin,
   getAuth0LogoutReturnTo,
 } from '~/lib/runtime-config.client';
 import { AppBottomNav } from '../components/app-bottom-nav';
 import { AppShellHeader } from '../components/app-shell-header';
 import { AppSidebar } from '../components/app-sidebar';
-
-function getExpiredSessionReturnTo(pathname: string): string {
-  return new URL(
-    buildUnauthorizedSessionRecoveryPath(pathname),
-    getAuth0AppOrigin(),
-  ).toString();
-}
 
 export interface AuthenticatedAppShellOutletContext {
   sessionUser: SessionUser;
@@ -30,7 +22,8 @@ export interface AuthenticatedAppShellOutletContext {
 
 export function AuthenticatedAppShell() {
   const location = useLocation();
-  const { getIdTokenClaims, isAuthenticated, isLoading, logout } = useAppAuth();
+  const { clearSession, getIdTokenClaims, isAuthenticated, isLoading, logout } =
+    useAppAuth();
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRecoveringSession, setIsRecoveringSession] = useState(false);
@@ -41,13 +34,13 @@ export function AuthenticatedAppShell() {
     useState(false);
   const isBootstrappingSessionRef = useRef(false);
   const isMountedRef = useRef(true);
+  const clearSessionRef = useRef(clearSession);
   const getIdTokenClaimsRef = useRef(getIdTokenClaims);
-  const logoutRef = useRef(logout);
 
   useEffect(() => {
+    clearSessionRef.current = clearSession;
     getIdTokenClaimsRef.current = getIdTokenClaims;
-    logoutRef.current = logout;
-  }, [getIdTokenClaims, logout]);
+  }, [clearSession, getIdTokenClaims]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -134,11 +127,7 @@ export function AuthenticatedAppShell() {
           setIsRecoveringSession(true);
           setRecoveryRedirectTo(recoveryPath);
           setShouldRedirectToOnboarding(false);
-          logoutRef.current({
-            logoutParams: {
-              returnTo: getExpiredSessionReturnTo(location.pathname),
-            },
-          });
+          void clearSessionRef.current();
           return;
         }
 

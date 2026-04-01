@@ -27,7 +27,7 @@ export function OnboardingChatErrorBanner({
               onClick={onRetry}
               data-testid="onboarding-chat-retry-button"
             >
-              Retry
+              Tentar novamente
             </Button>
           ) : null}
         </div>

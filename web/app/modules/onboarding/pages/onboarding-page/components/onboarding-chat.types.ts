@@ -5,13 +5,15 @@ export type ComposerState =
   | 'loading-history'
   | 'initializing'
   | 'sending-text'
+  | 'awaiting-reply'
   | 'recording-audio'
   | 'audio-preview'
   | 'sending-audio'
   | 'completing';
 
 export type PendingTranscriptItem =
-  | { id: string; kind: 'assistant-loading' }
+  | { id: string; kind: 'assistant-initializing' }
+  | { id: string; kind: 'assistant-typing' }
   | { id: string; kind: 'user-audio-transcribing' };
 
 export type TranscriptItem = OnboardingMessage | PendingTranscriptItem;

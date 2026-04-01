@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Contact } from '../../contacts/entities/contact.entity';
@@ -11,7 +11,7 @@ import { ClientConversationStrategy } from '../strategies/client-conversation.st
 import { OwnerConversationStrategy } from '../strategies/owner-conversation.strategy';
 import { OnboardingConversationStrategy } from '../strategies/onboarding-conversation.strategy';
 import { ConversationResponse } from '../strategies';
-import { AudioTranscriptionService } from '../../ai/services/audio-transcription.service';
+import { MessageTextExtractorService } from '../../message-queue/services/message-text-extractor.service';
 
 @Injectable()
 export class IncomingMessageUseCase {
@@ -31,19 +31,21 @@ export class IncomingMessageUseCase {
     private clientStrategy: ClientConversationStrategy,
     private ownerStrategy: OwnerConversationStrategy,
     private onboardingStrategy: OnboardingConversationStrategy,
-    private audioTranscriptionService: AudioTranscriptionService,
+    private messageTextExtractorService: MessageTextExtractorService,
   ) {}
 
   async execute(
     companyId: string,
     instanceName: string,
     payload: EvolutionMessagesUpsertPayload,
+    preExtractedText?: string,
   ): Promise<ConversationResponse> {
-    const { key, message: messageContent } = payload;
+    const { key } = payload;
 
     const remoteJid = key.remoteJid;
     const phone = this.extractPhoneFromJid(remoteJid);
-    const messageText = await this.extractOrTranscribeMessage(messageContent);
+    const messageText =
+      preExtractedText ?? (await this.extractOrTranscribeMessage(payload));
 
     const company = await this.companyRepository.findOne({
       where: { id: companyId },
@@ -219,37 +221,9 @@ export class IncomingMessageUseCase {
    * Extract text from message or transcribe audio if it's an audio message
    */
   private async extractOrTranscribeMessage(
-    messageContent: EvolutionMessagesUpsertPayload['message'],
+    payload: EvolutionMessagesUpsertPayload,
   ): Promise<string> {
-    // Check for text messages first
-    const textMessage =
-      messageContent?.conversation || messageContent?.extendedTextMessage?.text;
-
-    if (textMessage) {
-      return textMessage;
-    }
-
-    // Check for audio message
-    if (messageContent?.audioMessage?.url) {
-      this.logger.log('🎤 Audio message detected, transcribing...');
-
-      const transcription =
-        await this.audioTranscriptionService.transcribeAudio(
-          messageContent.base64!,
-          messageContent.audioMessage.mimetype,
-        );
-
-      if (transcription) {
-        this.logger.log(`✅ Audio transcribed: "${transcription}"`);
-        return transcription;
-      } else {
-        this.logger.warn('⚠️ Audio transcription returned empty result');
-        return '';
-      }
-    }
-
-    // No text or audio found
-    throw new BadRequestException('No text or audio found in message');
+    return this.messageTextExtractorService.extract(payload);
   }
 
   /**

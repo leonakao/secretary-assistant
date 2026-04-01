@@ -8,7 +8,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IncomingMessageUseCase } from '../use-cases/incoming-message.use-case';
+import { MessageQueueService } from '../../message-queue/services/message-queue.service';
 import type { EvolutionMessagesUpsertPayload } from '../dto/evolution-message.dto';
 
 interface WebhookPayload<T> {
@@ -21,7 +21,7 @@ export class EvolutionWebhookController {
   private readonly logger = new Logger(EvolutionWebhookController.name);
 
   constructor(
-    private incomingMessageUseCase: IncomingMessageUseCase,
+    private messageQueueService: MessageQueueService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -35,15 +35,17 @@ export class EvolutionWebhookController {
     this.logger.log('Received messages from Evolution API');
     const { instance, data } = payload;
 
-    const response = await this.incomingMessageUseCase.execute(
-      companyId,
-      instance,
-      data,
-    );
+    // Extract phone from remoteJid
+    const phone = '+' + data.key.remoteJid.split('@')[0];
+    const conversationKey = `whatsapp:${companyId}:${phone}`;
 
-    console.log(response);
+    // Enqueue the message
+    await this.messageQueueService.enqueueWhatsapp(companyId, conversationKey, {
+      instanceName: instance,
+      payload: data,
+    });
 
-    return { success: true, ...response };
+    return { success: true };
   }
 
   private assertWebhookToken(receivedToken: string | undefined) {
