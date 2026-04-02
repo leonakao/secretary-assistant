@@ -96,7 +96,7 @@ export class ClientAssistantAgent implements OnModuleInit {
           this.llmModelService.getObservabilityMetadata(this.helperModel),
         ),
         {
-        ends: ['requestHuman', 'assistant'],
+          ends: ['requestHuman', 'assistant'],
         },
       )
       .addNode(

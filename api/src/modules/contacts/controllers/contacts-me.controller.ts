@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { CurrentUser } from 'src/modules/auth/decorators/current-user.decorator';
 import { SessionGuard } from 'src/modules/auth/guards/session.guard';
 import type { User } from 'src/modules/users/entities/user.entity';

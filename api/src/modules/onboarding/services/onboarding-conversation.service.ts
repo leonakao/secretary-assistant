@@ -384,14 +384,12 @@ export class OnboardingConversationService {
 
         const content = messageParts.join('\n').trim();
 
-        span
-          .setResponseModel(modelName)
-          .setOutput('chat_messages', [
-            {
-              role: 'assistant',
-              content,
-            },
-          ]);
+        span.setResponseModel(modelName).setOutput('chat_messages', [
+          {
+            role: 'assistant',
+            content,
+          },
+        ]);
 
         return content;
       },

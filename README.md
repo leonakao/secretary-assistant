@@ -37,7 +37,7 @@ Key variables to set in `api/.env`:
 
 | Variable | Description |
 |---|---|
-| `GOOGLE_API_KEY` | Google Gemini API key |
+| `OPENAI_API_KEY` | OpenAI API key used for chat, embeddings, and audio transcription |
 | `EVOLUTION_API_KEY` | API key used by the NestJS app when calling Evolution |
 | `AUTHENTICATION_API_KEY` | API key expected by the Evolution API container; set it equal to `EVOLUTION_API_KEY` in local Docker setups |
 | `EVOLUTION_API_URL` | Evolution API base URL (default: `http://evolution-api:8080`) |
@@ -131,7 +131,6 @@ cp .env.test.example .env.test
 Add only the overrides the isolated stack should apply. The most likely ones are:
 
 - `OPENAI_API_KEY`
-- `GOOGLE_API_KEY`
 
 Start the isolated stack:
 
@@ -160,6 +159,6 @@ See [ONBOARDING_VALIDATION.md](ONBOARDING_VALIDATION.md) for the full workflow a
 
 ## Tech stack
 
-- **Backend** — [NestJS](https://nestjs.com/), PostgreSQL with [pgvector](https://github.com/pgvector/pgvector), TypeORM, LangGraph + OpenAI chat models, Google embeddings
+- **Backend** — [NestJS](https://nestjs.com/), PostgreSQL with [pgvector](https://github.com/pgvector/pgvector), TypeORM, LangGraph + OpenAI chat models and embeddings
 - **Frontend** — React 19, React Router, Tailwind CSS, shadcn/ui
 - **WhatsApp integration** — [Evolution API](https://github.com/EvolutionAPI/evolution-api)

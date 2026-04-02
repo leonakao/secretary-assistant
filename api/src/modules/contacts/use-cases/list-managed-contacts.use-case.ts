@@ -86,7 +86,10 @@ export class ListManagedContactsUseCase {
 
     const contactItems = sortedContacts
       .slice((input.page - 1) * input.pageSize, input.page * input.pageSize)
-      .map(({ createdAt: _createdAt, ...contact }) => contact);
+      .map(({ createdAt, ...contact }) => {
+        void createdAt;
+        return contact;
+      });
 
     return {
       contacts: contactItems,
@@ -153,11 +156,11 @@ export class ListManagedContactsUseCase {
       email: contact.email ?? null,
       instagram: contact.instagram ?? null,
       ignoreUntil: contact.ignoreUntil ?? null,
-      isIgnored: Boolean(contact.ignoreUntil && contact.ignoreUntil > new Date()),
+      isIgnored: Boolean(
+        contact.ignoreUntil && contact.ignoreUntil > new Date(),
+      ),
       lastInteractionAt: memory?.createdAt ?? null,
-      lastInteractionPreview: memory
-        ? this.toPreview(memory.content)
-        : null,
+      lastInteractionPreview: memory ? this.toPreview(memory.content) : null,
       createdAt: contact.createdAt,
     };
   }

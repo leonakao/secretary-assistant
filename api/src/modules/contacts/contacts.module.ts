@@ -10,7 +10,10 @@ import { ListManagedContactsUseCase } from './use-cases/list-managed-contacts.us
 import { UpdateManagedContactIgnoreUntilUseCase } from './use-cases/update-managed-contact-ignore-until.use-case';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Contact, Memory, UserCompany]), AuthModule],
+  imports: [
+    TypeOrmModule.forFeature([Contact, Memory, UserCompany]),
+    AuthModule,
+  ],
   controllers: [ContactsMeController],
   providers: [
     ListManagedContactsUseCase,

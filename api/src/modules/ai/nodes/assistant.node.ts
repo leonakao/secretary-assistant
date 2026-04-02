@@ -1,5 +1,4 @@
 import { Runnable } from '@langchain/core/runnables';
-import { AIMessage } from '@langchain/core/messages';
 import { AgentState } from '../agents/agent.state';
 import {
   buildLangWatchAttributes,
@@ -72,6 +71,21 @@ function getToolCalls(message: unknown): ToolCallLike[] {
   return [];
 }
 
+function shouldRecordMessageForTracing(message: {
+  role?: string;
+  type?: string;
+  content?: unknown;
+}): boolean {
+  const role = getMessageRole(message);
+  const content = normalizeMessageContent(message.content);
+
+  if (content.trim().length > 0) {
+    return true;
+  }
+
+  return role !== 'assistant' || getToolCalls(message).length === 0;
+}
+
 export const createAssistantNode =
   (
     modelWithTools: Runnable,
@@ -94,10 +108,12 @@ export const createAssistantNode =
           .setRequestModel(llmMetadata.ls_model_name)
           .setInput(
             'chat_messages',
-            messages.map((message) => ({
-              role: getMessageRole(message),
-              content: normalizeMessageContent(message.content),
-            })),
+            messages
+              .filter((message) => shouldRecordMessageForTracing(message))
+              .map((message) => ({
+                role: getMessageRole(message),
+                content: normalizeMessageContent(message.content),
+              })),
           )
           .setAttributes(
             buildLangWatchAttributes({

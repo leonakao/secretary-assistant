@@ -9,6 +9,10 @@ export interface AssistantExtractionResult {
 
 @Injectable()
 export class ExtractAiMessageService {
+  private normalizeText(value: string): string {
+    return value.trim();
+  }
+
   private isTextContentPart(
     value: unknown,
   ): value is { type: 'text'; text: string } {
@@ -51,7 +55,7 @@ export class ExtractAiMessageService {
     if (lastMessage.type === 'ai') {
       const content = lastMessage.content;
       if (typeof content === 'string') {
-        return content;
+        return this.normalizeText(content);
       }
       if (
         Array.isArray(content) &&
@@ -60,6 +64,8 @@ export class ExtractAiMessageService {
         return content
           .filter((part) => this.isTextContentPart(part))
           .map((part) => part.text)
+          .map((part) => this.normalizeText(part))
+          .filter((part) => part.length > 0)
           .join('\n');
       }
     }
@@ -82,7 +88,7 @@ export class ExtractAiMessageService {
 
   private stringifyMessageContent(content: unknown): string {
     if (typeof content === 'string') {
-      return content;
+      return this.normalizeText(content);
     }
 
     if (
@@ -92,6 +98,8 @@ export class ExtractAiMessageService {
       return content
         .filter((part) => this.isTextContentPart(part))
         .map((part) => part.text)
+        .map((part) => this.normalizeText(part))
+        .filter((part) => part.length > 0)
         .join('\n');
     }
 

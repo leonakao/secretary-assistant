@@ -21,7 +21,7 @@
 
 **Key dependencies:**
 - LangGraph + LangChain (agent orchestration)
-- Google Gemini 2.5 Flash (LLM)
+- OpenAI GPT models + embeddings
 - Evolution API (WhatsApp integration)
 - TypeORM (ORM + migrations)
 

@@ -19,6 +19,10 @@ describe('LangchainService', () => {
       getLlmModel: vi.fn(() => ({
         invoke,
       })),
+      getObservabilityMetadata: vi.fn(() => ({
+        ls_model_name: 'gpt-5.4-nano',
+        ls_provider: 'openai',
+      })),
     };
     const service = new LangchainService(llmModelService as never);
 
@@ -54,6 +58,10 @@ describe('LangchainService', () => {
       getLlmModel: vi.fn(() => ({
         invoke: vi.fn(),
         stream,
+      })),
+      getObservabilityMetadata: vi.fn(() => ({
+        ls_model_name: 'gpt-5.4-nano',
+        ls_provider: 'openai',
       })),
     };
     const service = new LangchainService(llmModelService as never);

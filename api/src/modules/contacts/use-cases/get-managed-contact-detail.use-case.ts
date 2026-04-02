@@ -97,7 +97,9 @@ export class GetManagedContactDetailUseCase {
     });
 
     const hasMore = memories.length > DETAIL_MESSAGE_LIMIT;
-    const boundedMemories = hasMore ? memories.slice(0, DETAIL_MESSAGE_LIMIT) : memories;
+    const boundedMemories = hasMore
+      ? memories.slice(0, DETAIL_MESSAGE_LIMIT)
+      : memories;
 
     return {
       memories: boundedMemories.reverse(),

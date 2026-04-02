@@ -92,8 +92,8 @@ describe('GetManagedContactDetailUseCase', () => {
       { find: vi.fn() } as any,
     );
 
-    await expect(useCase.execute(makeUser(), 'contact-1')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      useCase.execute(makeUser(), 'contact-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

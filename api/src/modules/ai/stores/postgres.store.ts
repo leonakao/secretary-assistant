@@ -5,7 +5,7 @@ import {
   PostgresStore as CheckpointPostgresStore,
   type IndexConfig,
 } from '@langchain/langgraph-checkpoint-postgres/store';
-import { GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { OpenAIEmbeddings } from '@langchain/openai';
 
 @Injectable()
 export class PostgresStore
@@ -13,18 +13,18 @@ export class PostgresStore
   implements BaseStore
 {
   constructor(private readonly configService: ConfigService) {
-    const apiKey = configService.getOrThrow<string>('GOOGLE_API_KEY');
+    const apiKey = configService.getOrThrow<string>('OPENAI_API_KEY');
 
     const connectionString = PostgresStore.buildConnectionString(configService);
 
-    const embeddings = new GoogleGenerativeAIEmbeddings({
+    const embeddings = new OpenAIEmbeddings({
       apiKey,
-      model: 'text-embedding-004',
+      model: 'text-embedding-3-small',
     });
 
     const indexConfig: IndexConfig = {
-      // text-embedding-004 uses 768 dimensions
-      dims: 768,
+      // text-embedding-3-small uses 1536 dimensions
+      dims: 1536,
       // LangGraph expects an `embed` function or embeddings-like object
       embed: embeddings,
       // Index the full document by default

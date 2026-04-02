@@ -20,7 +20,7 @@ Setting up spec-driven development structure for the secretary-assistant monorep
 
 - **Monorepo layout:** `api/` (NestJS) + `web/` (React SPA, TBD)
 - **WhatsApp via Evolution API:** self-hosted in docker-compose
-- **LLM:** Google Gemini 2.5 Flash via LangChain/LangGraph
+- **LLM:** OpenAI GPT models via LangChain/LangGraph, with OpenAI embeddings for semantic memory
 - **Agent persistence:** PostgresSaver (checkpointer schema) + PostgresStore (vector schema)
 - **Three agent modes:** Client, Owner, Onboarding — selected by ConversationStrategy
 
