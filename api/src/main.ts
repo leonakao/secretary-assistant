@@ -12,6 +12,8 @@ async function bootstrap() {
   const port = Number(process.env.PORT?.trim() || '3000');
   const requestBodyLimit = process.env.REQUEST_BODY_LIMIT?.trim() || '25mb';
 
+  app.enableShutdownHooks();
+
   app.useBodyParser('json', { limit: requestBodyLimit });
   app.useBodyParser('urlencoded', {
     limit: requestBodyLimit,

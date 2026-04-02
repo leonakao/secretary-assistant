@@ -14,18 +14,6 @@ projects:
                 value: dev-du3tsou284mgwefg.us.auth0.com
               - key: AUTH0_CLIENT_ID
                 value: SJtvoRN584unasTOBo2fYogJM8HaWjWU
-              - key: OPENAI_API_KEY
-                sync: false
-              - key: GOOGLE_API_KEY
-                sync: false
-              - key: LANGWATCH_API_KEY
-                sync: false
-              - key: LANGWATCH_ENDPOINT
-                sync: false
-              - key: EVOLUTION_API_KEY
-                sync: false
-              - key: AUTHENTICATION_API_KEY
-                sync: false
         services:
           - type: web
             name: secretary-assistant-web
@@ -59,6 +47,16 @@ projects:
             healthCheckPath: /health
             envVars:
               - fromGroup: secretary-assistant-staging-shared
+              - key: OPENAI_API_KEY
+                sync: false
+              - key: GOOGLE_API_KEY
+                sync: false
+              - key: LANGWATCH_API_KEY
+                sync: false
+              - key: LANGWATCH_ENDPOINT
+                sync: false
+              - key: EVOLUTION_API_KEY
+                generateValue: true
               - key: PORT
                 value: 3000
               - key: DB_HOST
@@ -104,7 +102,16 @@ projects:
             image:
               url: docker.io/evoapicloud/evolution-api:v2.3.7
             envVars:
-              - fromGroup: secretary-assistant-staging-shared
+              - key: AUTHENTICATION_API_KEY
+                fromService:
+                  type: web
+                  name: secretary-assistant-api
+                  envVarKey: EVOLUTION_API_KEY
+              - key: EVOLUTION_API_KEY
+                fromService:
+                  type: web
+                  name: secretary-assistant-api
+                  envVarKey: EVOLUTION_API_KEY
               - key: DATABASE_ENABLED
                 value: "true"
               - key: DATABASE_PROVIDER
