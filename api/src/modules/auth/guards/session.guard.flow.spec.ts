@@ -235,24 +235,28 @@ describe('SessionGuard flow', () => {
       ),
     };
     const initializeOnboardingConversation = {
-      execute: vi.fn((user: User) => ({
-        company: {
-          id: 'company-1',
-          name: 'Fresh Co',
-          step: 'onboarding',
-        },
-        onboarding: {
-          step: 'assistant-chat',
-          requiresOnboarding: true,
-        },
-        initialized: true,
-        assistantMessage: {
-          id: 'assistant-message-1',
-          role: 'assistant',
-          content: 'Olá! Meu nome é Julia e sou sua secretária virtual.',
-          createdAt: '2026-01-02T00:00:00.000Z',
-        },
-      })),
+      execute: vi.fn((user: User) => {
+        void user;
+
+        return {
+          company: {
+            id: 'company-1',
+            name: 'Fresh Co',
+            step: 'onboarding',
+          },
+          onboarding: {
+            step: 'assistant-chat',
+            requiresOnboarding: true,
+          },
+          initialized: true,
+          assistantMessage: {
+            id: 'assistant-message-1',
+            role: 'assistant',
+            content: 'Olá! Meu nome é Julia e sou sua secretária virtual.',
+            createdAt: '2026-01-02T00:00:00.000Z',
+          },
+        };
+      }),
     };
     const companyController = new OnboardingCompanyController(
       createOnboardingCompany as never,

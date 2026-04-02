@@ -50,10 +50,8 @@ export class SendOnboardingMessageUseCase {
       throw new NotFoundException('No onboarding company found for this user');
     }
 
-    // Resolve message text (transcription still happens sync for audio)
     const message = await this.resolveMessage(input);
 
-    // Save user message
     const userMessage =
       await this.onboardingConversationService.saveUserMessage(
         user.id,
@@ -61,7 +59,6 @@ export class SendOnboardingMessageUseCase {
         message,
       );
 
-    // Fire assistant reply generation asynchronously (no await)
     void this.onboardingConversationService.generateAndSaveAssistantReplyAsync(
       user.id,
       userCompany.companyId,

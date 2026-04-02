@@ -18,6 +18,10 @@ export interface IncomingMessageResult {
   ignoredReason: string | null;
 }
 
+type ClientResponseDecision =
+  | { shouldRespond: true }
+  | { shouldRespond: false; ignoredReason: string };
+
 @Injectable()
 export class IncomingMessageUseCase {
   private readonly logger = new Logger(IncomingMessageUseCase.name);
@@ -101,6 +105,7 @@ export class IncomingMessageUseCase {
       }
 
       await this.handleFromMeMessage(companyId, existingContact, immediateText);
+
       return this.buildIgnoredResponse('from_me_message');
     }
 
@@ -108,11 +113,13 @@ export class IncomingMessageUseCase {
       existingContact ??
       (await this.findOrCreateContact(companyId, phone, displayName));
 
-    if (!this.shouldRespondToClient(company, contact)) {
+    const clientResponseDecision = this.shouldRespondToClient(company, contact);
+
+    if (!clientResponseDecision.shouldRespond) {
       this.logger.log(
         `Clients support is disabled or filtered out for company ${companyId}. Ignoring message from contact ${phone}`,
       );
-      return this.buildIgnoredResponse('client_support_disabled_or_filtered');
+      return this.buildIgnoredResponse(clientResponseDecision.ignoredReason);
     }
 
     if (contact.ignoreUntil && contact.ignoreUntil > new Date()) {
@@ -209,14 +216,17 @@ export class IncomingMessageUseCase {
   private shouldRespondToClient(
     company: Company | null,
     contact: Contact,
-  ): boolean {
+  ): ClientResponseDecision {
     if (!company?.isClientsSupportEnabled) {
-      return false;
+      return {
+        shouldRespond: false,
+        ignoredReason: 'client_support_disabled',
+      };
     }
 
     const scope = company.agentReplyScope ?? 'all';
     if (scope === 'all') {
-      return true;
+      return { shouldRespond: true };
     }
 
     const namePattern = this.normalizeOptionalValue(
@@ -227,16 +237,22 @@ export class IncomingMessageUseCase {
       ? contact.name.toLowerCase().includes(namePattern)
       : true;
 
-    if (!matchesNamePattern) {
-      return false;
+    if (namePattern && !matchesNamePattern) {
+      return {
+        shouldRespond: false,
+        ignoredReason: 'client_does_not_match_name_pattern',
+      };
     }
 
     if (!namePattern && listEntries.length === 0) {
-      return false;
+      return {
+        shouldRespond: false,
+        ignoredReason: 'client_reply_scope_has_no_filters',
+      };
     }
 
     if (!company.agentReplyListMode || listEntries.length === 0) {
-      return true;
+      return { shouldRespond: true };
     }
 
     const matchesList = this.buildContactSearchFields(contact).some((field) =>
@@ -244,10 +260,24 @@ export class IncomingMessageUseCase {
     );
 
     if (company.agentReplyListMode === 'whitelist') {
-      return matchesList;
+      if (!matchesList) {
+        return {
+          shouldRespond: false,
+          ignoredReason: 'client_not_in_whitelist',
+        };
+      }
+
+      return { shouldRespond: true };
     }
 
-    return !matchesList;
+    if (matchesList) {
+      return {
+        shouldRespond: false,
+        ignoredReason: 'client_in_blacklist',
+      };
+    }
+
+    return { shouldRespond: true };
   }
 
   private buildContactSearchFields(contact: Contact): string[] {

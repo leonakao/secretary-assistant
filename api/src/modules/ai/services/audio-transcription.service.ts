@@ -5,6 +5,10 @@ import {
   normalizeAudioMimeType,
   SUPPORTED_AUDIO_MIME_TYPES,
 } from './audio-mime-type';
+import {
+  buildLangWatchAttributes,
+  langWatchTracer,
+} from 'src/observability/langwatch';
 
 @Injectable()
 export class AudioTranscriptionService {
@@ -27,24 +31,46 @@ export class AudioTranscriptionService {
     audio: Buffer | string,
     mimeType: string,
   ): Promise<string> {
-    const normalizedMimeType = this.normalizeMimeType(mimeType);
-    const file = await toFile(
-      this.getAudioBuffer(audio),
-      this.getFilenameForMimeType(normalizedMimeType),
-      {
-        type: normalizedMimeType,
+    return langWatchTracer.withActiveSpan(
+      'audio.transcription',
+      async (span) => {
+        const normalizedMimeType = this.normalizeMimeType(mimeType);
+
+        span
+          .setType('llm')
+          .setRequestModel(this.model)
+          .setInput({
+            mimeType: normalizedMimeType,
+            source: Buffer.isBuffer(audio) ? 'buffer' : 'base64',
+          })
+          .setAttributes(
+            buildLangWatchAttributes({
+              operation: 'audio_transcription',
+            }),
+          );
+
+        const file = await toFile(
+          this.getAudioBuffer(audio),
+          this.getFilenameForMimeType(normalizedMimeType),
+          {
+            type: normalizedMimeType,
+          },
+        );
+
+        const transcription = await this.client.audio.transcriptions.create({
+          file,
+          model: this.model,
+          language: 'pt',
+          prompt:
+            'Transcreva este audio em portugues brasileiro. Retorne apenas o texto transcrito, sem comentarios adicionais.',
+        });
+
+        const text = transcription.text.trim();
+        span.setOutput(text);
+
+        return text;
       },
     );
-
-    const transcription = await this.client.audio.transcriptions.create({
-      file,
-      model: this.model,
-      language: 'pt',
-      prompt:
-        'Transcreva este audio em portugues brasileiro. Retorne apenas o texto transcrito, sem comentarios adicionais.',
-    });
-
-    return transcription.text.trim();
   }
 
   private normalizeMimeType(mimeType: string): string {

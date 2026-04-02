@@ -15,6 +15,8 @@ export class LoggerMiddleware implements NestMiddleware {
     'x-api-key',
     'x-evolution-token',
     'x-internal-token',
+    'videoMessage',
+    'senderKeyDistributionMessage',
   ];
 
   use(req: Request, res: Response, next: NextFunction): void {

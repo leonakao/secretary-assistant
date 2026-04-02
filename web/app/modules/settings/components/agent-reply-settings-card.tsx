@@ -80,6 +80,16 @@ export function AgentReplySettingsCard(props: AgentReplySettingsCardProps) {
   const normalizedEntries = normalizeListEntries(listEntriesText);
   const hasAnySpecificFilter =
     namePattern.trim().length > 0 || normalizedEntries.length > 0;
+  const currentNamePattern = namePattern.trim() || null;
+  const initialNamePattern = (agentReplyNamePattern ?? '').trim() || null;
+  const initialListMode = agentReplyListMode ?? 'whitelist';
+  const initialEntries = normalizeListEntries(agentReplyListEntries.join('\n'));
+  const hasPendingRuleChanges =
+    scope !== agentReplyScope ||
+    currentNamePattern !== initialNamePattern ||
+    listMode !== initialListMode ||
+    normalizedEntries.length !== initialEntries.length ||
+    normalizedEntries.some((entry, index) => entry !== initialEntries[index]);
 
   const handleSave = () => {
     const currentScope = scopeRef.current;
@@ -341,26 +351,28 @@ export function AgentReplySettingsCard(props: AgentReplySettingsCardProps) {
             ) : null}
 
             {/* Save button */}
-            <div className="flex justify-end">
-              <Button
-                data-testid="agent-reply-save-button"
-                disabled={isSaving}
-                onClick={handleSave}
-                type="button"
-              >
-                {isSaving ? (
-                  <>
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4" />
-                    Salvar regras
-                  </>
-                )}
-              </Button>
-            </div>
+            {hasPendingRuleChanges ? (
+              <div className="flex justify-end">
+                <Button
+                  data-testid="agent-reply-save-button"
+                  disabled={isSaving}
+                  onClick={handleSave}
+                  type="button"
+                >
+                  {isSaving ? (
+                    <>
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Salvar regras
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : null}
           </>
         ) : (
           <p className="text-sm text-muted-foreground">

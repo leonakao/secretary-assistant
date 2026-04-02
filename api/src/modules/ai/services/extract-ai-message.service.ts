@@ -65,4 +65,44 @@ export class ExtractAiMessageService {
     }
     return '';
   }
+
+  public extractToolMessagesFromChunkMessages(
+    messages: unknown[] | undefined,
+  ): string[] {
+    if (!messages || !Array.isArray(messages)) {
+      return [];
+    }
+
+    return messages
+      .filter((message): message is BaseMessage => this.isBaseMessage(message))
+      .filter((message) => message.type === 'tool')
+      .map((message) => this.stringifyMessageContent(message.content))
+      .filter((content) => content.length > 0);
+  }
+
+  private stringifyMessageContent(content: unknown): string {
+    if (typeof content === 'string') {
+      return content;
+    }
+
+    if (
+      Array.isArray(content) &&
+      content.some((part) => this.isTextContentPart(part))
+    ) {
+      return content
+        .filter((part) => this.isTextContentPart(part))
+        .map((part) => part.text)
+        .join('\n');
+    }
+
+    if (content === null || content === undefined) {
+      return '';
+    }
+
+    try {
+      return JSON.stringify(content);
+    } catch {
+      return '';
+    }
+  }
 }

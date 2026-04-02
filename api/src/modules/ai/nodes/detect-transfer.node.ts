@@ -2,6 +2,7 @@ import { AgentState } from '../agents/agent.state';
 import z from 'zod';
 import { Command } from '@langchain/langgraph';
 import { LlmChatModel } from '../services/llm-model.service';
+import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
 
 export const createDetectTransferNode =
   (model: LlmChatModel) => async (state: typeof AgentState.State) => {
@@ -43,7 +44,18 @@ Somente direcione para o humano se você tiver certeza que o agente não vai con
       }),
     );
 
-    const response = await modelWithStructuredOutput.invoke(messages);
+    const context = state.context;
+    const response = await modelWithStructuredOutput.invoke(
+      messages,
+      createLangWatchRunnableConfig(undefined, {
+        companyId: context.companyId,
+        contactId: context.contactId,
+        instanceName: context.instanceName,
+        operation: 'detect_transfer_node',
+        threadId: context.contactId ?? context.userId,
+        userId: context.userId,
+      }),
+    );
 
     const needsHumanSupport = response.needsHumanSupport;
 

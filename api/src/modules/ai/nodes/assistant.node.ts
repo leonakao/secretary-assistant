@@ -1,5 +1,6 @@
 import { Runnable } from '@langchain/core/runnables';
 import { AgentState } from '../agents/agent.state';
+import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
 
 export type BuildPromptFromState = (state: typeof AgentState.State) => string;
 
@@ -14,11 +15,24 @@ export const createAssistantNode =
 
     const context = state.context;
 
-    const response = await modelWithTools.invoke(messages, {
-      configurable: {
-        context,
-      },
-    });
+    const response = await modelWithTools.invoke(
+      messages,
+      createLangWatchRunnableConfig(
+        {
+          configurable: {
+            context,
+          },
+        },
+        {
+          companyId: context.companyId,
+          contactId: context.contactId,
+          instanceName: context.instanceName,
+          operation: 'agent_assistant_node',
+          threadId: context.contactId ?? context.userId,
+          userId: context.userId,
+        },
+      ),
+    );
 
     console.log('Assistant response:', response);
 

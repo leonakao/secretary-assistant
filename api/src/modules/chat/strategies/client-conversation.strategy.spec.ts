@@ -57,6 +57,27 @@ function createAssistantStream(messages: string[]) {
   };
 }
 
+function createAssistantStreamWithToolMessages() {
+  return {
+    async *[Symbol.asyncIterator]() {
+      yield {
+        assistant: {
+          messages: [
+            {
+              type: 'tool',
+              content: 'Ferramenta executada',
+            },
+            {
+              type: 'ai',
+              content: 'Resposta normal',
+            },
+          ],
+        },
+      };
+    },
+  };
+}
+
 function makeStrategy(options?: {
   company?: any;
   contact?: any;
@@ -90,6 +111,13 @@ function makeStrategy(options?: {
     extractFromChunkMessages: vi.fn((messages: Array<{ content: string }>) => {
       return messages.at(-1)?.content ?? '';
     }),
+    extractToolMessagesFromChunkMessages: vi.fn(
+      (messages: Array<{ type: string; content: string }>) => {
+        return messages
+          .filter((message) => message.type === 'tool')
+          .map((message) => message.content);
+      },
+    ),
   } as any;
   const findPendingConfirmations = {
     execute: vi.fn().mockResolvedValue([]),
@@ -177,5 +205,27 @@ describe('ClientConversationStrategy', () => {
       remoteJid: '5511999999999@s.whatsapp.net',
       message: 'Primeira parte\nSegunda parte',
     });
+  });
+
+  it('logs tool messages emitted during the agent stream', async () => {
+    const { strategy, clientAssistantAgent } = makeStrategy();
+    const loggerSpy = vi
+      .spyOn((strategy as any).logger, 'log')
+      .mockImplementation(() => undefined);
+
+    clientAssistantAgent.streamConversation.mockResolvedValue(
+      createAssistantStreamWithToolMessages(),
+    );
+
+    await strategy.handleConversation({
+      companyId: 'company-1',
+      instanceName: 'instance-1',
+      remoteJid: '5511999999999@s.whatsapp.net',
+      message: 'Oi, preciso de ajuda',
+      contactId: 'contact-1',
+    });
+
+    expect(loggerSpy).toHaveBeenCalledWith('ToolMessage: Ferramenta executada');
+    expect(loggerSpy).toHaveBeenCalledWith('AIMessage: Resposta normal');
   });
 });
