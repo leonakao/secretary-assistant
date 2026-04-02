@@ -6,7 +6,7 @@
 **Purpose:** Send and receive WhatsApp messages
 **Implementation:** `src/modules/evolution/services/evolution.service.ts`
 **Configuration:** `EVOLUTION_API_KEY` env var; service URL configured via env
-**Webhook:** `POST /webhooks/evolution` (`EvolutionWebhookController` in `ChatModule`)
+**Webhook:** `POST /webhooks/evolution/:companyId/messages-upsert` (`EvolutionWebhookController` in `ChatModule`); Evolution must be configured with the base URL `/webhooks/evolution/:companyId` when `byEvents=true`
 **Events handled:** Incoming messages routed through `IncomingMessageUseCase`
 
 ## AI — OpenAI Chat Models

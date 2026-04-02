@@ -29,17 +29,20 @@ describe('GetOnboardingMessagesUseCase', () => {
     const useCase = new GetOnboardingMessagesUseCase(
       { findOne: vi.fn().mockResolvedValue(null) } as any,
       { getConversationMessages: vi.fn() } as any,
+      { getState: vi.fn().mockResolvedValue(null) } as any,
     );
 
     const result = await useCase.execute(makeUser());
 
-    expect(result).toBeNull();
+    expect(result).not.toBeNull();
+    expect(result?.threadId).toBeNull();
   });
 
   it('marks conversation as uninitialized when transcript is empty', async () => {
     const useCase = new GetOnboardingMessagesUseCase(
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
       { getConversationMessages: vi.fn().mockResolvedValue([]) } as any,
+      { getState: vi.fn().mockResolvedValue(null) } as any,
     );
 
     const result = await useCase.execute(makeUser());
@@ -64,6 +67,7 @@ describe('GetOnboardingMessagesUseCase', () => {
           },
         ]),
       } as any,
+      { getState: vi.fn().mockResolvedValue(null) } as any,
     );
 
     const result = await useCase.execute(makeUser());
@@ -79,5 +83,56 @@ describe('GetOnboardingMessagesUseCase', () => {
         },
       ],
     });
+  });
+
+  it('sets isTyping to true while the assistant reply is being generated', async () => {
+    const useCase = new GetOnboardingMessagesUseCase(
+      { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
+      { getConversationMessages: vi.fn().mockResolvedValue([]) } as any,
+      { getState: vi.fn().mockResolvedValue('typing') } as any,
+    );
+
+    const result = await useCase.execute(makeUser());
+
+    expect(result?.isTyping).toBe(true);
+  });
+
+  it('sets isTyping to false after the assistant reply is done', async () => {
+    const useCase = new GetOnboardingMessagesUseCase(
+      { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
+      { getConversationMessages: vi.fn().mockResolvedValue([]) } as any,
+      { getState: vi.fn().mockResolvedValue(null) } as any,
+    );
+
+    const result = await useCase.execute(makeUser());
+
+    expect(result?.isTyping).toBe(false);
+  });
+
+  it('sets isTyping to false when Redis is unavailable (graceful degradation)', async () => {
+    const useCase = new GetOnboardingMessagesUseCase(
+      { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
+      { getConversationMessages: vi.fn().mockResolvedValue([]) } as any,
+      { getState: vi.fn().mockResolvedValue(null) } as any, // Redis unavailable → null
+    );
+
+    const result = await useCase.execute(makeUser());
+
+    expect(result?.isTyping).toBe(false);
+  });
+
+  it('includes onboarding state in the response', async () => {
+    const useCase = new GetOnboardingMessagesUseCase(
+      {
+        findOne: vi.fn().mockResolvedValue(makeUserCompany('onboarding')),
+      } as any,
+      { getConversationMessages: vi.fn().mockResolvedValue([]) } as any,
+      { getState: vi.fn().mockResolvedValue(null) } as any,
+    );
+
+    const result = await useCase.execute(makeUser());
+
+    expect(result?.onboarding).toBeDefined();
+    expect(result?.onboarding.requiresOnboarding).toBe(true);
   });
 });

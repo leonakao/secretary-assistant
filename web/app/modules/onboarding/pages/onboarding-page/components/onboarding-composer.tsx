@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { Mic, Send, Square } from 'lucide-react';
 import { Button } from '~/components/ui/button';
@@ -40,6 +40,34 @@ export const OnboardingComposer = forwardRef<
   },
   ref,
 ) {
+  const [isHoldToRecordMode, setIsHoldToRecordMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(pointer: coarse)');
+    const syncMode = () => {
+      setIsHoldToRecordMode(mediaQuery.matches);
+    };
+
+    syncMode();
+
+    mediaQuery.addEventListener('change', syncMode);
+
+    return () => {
+      mediaQuery.removeEventListener('change', syncMode);
+    };
+  }, []);
+
+  const recordingButtonLabel =
+    composerState === 'recording-audio'
+      ? 'Parar gravação'
+      : isHoldToRecordMode
+        ? 'Segure para gravar áudio'
+        : 'Iniciar gravação';
+
   return (
     <>
       <div className="flex items-end gap-2 rounded-2xl border border-border bg-muted/30 px-4 py-2 focus-within:border-brand/40 focus-within:ring-2 focus-within:ring-brand/20">
@@ -52,16 +80,16 @@ export const OnboardingComposer = forwardRef<
           disabled={isInputDisabled}
           placeholder={
             composerState === 'loading-history'
-              ? 'Loading your onboarding conversation...'
+              ? 'Carregando sua conversa de onboarding...'
               : composerState === 'initializing'
-              ? 'Starting your onboarding conversation...'
+              ? 'Iniciando sua conversa de onboarding...'
               : composerState === 'recording-audio'
-                ? 'Recording audio...'
+                ? 'Gravando áudio...'
                 : composerState === 'sending-audio'
-                  ? 'Transcribing your audio...'
+                  ? 'Transcrevendo seu áudio...'
                   : composerState === 'completing'
-                    ? 'Finishing onboarding... Redirecting to your workspace.'
-                  : 'Tell the assistant about your business...'
+                    ? 'Concluindo onboarding... Redirecionando para sua área.'
+                  : 'Conte ao assistente sobre o seu negócio...'
           }
           data-testid="onboarding-chat-input"
           className="flex-1 resize-none bg-transparent py-1 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
@@ -71,16 +99,19 @@ export const OnboardingComposer = forwardRef<
           variant={composerState === 'recording-audio' ? 'destructive' : 'outline'}
           size="icon"
           className="mb-0.5 h-8 w-8 shrink-0 rounded-xl"
-          aria-label={
-            composerState === 'recording-audio'
-              ? 'Stop recording'
-              : 'Hold to record audio'
-          }
+          aria-label={recordingButtonLabel}
           disabled={isBusy || composerState === 'audio-preview'}
-          onPointerDown={onStartRecording}
-          onPointerUp={onStopRecording}
-          onPointerLeave={onStopRecording}
-          onPointerCancel={onStopRecording}
+          onClick={
+            isHoldToRecordMode
+              ? undefined
+              : composerState === 'recording-audio'
+                ? onStopRecording
+                : onStartRecording
+          }
+          onPointerDown={isHoldToRecordMode ? onStartRecording : undefined}
+          onPointerUp={isHoldToRecordMode ? onStopRecording : undefined}
+          onPointerLeave={isHoldToRecordMode ? onStopRecording : undefined}
+          onPointerCancel={isHoldToRecordMode ? onStopRecording : undefined}
           onKeyDown={onRecordingButtonKeyDown}
           onKeyUp={onRecordingButtonKeyUp}
         >
@@ -100,18 +131,19 @@ export const OnboardingComposer = forwardRef<
           }
           size="icon"
           className="mb-0.5 h-8 w-8 shrink-0 rounded-xl"
-          aria-label="Send message"
+          aria-label="Enviar mensagem"
           data-testid="onboarding-chat-send-button"
         >
           <Send className="h-3.5 w-3.5" />
         </Button>
       </div>
       <p className="text-center text-xs text-muted-foreground/60">
-        Press Enter to send · Shift+Enter for new line · Hold the mic to record
+        Pressione Enter para enviar · Shift+Enter para quebrar linha ·{' '}
+        {isHoldToRecordMode ? 'segure o microfone para gravar' : 'clique no microfone para gravar'}
         {composerState === 'recording-audio'
-          ? ` · Recording ${formatDuration(recordingDurationMs)}`
+          ? ` · Gravando ${formatDuration(recordingDurationMs)}`
           : composerState === 'completing'
-            ? ' · Workspace redirect in progress'
+            ? ' · Redirecionamento em andamento'
           : ''}
       </p>
     </>

@@ -56,7 +56,7 @@ export function useOnboardingAudioRecorder(): UseOnboardingAudioRecorderResult {
       !navigator.mediaDevices?.getUserMedia ||
       typeof MediaRecorder === 'undefined'
     ) {
-      setRecorderError('Audio recording is not supported in this browser.');
+      setRecorderError('Gravação de áudio não é suportada neste navegador.');
       return false;
     }
 
@@ -104,7 +104,7 @@ export function useOnboardingAudioRecorder(): UseOnboardingAudioRecorderResult {
 
           if (blob.size === 0) {
             setRecordingDurationMs(0);
-            setRecorderError('Recorded audio was empty. Please try again.');
+            setRecorderError('O áudio gravado ficou vazio. Tente novamente.');
             return;
           }
 
@@ -130,7 +130,7 @@ export function useOnboardingAudioRecorder(): UseOnboardingAudioRecorderResult {
       setRecorderError(
         cause instanceof Error
           ? cause.message
-          : 'Microphone access was denied. Please try again.',
+          : 'O acesso ao microfone foi negado. Tente novamente.',
       );
       return false;
     }

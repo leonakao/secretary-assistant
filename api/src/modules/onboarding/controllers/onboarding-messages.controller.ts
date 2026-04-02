@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Post,
   UploadedFile,
   UseGuards,
@@ -39,13 +40,14 @@ export class OnboardingMessagesController {
   }
 
   @Post()
+  @HttpCode(202)
   @UseGuards(SessionGuard)
   @UseInterceptors(FileInterceptor('audio'))
   async sendMessage(
     @CurrentUser() user: User,
     @Body() dto: SendOnboardingMessageDto,
     @UploadedFile() audio?: { buffer: Buffer; mimetype: string },
-  ) {
+  ): Promise<{ status: 'pending'; userMessageId: string }> {
     if (dto.kind === 'audio' || audio) {
       if (!audio) {
         throw new BadRequestException('Audio file is required');

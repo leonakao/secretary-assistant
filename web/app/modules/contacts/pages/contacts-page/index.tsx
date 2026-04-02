@@ -14,13 +14,13 @@ export function ContactsPage() {
                 Contatos
               </p>
               <h2 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-                Contact workspace placeholder
+                Espaço de contatos
               </h2>
             </div>
           </div>
           <p className="mt-5 text-sm leading-7 text-muted-foreground">
-            This module will eventually organize customers, leads, and
-            relationships connected to your assistant conversations.
+            Este módulo vai organizar clientes, leads e relacionamentos
+            conectados às conversas do seu assistente.
           </p>
         </div>
 
@@ -28,21 +28,21 @@ export function ContactsPage() {
           <div className="rounded-[2rem] border border-border bg-card p-6 shadow-sm">
             <UserRoundSearch className="h-5 w-5 text-brand" />
             <h3 className="mt-4 text-lg font-semibold text-foreground">
-              Directory-ready
+              Preparado para diretório
             </h3>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              This space is ready to grow into filters, search, and contact
-              details without changing the outer shell.
+              Este espaço está pronto para crescer com filtros, busca e
+              detalhes de contato sem mudar a estrutura externa.
             </p>
           </div>
           <div className="rounded-[2rem] border border-border bg-card p-6 shadow-sm">
             <MessageCircleMore className="h-5 w-5 text-brand" />
             <h3 className="mt-4 text-lg font-semibold text-foreground">
-              Conversation context
+              Contexto de conversa
             </h3>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Future contact records can connect cleanly to chats and customer
-              support history.
+              Futuros registros de contato poderão se conectar de forma limpa
+              aos chats e ao histórico de atendimento.
             </p>
           </div>
         </div>

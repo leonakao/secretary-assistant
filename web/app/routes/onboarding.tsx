@@ -12,7 +12,7 @@ export const meta: MetaFunction = () => [
   { title: 'Onboarding | Secretary Assistant' },
   {
     name: 'description',
-    content: 'Complete your company setup and onboarding chat.',
+    content: 'Conclua a configuração da sua empresa e o chat de onboarding.',
   },
 ];
 
@@ -64,7 +64,7 @@ export default function OnboardingRoute() {
     return (
       <main className="flex min-h-screen items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
         <LoaderCircle className="h-4 w-4 animate-spin" />
-        Loading onboarding route...
+        Carregando rota de onboarding...
       </main>
     );
   }

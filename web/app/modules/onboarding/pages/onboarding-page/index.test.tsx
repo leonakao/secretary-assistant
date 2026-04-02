@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { createElement } from 'react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { StrictMode, createElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
@@ -56,12 +56,13 @@ beforeEach(() => {
     },
     error: null,
     isLoading: false,
+    loader: vi.fn().mockResolvedValue(undefined),
     reload: vi.fn(),
   });
 });
 
 describe('OnboardingPage', () => {
-  it('keeps the sidebar sticky and moves desktop scrolling to the content column', async () => {
+  it('keeps the sidebar sticky and constrains desktop scrolling to the chat transcript', async () => {
     resolveOnboardingStepMock.mockReturnValue('assistant-chat');
 
     const { OnboardingPage } = await import('./index');
@@ -70,6 +71,8 @@ describe('OnboardingPage', () => {
     const page = screen.getByTestId('onboarding-page');
     const sidebar = container.querySelector('aside');
     const contentColumn = sidebar?.nextElementSibling;
+    const assistantStep = screen.getByTestId('onboarding-step-assistant-chat');
+    const chatWrapper = assistantStep.nextElementSibling;
 
     expect(page).toHaveClass('lg:h-screen', 'lg:overflow-hidden');
     expect(sidebar).not.toBeNull();
@@ -78,7 +81,44 @@ describe('OnboardingPage', () => {
     expect(contentColumn).toHaveClass(
       'lg:h-screen',
       'lg:min-h-0',
-      'lg:overflow-y-auto',
+      'lg:overflow-hidden',
     );
+    expect(assistantStep).toHaveClass('shrink-0');
+    expect(chatWrapper).not.toBeNull();
+    expect(chatWrapper).toHaveClass('flex', 'flex-1', 'min-h-0', 'overflow-hidden');
+  });
+
+  it('deduplicates the onboarding state bootstrap under StrictMode', async () => {
+    const loader = vi.fn().mockResolvedValue(undefined);
+
+    usePageLoaderMock.mockReturnValue({
+      data: {
+        company: {
+          id: 'company-1',
+          name: 'Acme Dental',
+        },
+        onboarding: {
+          requiresOnboarding: true,
+          step: 'assistant-chat',
+        },
+      },
+      error: null,
+      isLoading: false,
+      loader,
+      reload: vi.fn(),
+    });
+    resolveOnboardingStepMock.mockReturnValue('assistant-chat');
+
+    const { OnboardingPage } = await import('./index');
+
+    render(
+      <StrictMode>
+        <OnboardingPage />
+      </StrictMode>,
+    );
+
+    await waitFor(() => {
+      expect(loader).toHaveBeenCalledTimes(1);
+    });
   });
 });

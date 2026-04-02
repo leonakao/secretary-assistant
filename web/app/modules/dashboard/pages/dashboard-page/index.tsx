@@ -9,15 +9,14 @@ export function DashboardPage() {
       <section className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
         <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand">
-            Workspace overview
+            Visão geral
           </p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
-            Welcome back, {sessionUser.name}
+            Bem-vindo de volta, {sessionUser.name}
           </h2>
           <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
-            This is now the home of the authenticated workspace. From here you
-            can expand your company setup, contacts, and settings without
-            rebuilding the shell each time.
+            Esta é a home da área autenticada. A partir daqui você pode evoluir
+            empresa, contatos e configurações sem refazer o shell a cada passo.
           </p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -27,8 +26,8 @@ export function DashboardPage() {
                   <ShieldCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-foreground">Protected session</p>
-                  <p className="text-xs text-muted-foreground">Confirmed via /users/me</p>
+                  <p className="text-sm font-medium text-foreground">Sessão protegida</p>
+                  <p className="text-xs text-muted-foreground">Confirmada via /users/me</p>
                 </div>
               </div>
               <p className="mt-4 text-sm text-muted-foreground">{sessionUser.email}</p>
@@ -39,12 +38,12 @@ export function DashboardPage() {
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-foreground">Company status</p>
-                  <p className="text-xs text-muted-foreground">Current workspace owner</p>
+                  <p className="text-sm font-medium text-foreground">Status da empresa</p>
+                  <p className="text-xs text-muted-foreground">Empresa da área atual</p>
                 </div>
               </div>
               <p className="mt-4 text-sm text-muted-foreground">
-                {sessionUser.company?.name || 'No company linked yet'}
+                {sessionUser.company?.name || 'Nenhuma empresa vinculada ainda'}
               </p>
             </div>
           </div>
@@ -52,19 +51,19 @@ export function DashboardPage() {
 
         <div className="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand">
-            Next steps
+            Próximos passos
           </p>
           <div className="mt-6 space-y-4">
             {[
               {
                 icon: MessageSquareText,
-                title: 'Shape your assistant',
-                copy: 'Use the new workspace sections to evolve setup without crowding the dashboard.',
+                title: 'Modele seu assistente',
+                copy: 'Use as novas seções da área para evoluir a configuração sem poluir o painel.',
               },
               {
                 icon: Activity,
-                title: 'Keep the structure growing cleanly',
-                copy: 'Each context now has a route and space to grow independently.',
+                title: 'Escale a estrutura com clareza',
+                copy: 'Cada contexto agora tem rota própria e espaço para crescer de forma independente.',
               },
             ].map((item) => {
               const Icon = item.icon;

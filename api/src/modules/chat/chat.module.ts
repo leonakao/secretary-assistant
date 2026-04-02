@@ -7,9 +7,11 @@ import { UserCompany } from '../companies/entities/user-company.entity';
 import { AiModule } from '../ai/ai.module';
 import { EvolutionModule } from '../evolution/evolution.module';
 import { ChatService } from './services/chat.service';
+import { ProcessIncomingWhatsappMessageService } from './services/process-incoming-whatsapp-message.service';
 import { EvolutionMessageProvider } from './providers/evolution-message.provider';
 import { IncomingMessageUseCase } from './use-cases/incoming-message.use-case';
 import { EvolutionWebhookController } from './controllers/evolution-webhook.controller';
+import { WebChatController } from './controllers/web-chat.controller';
 import { ClientConversationStrategy } from './strategies/client-conversation.strategy';
 import { OwnerConversationStrategy } from './strategies/owner-conversation.strategy';
 import { OnboardingConversationStrategy } from './strategies/onboarding-conversation.strategy';
@@ -17,6 +19,8 @@ import { Company } from '../companies/entities/company.entity';
 import { Confirmation } from '../service-requests/entities/confirmation.entity';
 import { ServiceRequestsModule } from '../service-requests';
 import { OnboardingModule } from '../onboarding/onboarding.module';
+import { MessageQueueModule } from '../message-queue/message-queue.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -30,12 +34,15 @@ import { OnboardingModule } from '../onboarding/onboarding.module';
     ]),
     forwardRef(() => AiModule),
     forwardRef(() => OnboardingModule),
+    forwardRef(() => MessageQueueModule),
     EvolutionModule,
     ServiceRequestsModule,
+    AuthModule,
   ],
-  controllers: [EvolutionWebhookController],
+  controllers: [EvolutionWebhookController, WebChatController],
   providers: [
     ChatService,
+    ProcessIncomingWhatsappMessageService,
     EvolutionMessageProvider,
     IncomingMessageUseCase,
     ClientConversationStrategy,
@@ -49,7 +56,9 @@ import { OnboardingModule } from '../onboarding/onboarding.module';
   exports: [
     TypeOrmModule,
     ChatService,
+    ProcessIncomingWhatsappMessageService,
     EvolutionMessageProvider,
+    IncomingMessageUseCase,
     'MESSAGE_PROVIDER',
   ],
 })

@@ -31,6 +31,12 @@ export class ProvisionCompanyWhatsAppInstanceService {
 
     await this.evolutionService.createInstance({
       instanceName,
+      rejectCall: false,
+      groupsIgnore: true,
+      alwaysOnline: false,
+      readMessages: false,
+      readStatus: false,
+      syncFullHistory: false,
       webhook: {
         url: this.buildWebhookUrl(company.id),
         byEvents: true,
@@ -67,7 +73,8 @@ export class ProvisionCompanyWhatsAppInstanceService {
       this.configService.get<string>('API_PUBLIC_URL')?.trim() ||
       `http://localhost:${this.configService.get<string>('PORT') || '3000'}`;
 
-    return `${webhookBaseUrl.replace(/\/$/, '')}/webhooks/evolution/${companyId}/messages-upsert`;
+    // Evolution appends the event path itself when byEvents=true.
+    return `${webhookBaseUrl.replace(/\/$/, '')}/webhooks/evolution/${companyId}`;
   }
 
   private buildWebhookHeaders(): Record<string, string> | undefined {

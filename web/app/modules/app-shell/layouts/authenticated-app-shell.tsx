@@ -10,19 +10,11 @@ import {
 import type { SessionUser } from '~/modules/auth/api/get-current-user';
 import { resolveAuthenticatedEntryTarget } from '~/modules/auth/use-cases/resolve-authenticated-entry-target';
 import {
-  getAuth0AppOrigin,
   getAuth0LogoutReturnTo,
 } from '~/lib/runtime-config.client';
 import { AppBottomNav } from '../components/app-bottom-nav';
 import { AppShellHeader } from '../components/app-shell-header';
 import { AppSidebar } from '../components/app-sidebar';
-
-function getExpiredSessionReturnTo(pathname: string): string {
-  return new URL(
-    buildUnauthorizedSessionRecoveryPath(pathname),
-    getAuth0AppOrigin(),
-  ).toString();
-}
 
 export interface AuthenticatedAppShellOutletContext {
   sessionUser: SessionUser;
@@ -30,7 +22,8 @@ export interface AuthenticatedAppShellOutletContext {
 
 export function AuthenticatedAppShell() {
   const location = useLocation();
-  const { getIdTokenClaims, isAuthenticated, isLoading, logout } = useAppAuth();
+  const { clearSession, getIdTokenClaims, isAuthenticated, isLoading, logout } =
+    useAppAuth();
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRecoveringSession, setIsRecoveringSession] = useState(false);
@@ -41,13 +34,13 @@ export function AuthenticatedAppShell() {
     useState(false);
   const isBootstrappingSessionRef = useRef(false);
   const isMountedRef = useRef(true);
+  const clearSessionRef = useRef(clearSession);
   const getIdTokenClaimsRef = useRef(getIdTokenClaims);
-  const logoutRef = useRef(logout);
 
   useEffect(() => {
+    clearSessionRef.current = clearSession;
     getIdTokenClaimsRef.current = getIdTokenClaims;
-    logoutRef.current = logout;
-  }, [getIdTokenClaims, logout]);
+  }, [clearSession, getIdTokenClaims]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -114,7 +107,7 @@ export function AuthenticatedAppShell() {
           setError(
             cause instanceof Error
               ? cause.message
-              : 'Failed to process the authenticated workspace session.',
+              : 'Falha ao processar a sessão autenticada da área de trabalho.',
           );
         }
       },
@@ -134,11 +127,7 @@ export function AuthenticatedAppShell() {
           setIsRecoveringSession(true);
           setRecoveryRedirectTo(recoveryPath);
           setShouldRedirectToOnboarding(false);
-          logoutRef.current({
-            logoutParams: {
-              returnTo: getExpiredSessionReturnTo(location.pathname),
-            },
-          });
+          void clearSessionRef.current();
           return;
         }
 
@@ -146,7 +135,7 @@ export function AuthenticatedAppShell() {
         setError(
           cause instanceof Error
             ? cause.message
-            : 'Failed to load the authenticated workspace.',
+            : 'Falha ao carregar a área autenticada.',
         );
         setIsRecoveringSession(false);
         setRecoveryRedirectTo(null);
@@ -167,7 +156,7 @@ export function AuthenticatedAppShell() {
     return (
       <main className="flex min-h-screen items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
         <LoaderCircle className="h-4 w-4 animate-spin" />
-        Loading authentication state...
+        Carregando estado de autenticação...
       </main>
     );
   }
@@ -193,7 +182,7 @@ export function AuthenticatedAppShell() {
     return (
       <main className="flex min-h-screen items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
         <LoaderCircle className="h-4 w-4 animate-spin" />
-        Your session expired. Redirecting to sign in...
+        Sua sessão expirou. Redirecionando para o login...
       </main>
     );
   }
@@ -212,7 +201,7 @@ export function AuthenticatedAppShell() {
     return (
       <main className="flex min-h-screen items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
         <LoaderCircle className="h-4 w-4 animate-spin" />
-        Preparing your workspace...
+        Preparando sua área de trabalho...
       </main>
     );
   }

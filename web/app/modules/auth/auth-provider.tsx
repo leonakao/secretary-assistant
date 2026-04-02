@@ -24,6 +24,7 @@ import {
 } from './e2e-auth';
 
 interface AppAuthContextValue {
+  clearSession: () => Promise<void>;
   error?: Error;
   getIdTokenClaims: () => Promise<{ __raw?: string } | undefined>;
   isAuthenticated: boolean;
@@ -112,6 +113,11 @@ function MockAuthProvider({ children }: { children: ReactNode }) {
       : undefined;
   }, [session]);
 
+  const clearSession = useCallback(async () => {
+    writeMockSession(null);
+    setSession(null);
+  }, []);
+
   const loginWithRedirect = useCallback(async (options?: RedirectLoginOptions) => {
     const nextSession = createMockSession(
       options?.authorizationParams?.screen_hint,
@@ -136,6 +142,7 @@ function MockAuthProvider({ children }: { children: ReactNode }) {
 
   const value: AppAuthContextValue = useMemo(
     () => ({
+      clearSession,
       getIdTokenClaims,
       isAuthenticated: Boolean(session),
       isLoading: false,
@@ -143,7 +150,7 @@ function MockAuthProvider({ children }: { children: ReactNode }) {
       logout,
       user: session?.user,
     }),
-    [getIdTokenClaims, loginWithRedirect, logout, session],
+    [clearSession, getIdTokenClaims, loginWithRedirect, logout, session],
   );
 
   return (
@@ -173,9 +180,14 @@ function RealAuthProvider({ children }: { children: ReactNode }) {
 
 function Auth0ContextBridge({ children }: { children: ReactNode }) {
   const auth0 = useAuth0();
+  const clearSession = useCallback(
+    async () => auth0.logout({ openUrl: false }),
+    [auth0],
+  );
 
   const value: AppAuthContextValue = useMemo(
     () => ({
+      clearSession,
       error: auth0.error,
       getIdTokenClaims: async () => auth0.getIdTokenClaims(),
       isAuthenticated: auth0.isAuthenticated,
@@ -185,6 +197,7 @@ function Auth0ContextBridge({ children }: { children: ReactNode }) {
       user: auth0.user,
     }),
     [
+      clearSession,
       auth0.error,
       auth0.getIdTokenClaims,
       auth0.isAuthenticated,

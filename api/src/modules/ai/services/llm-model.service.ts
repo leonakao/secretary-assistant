@@ -10,15 +10,24 @@ const MODEL_CONFIG: Record<
   {
     model: string;
     maxTokens: number;
+    reasoning: {
+      effort: 'none' | 'low';
+    };
   }
 > = {
   helper: {
-    model: 'gpt-5-nano',
+    model: 'gpt-5.4-nano',
     maxTokens: 8192,
+    reasoning: {
+      effort: 'none',
+    },
   },
   'user-interaction': {
-    model: 'gpt-5-mini',
+    model: 'gpt-5.4-mini',
     maxTokens: 2048,
+    reasoning: {
+      effort: 'low',
+    },
   },
 };
 
@@ -39,6 +48,7 @@ export class LlmModelService {
       apiKey,
       model: config.model,
       maxTokens: config.maxTokens,
+      reasoning: config.reasoning,
       useResponsesApi: true,
     });
   }

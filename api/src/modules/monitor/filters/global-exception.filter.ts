@@ -55,6 +55,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       return exception.getStatus();
     }
+    if (this.isPayloadTooLargeError(exception)) {
+      return HttpStatus.PAYLOAD_TOO_LARGE;
+    }
     return HttpStatus.INTERNAL_SERVER_ERROR;
   }
 
@@ -69,6 +72,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         return Array.isArray(message) ? message.join(', ') : message;
       }
     }
+    if (
+      exception &&
+      typeof exception === 'object' &&
+      'message' in exception &&
+      typeof exception.message === 'string'
+    ) {
+      return exception.message;
+    }
     if (exception instanceof Error) {
       return exception.message;
     }
@@ -79,9 +90,37 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       return exception.constructor.name;
     }
+    if (this.isPayloadTooLargeError(exception)) {
+      return 'PayloadTooLargeError';
+    }
     if (exception instanceof Error) {
       return exception.constructor.name;
     }
     return 'UnknownError';
+  }
+
+  private isPayloadTooLargeError(exception: unknown): boolean {
+    if (!exception || typeof exception !== 'object') {
+      return false;
+    }
+
+    const code =
+      'type' in exception && typeof exception.type === 'string'
+        ? exception.type
+        : undefined;
+    const status =
+      'status' in exception && typeof exception.status === 'number'
+        ? exception.status
+        : undefined;
+    const statusCode =
+      'statusCode' in exception && typeof exception.statusCode === 'number'
+        ? exception.statusCode
+        : undefined;
+
+    return (
+      code === 'entity.too.large' ||
+      status === HttpStatus.PAYLOAD_TOO_LARGE ||
+      statusCode === HttpStatus.PAYLOAD_TOO_LARGE
+    );
   }
 }

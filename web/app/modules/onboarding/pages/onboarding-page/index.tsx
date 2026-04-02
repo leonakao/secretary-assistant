@@ -7,9 +7,23 @@ import { loadOnboardingPageData } from '../../use-cases/load-onboarding-page-dat
 import { resolveOnboardingStep } from '../../use-cases/resolve-onboarding-step';
 import { usePageLoader } from '~/lib/api-client-context';
 
+let onboardingStateBootstrapPromise: Promise<void> | null = null;
+
+function loadOnboardingStateOnce(loader: () => Promise<void>) {
+  if (onboardingStateBootstrapPromise) {
+    return onboardingStateBootstrapPromise;
+  }
+
+  onboardingStateBootstrapPromise = loader().finally(() => {
+    onboardingStateBootstrapPromise = null;
+  });
+
+  return onboardingStateBootstrapPromise;
+}
+
 export function OnboardingPage() {
   const navigate = useNavigate();
-  const { data, error, isLoading, reload } = usePageLoader(
+  const { data, error, isLoading, reload, loader } = usePageLoader(
     loadOnboardingPageData,
     '/onboarding',
   );
@@ -24,8 +38,8 @@ export function OnboardingPage() {
   }, [navigate]);
 
   useEffect(() => {
-    reload();
-  }, []);
+    void loadOnboardingStateOnce(loader);
+  }, [loader]);
 
   useEffect(() => {
     if (!data) return;
@@ -39,7 +53,7 @@ export function OnboardingPage() {
     return (
       <main className="flex min-h-screen items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
         <LoaderCircle className="h-4 w-4 animate-spin" />
-        Loading onboarding...
+        Carregando onboarding...
       </main>
     );
   }
@@ -60,9 +74,9 @@ export function OnboardingPage() {
 
   const step = resolveOnboardingStep(data);
   const steps = [
-    { id: 'company-bootstrap', label: 'Company setup', icon: Building2 },
-    { id: 'assistant-chat', label: 'Configure assistant', icon: MessageSquare },
-    { id: 'complete', label: 'Ready to go', icon: CheckCircle2 },
+    { id: 'company-bootstrap', label: 'Empresa', icon: Building2 },
+    { id: 'assistant-chat', label: 'Assistente', icon: MessageSquare },
+    { id: 'complete', label: 'Tudo pronto', icon: CheckCircle2 },
   ] as const;
   const currentStepIndex = steps.findIndex((s) => s.id === step);
 
@@ -79,10 +93,10 @@ export function OnboardingPage() {
               Secretary Assistant
             </p>
             <h1 className="mt-3 text-xl font-semibold leading-snug text-white">
-              Set up your AI secretary
+              Configure sua secretária com IA
             </h1>
             <p className="mt-2 text-sm leading-6 text-white/50">
-              A few steps to get your WhatsApp assistant live.
+              Alguns passos para colocar seu assistente do WhatsApp no ar.
             </p>
           </div>
 
@@ -119,12 +133,12 @@ export function OnboardingPage() {
         </div>
 
         <p className="text-xs text-white/25">
-          Your progress is saved automatically.
+          Seu progresso é salvo automaticamente.
         </p>
       </aside>
 
       {/* Main content */}
-      <div className="flex min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-y-auto">
+      <div className="flex min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-hidden">
         {step === 'company-bootstrap' ? (
           <div className="flex flex-1 items-center justify-center px-6 py-10">
             <div
@@ -133,32 +147,32 @@ export function OnboardingPage() {
             >
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.24em] text-brand">
-                  Step 1 of 2
+                  Etapa 1 de 2
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-                  Tell us about your company
+                  Conte sobre a sua empresa
                 </h2>
                 <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
-                  This helps the assistant introduce itself correctly to your customers.
+                  Isso ajuda o assistente a se apresentar corretamente aos seus clientes.
                 </p>
               </div>
               <CompanyBootstrapForm onSuccess={reload} />
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
             <div
-              className="border-b border-border px-6 py-4"
+              className="shrink-0 border-b border-border px-6 py-4"
               data-testid="onboarding-step-assistant-chat"
             >
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand">
-                Step 2 of 2
+                Etapa 2 de 2
               </p>
               <h2 className="mt-0.5 text-base font-semibold text-foreground">
-                Configure your assistant
+                Configure seu assistente
               </h2>
             </div>
-            <div className="flex-1 overflow-hidden">
+            <div className="flex flex-1 min-h-0 overflow-hidden">
               <OnboardingChat
                 onComplete={() => {
                   redirectToApp();

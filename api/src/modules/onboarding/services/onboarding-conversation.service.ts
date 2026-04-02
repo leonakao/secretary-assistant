@@ -19,6 +19,7 @@ import {
   OnboardingStateResult,
 } from '../utils/map-onboarding-state';
 import { buildOnboardingThreadId } from '../utils/build-onboarding-thread-id';
+import { ChatStateService } from 'src/modules/message-queue/services/chat-state.service';
 
 export interface RunOnboardingConversationInput {
   userId: string;
@@ -67,6 +68,7 @@ export class OnboardingConversationService {
     private readonly memoryRepository: Repository<Memory>,
     private readonly onboardingAssistantAgent: OnboardingAssistantAgent,
     private readonly extractAiMessageService: ExtractAiMessageService,
+    private readonly chatStateService: ChatStateService,
   ) {}
 
   async run(
@@ -78,10 +80,36 @@ export class OnboardingConversationService {
       `Running onboarding conversation for user ${userId}, company ${companyId}`,
     );
 
-    const { user, userCompany } = await this.loadConversationAccess(
-      userId,
-      companyId,
-    );
+    const userMessage = await this.saveUserMessage(userId, companyId, message);
+    const assistantMessage = await this.generateAssistantReply({
+      prompt: message,
+      threadId: this.buildThreadId(userId, companyId),
+      user: (await this.userRepository.findOneBy({ id: userId }))!,
+      company: (await this.userCompanyRepository.findOne({
+        where: { userId, companyId },
+        relations: ['company'],
+      }))!.company,
+    });
+
+    const onboardingState = await this.loadOnboardingState(userId, companyId);
+
+    return {
+      userMessage,
+      assistantMessage,
+      onboardingState,
+    };
+  }
+
+  /**
+   * Save a user message to conversation memory
+   * Validates access and persists the message
+   */
+  async saveUserMessage(
+    userId: string,
+    companyId: string,
+    message: string,
+  ): Promise<PersistedConversationMessage> {
+    await this.loadConversationAccess(userId, companyId);
     const threadId = this.buildThreadId(userId, companyId);
 
     const userMemory = await this.memoryRepository.save({
@@ -91,20 +119,61 @@ export class OnboardingConversationService {
       content: message,
     });
 
-    const assistantMessage = await this.generateAssistantReply({
-      prompt: message,
-      threadId,
-      user,
-      company: userCompany.company,
-    });
+    return this.toConversationMessage(userMemory);
+  }
 
-    const onboardingState = await this.loadOnboardingState(userId, companyId);
+  /**
+   * Generate and save assistant reply asynchronously
+   * Sets typing indicator while processing, clears it when done
+   * All errors are caught and logged — never throws
+   * Designed to be called without await
+   */
+  async generateAndSaveAssistantReplyAsync(
+    userId: string,
+    companyId: string,
+  ): Promise<void> {
+    const conversationKey = `onboarding:${userId}:${companyId}`;
+    await this.chatStateService.setTyping(conversationKey);
 
-    return {
-      userMessage: this.toConversationMessage(userMemory),
-      assistantMessage,
-      onboardingState,
-    };
+    try {
+      const { user, userCompany } = await this.loadConversationAccess(
+        userId,
+        companyId,
+      );
+      const threadId = this.buildThreadId(userId, companyId);
+
+      // Get the last user message to use as prompt
+      const lastUserMessage = await this.memoryRepository.findOne({
+        where: {
+          sessionId: threadId,
+          role: 'user',
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+      });
+
+      if (!lastUserMessage) {
+        this.logger.warn(
+          `No user message found for onboarding conversation ${userId}/${companyId}`,
+        );
+        return;
+      }
+
+      await this.generateAssistantReply({
+        prompt: lastUserMessage.content,
+        threadId,
+        user,
+        company: userCompany.company,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error generating assistant reply for onboarding ${userId}/${companyId}`,
+        error,
+      );
+    } finally {
+      await this.chatStateService.clearTyping(conversationKey);
+    }
   }
 
   async initializeThread(

@@ -1,15 +1,17 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoginPage } from './index';
 
 const mockNavigate = vi.fn();
 const mockLoginWithRedirect = vi.fn();
 const mockGetIdTokenClaims = vi.fn();
+const mockClearSession = vi.fn();
 const mockLogout = vi.fn();
 const mockUseAppAuth = vi.fn();
 const mockBootstrapAuthSession = vi.fn();
 const mockIsUnauthorizedSessionError = vi.fn();
 let mockSearchParams = new URLSearchParams('mode=signin&redirectTo=%2Fapp');
+const mockLocationReplace = vi.fn();
 
 vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
@@ -44,7 +46,10 @@ vi.mock('~/lib/runtime-config.client', () => ({
 describe('LoginPage', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams('mode=signin&redirectTo=%2Fapp');
+    mockLocationReplace.mockReset();
     mockNavigate.mockReset();
+    mockClearSession.mockReset();
+    mockClearSession.mockResolvedValue(undefined);
     mockLoginWithRedirect.mockReset();
     mockGetIdTokenClaims.mockReset();
     mockLogout.mockReset();
@@ -54,6 +59,7 @@ describe('LoginPage', () => {
     mockIsUnauthorizedSessionError.mockReturnValue(false);
 
     mockUseAppAuth.mockReturnValue({
+      clearSession: mockClearSession,
       error: undefined,
       getIdTokenClaims: mockGetIdTokenClaims,
       isAuthenticated: true,
@@ -63,6 +69,17 @@ describe('LoginPage', () => {
     });
   });
 
+  beforeAll(() => {
+    vi.stubGlobal('location', {
+      ...window.location,
+      replace: mockLocationReplace,
+    });
+  });
+
+  afterAll(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('stays on the login page when session bootstrap fails with a non-401 error', async () => {
     mockBootstrapAuthSession.mockRejectedValue(new Error('Backend unavailable'));
 
@@ -70,7 +87,7 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("We couldn't validate your session"),
+        screen.getByText('Não foi possível validar sua sessão'),
       ).toBeInTheDocument();
     });
 
@@ -107,12 +124,13 @@ describe('LoginPage', () => {
     render(<LoginPage />);
 
     await waitFor(() => {
-      expect(mockLogout).toHaveBeenCalledWith({
-        logoutParams: {
-          returnTo:
-            'http://localhost:5173/login?mode=signin&redirectTo=%2Fapp&sessionError=unauthorized',
-        },
-      });
+      expect(mockClearSession).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(mockLocationReplace).toHaveBeenCalledWith(
+        'http://localhost:5173/login?mode=signin&redirectTo=%2Fapp&sessionError=unauthorized',
+      );
     });
   });
 
@@ -168,6 +186,7 @@ describe('LoginPage', () => {
 
     mockUseAppAuth
       .mockReturnValueOnce({
+        clearSession: mockClearSession,
         error: undefined,
         getIdTokenClaims: initialClaims,
         isAuthenticated: true,
@@ -176,6 +195,7 @@ describe('LoginPage', () => {
         logout: mockLogout,
       })
       .mockReturnValue({
+        clearSession: mockClearSession,
         error: undefined,
         getIdTokenClaims: nextClaims,
         isAuthenticated: true,
@@ -186,7 +206,7 @@ describe('LoginPage', () => {
 
     const view = render(<LoginPage />);
 
-    expect(screen.getByText('Resolving your session...')).toBeInTheDocument();
+    expect(screen.getByText('Resolvendo sua sessão...')).toBeInTheDocument();
 
     view.rerender(<LoginPage />);
 
@@ -220,6 +240,7 @@ describe('LoginPage', () => {
 
   it('sends signup through onboarding instead of /app', async () => {
     mockUseAppAuth.mockReturnValue({
+      clearSession: mockClearSession,
       error: undefined,
       getIdTokenClaims: mockGetIdTokenClaims,
       isAuthenticated: false,

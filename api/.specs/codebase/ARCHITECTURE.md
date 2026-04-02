@@ -7,7 +7,7 @@
 ```
 Incoming WhatsApp message
   → Evolution API (self-hosted)
-  → POST /webhooks/evolution (EvolutionWebhookController)
+  → POST /webhooks/evolution/:companyId/messages-upsert (EvolutionWebhookController)
   → IncomingMessageUseCase
   → ConversationStrategy (Client | Owner | Onboarding)
   → Agent (ClientAssistantAgent | OwnerAssistantAgent | OnboardingAssistantAgent)

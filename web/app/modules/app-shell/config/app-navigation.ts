@@ -17,9 +17,9 @@ export interface AppNavigationItem {
 export const APP_NAVIGATION: AppNavigationItem[] = [
   {
     to: '/app',
-    label: 'Dashboard',
-    shortLabel: 'Dashboard',
-    description: 'Visão geral do workspace e dos próximos passos do assistente.',
+    label: 'Painel',
+    shortLabel: 'Painel',
+    description: 'Visão geral da área de trabalho e dos próximos passos do assistente.',
     icon: LayoutDashboard,
   },
   {

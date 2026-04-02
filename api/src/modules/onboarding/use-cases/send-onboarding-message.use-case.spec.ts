@@ -9,36 +9,6 @@ function makeUser() {
   } as any;
 }
 
-function makeRunResult() {
-  return {
-    userMessage: {
-      id: 'mem-user',
-      role: 'user' as const,
-      content: 'texto',
-      createdAt: '2026-03-27T10:00:00.000Z',
-    },
-    assistantMessage: {
-      id: 'mem-assistant',
-      role: 'assistant' as const,
-      content: 'resposta',
-      createdAt: '2026-03-27T10:00:01.000Z',
-    },
-    onboardingState: {
-      company: {
-        id: 'company-1',
-        name: 'Acme',
-        businessType: 'Clínica odontológica',
-        step: 'onboarding' as const,
-        role: 'owner' as const,
-      },
-      onboarding: {
-        requiresOnboarding: true,
-        step: 'assistant-chat' as const,
-      },
-    },
-  };
-}
-
 describe('SendOnboardingMessageUseCase', () => {
   it('returns canonical persisted messages for text sends', async () => {
     const findOne = vi.fn().mockResolvedValue({
@@ -46,8 +16,16 @@ describe('SendOnboardingMessageUseCase', () => {
       company: { step: 'onboarding' },
     });
     const userCompanyRepo = { findOne };
+    const saveUserMessage = vi.fn().mockResolvedValue({
+      id: 'mem-user',
+      role: 'user' as const,
+      content: 'texto',
+      createdAt: '2026-03-27T10:00:00.000Z',
+    });
+    const generateAndSaveAssistantReplyAsync = vi.fn();
     const onboardingConversationService = {
-      run: vi.fn().mockResolvedValue(makeRunResult()),
+      saveUserMessage,
+      generateAndSaveAssistantReplyAsync,
     };
     const audioTranscriptionService = {
       transcribeAudio: vi.fn(),
@@ -63,34 +41,33 @@ describe('SendOnboardingMessageUseCase', () => {
       message: '  texto  ',
     });
 
-    expect(onboardingConversationService.run).toHaveBeenCalledWith({
-      userId: 'user-1',
-      companyId: 'company-1',
-      message: 'texto',
-    });
-    expect(findOne).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { userId: 'user-1', company: { step: 'onboarding' } },
-      }),
+    expect(saveUserMessage).toHaveBeenCalledWith(
+      'user-1',
+      'company-1',
+      'texto',
     );
-    expect(result.userMessage.content).toBe('texto');
-    expect(result.assistantMessage.content).toBe('resposta');
+    expect(generateAndSaveAssistantReplyAsync).toHaveBeenCalledWith(
+      'user-1',
+      'company-1',
+    );
+    expect(result.status).toBe('pending');
+    expect(result.userMessageId).toBe('mem-user');
   });
 
   it('transcribes audio and persists only the transcribed text', async () => {
     const userCompanyRepo = {
       findOne: vi.fn().mockResolvedValue({ companyId: 'company-1' }),
     };
+    const saveUserMessage = vi.fn().mockResolvedValue({
+      id: 'mem-user',
+      role: 'user' as const,
+      content: 'preciso agendar',
+      createdAt: '2026-03-27T10:00:00.000Z',
+    });
+    const generateAndSaveAssistantReplyAsync = vi.fn();
     const onboardingConversationService = {
-      run: vi.fn().mockResolvedValue({
-        ...makeRunResult(),
-        userMessage: {
-          id: 'mem-user',
-          role: 'user' as const,
-          content: 'preciso agendar',
-          createdAt: '2026-03-27T10:00:00.000Z',
-        },
-      }),
+      saveUserMessage,
+      generateAndSaveAssistantReplyAsync,
     };
     const audioTranscriptionService = {
       transcribeAudio: vi.fn().mockResolvedValue('preciso agendar'),
@@ -111,12 +88,13 @@ describe('SendOnboardingMessageUseCase', () => {
       Buffer.from('audio'),
       'audio/webm',
     );
-    expect(onboardingConversationService.run).toHaveBeenCalledWith({
-      userId: 'user-1',
-      companyId: 'company-1',
-      message: 'preciso agendar',
-    });
-    expect(result.userMessage.content).toBe('preciso agendar');
+    expect(saveUserMessage).toHaveBeenCalledWith(
+      'user-1',
+      'company-1',
+      'preciso agendar',
+    );
+    expect(result.status).toBe('pending');
+    expect(result.userMessageId).toBe('mem-user');
   });
 
   it('leaves the thread unchanged when transcription is empty', async () => {

@@ -40,8 +40,15 @@ describe('ProvisionCompanyWhatsAppInstanceService', () => {
     expect(evolutionService.createInstance).toHaveBeenCalledWith(
       expect.objectContaining({
         instanceName: 'sa-company-clinica-sao-jose',
+        rejectCall: false,
+        groupsIgnore: true,
+        alwaysOnline: false,
+        readMessages: false,
+        readStatus: false,
+        syncFullHistory: false,
         webhook: expect.objectContaining({
-          url: 'http://api:3000/webhooks/evolution/company-1/messages-upsert',
+          url: 'http://api:3000/webhooks/evolution/company-1',
+          base64: true,
           headers: {
             'x-evolution-token': 'secret-token',
           },

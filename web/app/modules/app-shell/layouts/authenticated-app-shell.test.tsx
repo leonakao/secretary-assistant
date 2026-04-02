@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthenticatedAppShell } from './authenticated-app-shell';
 
+const mockClearSession = vi.fn();
 const mockLogout = vi.fn();
 const mockGetIdTokenClaims = vi.fn();
 const mockUseAppAuth = vi.fn();
@@ -54,13 +55,14 @@ vi.mock('~/modules/auth/session', () => ({
 }));
 
 vi.mock('~/lib/runtime-config.client', () => ({
-  getAuth0AppOrigin: () => 'http://localhost:5173',
   getAuth0LogoutReturnTo: () => 'http://localhost:5173',
 }));
 
 describe('AuthenticatedAppShell', () => {
   beforeEach(() => {
     mockBootstrapAuthSession.mockReset();
+    mockClearSession.mockReset();
+    mockClearSession.mockResolvedValue(undefined);
     mockGetIdTokenClaims.mockReset();
     mockIsUnauthorizedSessionError.mockReset();
     mockLogout.mockReset();
@@ -68,6 +70,7 @@ describe('AuthenticatedAppShell', () => {
 
     mockIsUnauthorizedSessionError.mockReturnValue(false);
     mockUseAppAuth.mockReturnValue({
+      clearSession: mockClearSession,
       getIdTokenClaims: mockGetIdTokenClaims,
       isAuthenticated: true,
       isLoading: false,
@@ -77,6 +80,7 @@ describe('AuthenticatedAppShell', () => {
 
   it('redirects unauthenticated users to /login with /app redirectTo', () => {
     mockUseAppAuth.mockReturnValue({
+      clearSession: mockClearSession,
       getIdTokenClaims: mockGetIdTokenClaims,
       isAuthenticated: false,
       isLoading: false,
@@ -115,12 +119,7 @@ describe('AuthenticatedAppShell', () => {
       );
     });
 
-    expect(mockLogout).toHaveBeenCalledWith({
-      logoutParams: {
-        returnTo:
-          'http://localhost:5173/login?mode=signin&redirectTo=%2Fapp%2Fcompany&sessionError=unauthorized',
-      },
-    });
+    expect(mockClearSession).toHaveBeenCalled();
   });
 
   it('renders shared navigation for eligible users', async () => {
@@ -134,7 +133,7 @@ describe('AuthenticatedAppShell', () => {
     render(<AuthenticatedAppShell />);
 
     await waitFor(() => {
-      expect(screen.getAllByText('Dashboard').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Painel').length).toBeGreaterThan(0);
     });
 
     expect(screen.getAllByText('Minha empresa').length).toBeGreaterThan(0);
@@ -154,7 +153,7 @@ describe('AuthenticatedAppShell', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/Cannot read properties of undefined|Failed to process the authenticated workspace session/),
+        screen.getByText(/Cannot read properties of undefined|Falha ao processar a sessão autenticada da área de trabalho/),
       ).toBeInTheDocument();
     });
   });
@@ -199,12 +198,14 @@ describe('AuthenticatedAppShell', () => {
 
     mockUseAppAuth
       .mockReturnValueOnce({
+        clearSession: mockClearSession,
         getIdTokenClaims: initialClaims,
         isAuthenticated: true,
         isLoading: false,
         logout: initialLogout,
       })
       .mockReturnValue({
+        clearSession: mockClearSession,
         getIdTokenClaims: nextClaims,
         isAuthenticated: true,
         isLoading: false,
@@ -213,7 +214,7 @@ describe('AuthenticatedAppShell', () => {
 
     const view = render(<AuthenticatedAppShell />);
 
-    expect(screen.getByText('Preparing your workspace...')).toBeInTheDocument();
+    expect(screen.getByText('Preparando sua área de trabalho...')).toBeInTheDocument();
 
     view.rerender(<AuthenticatedAppShell />);
 
