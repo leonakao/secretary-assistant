@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Clock3 } from 'lucide-react';
 import { useApiClient } from '~/lib/api-client-context';
 import {
   getManagedCompany,
@@ -94,34 +93,8 @@ export function CompanyPage() {
     return null;
   }
 
-  const formattedUpdatedAt = new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(company.updatedAt));
-
   return (
     <div className="space-y-6 pb-8 sm:space-y-8 sm:pb-12" data-testid="company-page">
-      <section className="space-y-4 rounded-[1.75rem] border border-border/70 bg-card/90 p-5 shadow-sm sm:rounded-[2rem] sm:p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand">
-          Minha empresa
-        </p>
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-          <div className="space-y-3">
-            <h1 className="text-[1.8rem] font-semibold tracking-tight text-foreground sm:text-[2.2rem]">
-              {company.name || 'Minha empresa'}
-            </h1>
-            <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-[0.95rem] sm:leading-7">
-              Revise os dados básicos do negócio e a base de conhecimento que
-              orienta o assistente em cada atendimento.
-            </p>
-          </div>
-          <div className="inline-flex w-full items-center gap-2 rounded-2xl border border-border bg-background/80 px-4 py-2 text-xs font-medium text-muted-foreground sm:w-fit sm:rounded-full">
-            <Clock3 className="h-4 w-4 text-brand" />
-            Atualizado em {formattedUpdatedAt}
-          </div>
-        </div>
-      </section>
-
       <section className="grid gap-4 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)] xl:items-start">
         <CompanyProfileForm company={company} onSave={handleProfileSave} />
 

@@ -21,6 +21,17 @@ Loader approach:
 - loader fetches the current page of contacts and an optional selected contact
   detail when `contactId` exists in the URL search params
 
+Architecture note:
+- the current auth flow builds the authenticated `BoundApiClient` from
+  `getIdTokenClaims()` inside `root.tsx` and React context
+- route `clientLoader` does not have access to that hook-derived token source
+- because of that, authenticated contacts API calls are not cleanly viable from
+  the route loader without introducing a new token bridge outside the current
+  auth architecture
+- v1 should therefore keep the route responsible for URL normalization and
+  initial param parsing, while the page performs the first authenticated fetch
+  after mount through `useApiClient()`
+
 Query params:
 - `page`
 - `pageSize`
