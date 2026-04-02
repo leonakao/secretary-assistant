@@ -9,6 +9,7 @@ async function bootstrap() {
   initializeLangWatchObservability();
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const port = Number(process.env.PORT?.trim() || '3000');
   const requestBodyLimit = process.env.REQUEST_BODY_LIMIT?.trim() || '25mb';
 
   app.useBodyParser('json', { limit: requestBodyLimit });
@@ -26,7 +27,7 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(3000);
+  await app.listen(port);
 }
 
 bootstrap().catch((e) => console.error(e));
