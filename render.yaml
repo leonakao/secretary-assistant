@@ -55,8 +55,7 @@ projects:
             branch: main
             rootDir: api
             buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
-            preDeployCommand: corepack enable && pnpm migration:run
-            startCommand: corepack enable && pnpm start:prod
+            startCommand: node ./node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js && node dist/main.js
             healthCheckPath: /health
             envVars:
               - fromGroup: secretary-assistant-staging-shared
@@ -151,7 +150,5 @@ projects:
         databases:
           - name: secretary-assistant-db
             plan: free
-            databaseName: postgres
-            user: postgres
             postgresMajorVersion: "18"
             ipAllowList: []
