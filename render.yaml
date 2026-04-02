@@ -1,0 +1,157 @@
+previews:
+  generation: off
+
+projects:
+  - name: Secretary Assistant
+    environments:
+      - name: Staging
+        envVarGroups:
+          - name: secretary-assistant-staging-shared
+            envVars:
+              - key: NODE_ENV
+                value: production
+              - key: AUTH0_DOMAIN
+                value: dev-du3tsou284mgwefg.us.auth0.com
+              - key: AUTH0_CLIENT_ID
+                value: SJtvoRN584unasTOBo2fYogJM8HaWjWU
+              - key: OPENAI_API_KEY
+                sync: false
+              - key: GOOGLE_API_KEY
+                sync: false
+              - key: LANGWATCH_API_KEY
+                sync: false
+              - key: LANGWATCH_ENDPOINT
+                sync: false
+              - key: EVOLUTION_API_KEY
+                sync: false
+              - key: AUTHENTICATION_API_KEY
+                sync: false
+        services:
+          - type: web
+            name: secretary-assistant-web
+            runtime: static
+            branch: main
+            rootDir: web
+            buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+            publishPath: build/client
+            routes:
+              - type: rewrite
+                source: /*
+                destination: /index.html
+            envVars:
+              - key: VITE_API_BASE_URL
+                value: https://secretary-assistant-api.onrender.com
+              - key: VITE_AUTH0_DOMAIN
+                value: dev-du3tsou284mgwefg.us.auth0.com
+              - key: VITE_AUTH0_CLIENT_ID
+                value: SJtvoRN584unasTOBo2fYogJM8HaWjWU
+              - key: VITE_AUTH0_APP_ORIGIN
+                value: https://secretary-assistant-web.onrender.com
+
+          - type: web
+            name: secretary-assistant-api
+            runtime: node
+            plan: free
+            branch: main
+            rootDir: api
+            buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+            preDeployCommand: corepack enable && pnpm migration:run
+            startCommand: corepack enable && pnpm start:prod
+            healthCheckPath: /health
+            envVars:
+              - fromGroup: secretary-assistant-staging-shared
+              - key: PORT
+                value: 3000
+              - key: DB_HOST
+                fromDatabase:
+                  name: secretary-assistant-db
+                  property: host
+              - key: DB_PORT
+                fromDatabase:
+                  name: secretary-assistant-db
+                  property: port
+              - key: DB_USERNAME
+                fromDatabase:
+                  name: secretary-assistant-db
+                  property: user
+              - key: DB_PASSWORD
+                fromDatabase:
+                  name: secretary-assistant-db
+                  property: password
+              - key: DB_DATABASE
+                fromDatabase:
+                  name: secretary-assistant-db
+                  property: database
+              - key: REDIS_URL
+                fromService:
+                  type: keyvalue
+                  name: secretary-assistant-cache
+                  property: connectionString
+              - key: EVOLUTION_API_URL
+                value: https://secretary-assistant-evolution.onrender.com
+              - key: EVOLUTION_API_TOKEN
+                generateValue: true
+              - key: EVOLUTION_WEBHOOK_BASE_URL
+                value: https://secretary-assistant-api.onrender.com
+              - key: REQUEST_BODY_LIMIT
+                value: 25mb
+              - key: WHATSAPP_DEBOUNCE_MS
+                value: 10000
+
+          - type: web
+            name: secretary-assistant-evolution
+            runtime: image
+            plan: free
+            image:
+              url: docker.io/evoapicloud/evolution-api:v2.3.7
+            envVars:
+              - fromGroup: secretary-assistant-staging-shared
+              - key: DATABASE_ENABLED
+                value: "true"
+              - key: DATABASE_PROVIDER
+                value: postgresql
+              - key: DATABASE_CONNECTION_URI
+                sync: false
+              - key: DATABASE_CONNECTION_CLIENT_NAME
+                value: secretary_assistant_evolution
+              - key: DATABASE_SAVE_DATA_INSTANCE
+                value: "true"
+              - key: DATABASE_SAVE_DATA_NEW_MESSAGE
+                value: "true"
+              - key: DATABASE_SAVE_MESSAGE_UPDATE
+                value: "true"
+              - key: DATABASE_SAVE_DATA_CONTACTS
+                value: "true"
+              - key: DATABASE_SAVE_DATA_CHATS
+                value: "true"
+              - key: CACHE_REDIS_ENABLED
+                value: "false"
+              - key: CACHE_REDIS_URI
+                value: ""
+              - key: CACHE_LOCAL_ENABLED
+                value: "true"
+              - key: QRCODE_LIMIT
+                value: "30"
+              - key: WEBHOOK_GLOBAL_URL
+                value: https://secretary-assistant-api.onrender.com/webhooks/evolution
+              - key: WEBHOOK_GLOBAL_ENABLED
+                value: "false"
+              - key: WEBHOOK_GLOBAL_WEBHOOK_BY_EVENTS
+                value: "true"
+              - key: CONFIG_SESSION_PHONE_CLIENT
+                value: Secretary Assistant
+              - key: EVOLUTION_WEBHOOK_BASE_URL
+                value: https://secretary-assistant-api.onrender.com
+
+          - type: keyvalue
+            name: secretary-assistant-cache
+            plan: free
+            ipAllowList: []
+            maxmemoryPolicy: noeviction
+        databases:
+          - name: secretary-assistant-db
+            plan: free
+            databaseName: postgres
+            user: postgres
+            postgresMajorVersion: "18"
+            ipAllowList: []
