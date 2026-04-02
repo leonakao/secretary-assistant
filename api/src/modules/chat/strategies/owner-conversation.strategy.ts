@@ -85,7 +85,16 @@ export class OwnerConversationStrategy implements ConversationStrategy {
             chunk.assistant.messages,
           );
           if (message) {
+            this.logger.log(`AIMessage: ${message}`);
             messages.push(message);
+          }
+
+          const toolMessages =
+            this.extractAiMessageService.extractToolMessagesFromChunkMessages(
+              chunk.assistant.messages,
+            );
+          for (const toolMessage of toolMessages) {
+            this.logger.log(`ToolMessage: ${toolMessage}`);
           }
         }
 

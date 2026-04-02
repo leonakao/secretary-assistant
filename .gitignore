@@ -396,6 +396,7 @@ Temporary Items
 .env
 .env.onboarding-validation
 dist
+build
 .artifacts/
 .webpack
 .serverless/**/*.zip

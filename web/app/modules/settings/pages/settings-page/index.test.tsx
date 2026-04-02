@@ -571,6 +571,42 @@ describe('SettingsPage', () => {
     ).toHaveValue('vip\nprioridade');
   });
 
+  it('does not show the save rules button when only toggling the agent state', async () => {
+    const { SettingsPage } = await import('./index');
+    getManagedWhatsAppSettingsMock.mockResolvedValue({
+      settings: makeSettings({
+        agentEnabled: true,
+        agentReplyScope: 'all',
+      }),
+    });
+    updateManagedAgentStateMock.mockResolvedValue({
+      settings: makeSettings({
+        agentEnabled: false,
+        agentReplyScope: 'all',
+      }),
+    });
+
+    render(<SettingsPage />);
+
+    await screen.findByText('Estado e respostas do agente');
+    expect(
+      screen.queryByTestId('agent-reply-save-button'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('whatsapp-settings-agent-toggle-button'));
+
+    await waitFor(() => {
+      expect(updateManagedAgentStateMock).toHaveBeenCalledWith(
+        { enabled: false },
+        mockClient,
+      );
+    });
+
+    expect(
+      screen.queryByTestId('agent-reply-save-button'),
+    ).not.toBeInTheDocument();
+  });
+
   it('saves the all scope after switching back from specific contacts', async () => {
     const { SettingsPage } = await import('./index');
     getManagedWhatsAppSettingsMock.mockResolvedValue({

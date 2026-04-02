@@ -270,7 +270,74 @@ describe('IncomingMessageUseCase', () => {
     expect(result).toEqual({
       success: true,
       ignored: true,
-      ignoredReason: 'client_support_disabled_or_filtered',
+      ignoredReason: 'client_does_not_match_name_pattern',
+    });
+  });
+
+  it('returns a precise ignoredReason when client support is disabled', async () => {
+    const { useCase, messageQueueService } = makeUseCase({
+      company: makeCompany({
+        isClientsSupportEnabled: false,
+      }),
+    });
+
+    const result = await useCase.execute(
+      'company-1',
+      'instance-1',
+      makePayload(),
+    );
+
+    expect(messageQueueService.enqueueMessage).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: true,
+      ignored: true,
+      ignoredReason: 'client_support_disabled',
+    });
+  });
+
+  it('returns a precise ignoredReason when whitelist does not match', async () => {
+    const { useCase, messageQueueService } = makeUseCase({
+      company: makeCompany({
+        agentReplyScope: 'specific',
+        agentReplyListMode: 'whitelist',
+        agentReplyListEntries: ['vip'],
+      }),
+    });
+
+    const result = await useCase.execute(
+      'company-1',
+      'instance-1',
+      makePayload(),
+    );
+
+    expect(messageQueueService.enqueueMessage).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: true,
+      ignored: true,
+      ignoredReason: 'client_not_in_whitelist',
+    });
+  });
+
+  it('returns a precise ignoredReason when blacklist matches', async () => {
+    const { useCase, messageQueueService } = makeUseCase({
+      company: makeCompany({
+        agentReplyScope: 'specific',
+        agentReplyListMode: 'blacklist',
+        agentReplyListEntries: ['maria'],
+      }),
+    });
+
+    const result = await useCase.execute(
+      'company-1',
+      'instance-1',
+      makePayload(),
+    );
+
+    expect(messageQueueService.enqueueMessage).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      success: true,
+      ignored: true,
+      ignoredReason: 'client_in_blacklist',
     });
   });
 

@@ -115,14 +115,12 @@ describe('MessageQueueService', () => {
 
     it('creates a new web_chat queue item when no pending item exists', async () => {
       const repo = makeRepo({
-        query: vi
-          .fn()
-          .mockResolvedValue([
-            makeQueueItem({
-              channel: MessageQueueChannel.WEB_CHAT,
-              id: 'item-new',
-            }),
-          ]),
+        query: vi.fn().mockResolvedValue([
+          makeQueueItem({
+            channel: MessageQueueChannel.WEB_CHAT,
+            id: 'item-new',
+          }),
+        ]),
       });
       const { service } = makeService(repo);
 
@@ -138,13 +136,11 @@ describe('MessageQueueService', () => {
 
     it('appends to an existing pending web_chat item instead of rejecting', async () => {
       const repo = makeRepo({
-        query: vi
-          .fn()
-          .mockResolvedValue([
-            makeQueueItem({
-              channel: MessageQueueChannel.WEB_CHAT,
-            }),
-          ]),
+        query: vi.fn().mockResolvedValue([
+          makeQueueItem({
+            channel: MessageQueueChannel.WEB_CHAT,
+          }),
+        ]),
       });
       const { service } = makeService(repo);
 
@@ -167,14 +163,12 @@ describe('MessageQueueService', () => {
 
     it('allows a new web_chat message when the previous item is processing', async () => {
       const repo = makeRepo({
-        query: vi
-          .fn()
-          .mockResolvedValue([
-            makeQueueItem({
-              channel: MessageQueueChannel.WEB_CHAT,
-              id: 'item-processing+1',
-            }),
-          ]),
+        query: vi.fn().mockResolvedValue([
+          makeQueueItem({
+            channel: MessageQueueChannel.WEB_CHAT,
+            id: 'item-processing+1',
+          }),
+        ]),
       });
       const { service } = makeService(repo);
 

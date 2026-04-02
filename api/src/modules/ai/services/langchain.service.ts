@@ -5,6 +5,7 @@ import {
   AIMessage,
 } from '@langchain/core/messages';
 import { LlmChatModel, LlmModelService } from './llm-model.service';
+import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
 
 @Injectable()
 export class LangchainService {
@@ -29,7 +30,12 @@ export class LangchainService {
       ? this.createHelperModelWithMaxTokens(maxTokens)
       : this.model;
 
-    const response = await model.invoke([new HumanMessage(message)]);
+    const response = await model.invoke(
+      [new HumanMessage(message)],
+      createLangWatchRunnableConfig(undefined, {
+        operation: 'langchain_service.chat',
+      }),
+    );
     return this.extractTextContent(response.content);
   }
 
@@ -45,7 +51,12 @@ export class LangchainService {
       new HumanMessage(userMessage),
     ];
 
-    const response = await this.model.invoke(messages);
+    const response = await this.model.invoke(
+      messages,
+      createLangWatchRunnableConfig(undefined, {
+        operation: 'langchain_service.chat_with_context',
+      }),
+    );
     return this.extractTextContent(response.content);
   }
 
@@ -68,7 +79,12 @@ export class LangchainService {
       }
     });
 
-    const response = await this.model.invoke(langchainMessages);
+    const response = await this.model.invoke(
+      langchainMessages,
+      createLangWatchRunnableConfig(undefined, {
+        operation: 'langchain_service.chat_with_history',
+      }),
+    );
     return this.extractTextContent(response.content);
   }
 
@@ -76,7 +92,12 @@ export class LangchainService {
    * Stream a response from the AI
    */
   async *streamChat(message: string): AsyncGenerator<string> {
-    const stream = await this.model.stream([new HumanMessage(message)]);
+    const stream = await this.model.stream(
+      [new HumanMessage(message)],
+      createLangWatchRunnableConfig(undefined, {
+        operation: 'langchain_service.stream_chat',
+      }),
+    );
 
     for await (const chunk of stream) {
       if (chunk.content) {
