@@ -28,7 +28,6 @@ import { createAssistantNode } from '../nodes/assistant.node';
 import { buildClientPromptFromState } from '../agent-prompts/assistant-client';
 import { ensureCheckpointerSetup } from './checkpointer-setup';
 import { LlmChatModel, LlmModelService } from '../services/llm-model.service';
-import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
 
 @Injectable()
 export class ClientAssistantAgent implements OnModuleInit {
@@ -154,14 +153,7 @@ export class ClientAssistantAgent implements OnModuleInit {
         messages: [new HumanMessage(message)],
         context,
       },
-      createLangWatchRunnableConfig(config, {
-        companyId: context.companyId,
-        contactId: context.contactId,
-        instanceName: context.instanceName,
-        operation: 'client_assistant.stream_conversation',
-        threadId,
-        userId: context.userId,
-      }),
+      config,
     );
   }
 

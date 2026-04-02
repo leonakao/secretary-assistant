@@ -57,6 +57,7 @@ function makeService(
     agent: any;
     extractor: any;
     chatStateService: any;
+    llmModelService: any;
   }> = {},
 ) {
   const userRepo = overrides.userRepo ?? {
@@ -86,6 +87,13 @@ function makeService(
     clearTyping: vi.fn().mockResolvedValue(undefined),
     getState: vi.fn().mockResolvedValue(null),
   };
+  const llmModelService = overrides.llmModelService ?? {
+    getLlmModel: vi.fn().mockReturnValue({}),
+    getObservabilityMetadata: vi.fn().mockReturnValue({
+      ls_model_name: 'gpt-5.4-nano',
+      ls_provider: 'openai',
+    }),
+  };
 
   const service = new OnboardingConversationService(
     userRepo,
@@ -94,6 +102,7 @@ function makeService(
     agent,
     extractor,
     chatStateService,
+    llmModelService,
   );
 
   return {
@@ -104,6 +113,7 @@ function makeService(
     agent,
     extractor,
     chatStateService,
+    llmModelService,
   };
 }
 

@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { AgentContext } from 'src/modules/ai/agents/agent.state';
 import { OnboardingAssistantAgent } from 'src/modules/ai/agents/onboarding-assistant.agent';
 import { ExtractAiMessageService } from 'src/modules/ai/services/extract-ai-message.service';
+import { LlmModelService } from 'src/modules/ai/services/llm-model.service';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { Company } from 'src/modules/companies/entities/company.entity';
 import { UserCompany } from 'src/modules/companies/entities/user-company.entity';
@@ -20,6 +21,10 @@ import {
 } from '../utils/map-onboarding-state';
 import { buildOnboardingThreadId } from '../utils/build-onboarding-thread-id';
 import { ChatStateService } from 'src/modules/message-queue/services/chat-state.service';
+import {
+  buildLangWatchAttributes,
+  langWatchTracer,
+} from 'src/observability/langwatch';
 
 export interface RunOnboardingConversationInput {
   userId: string;
@@ -69,6 +74,7 @@ export class OnboardingConversationService {
     private readonly onboardingAssistantAgent: OnboardingAssistantAgent,
     private readonly extractAiMessageService: ExtractAiMessageService,
     private readonly chatStateService: ChatStateService,
+    private readonly llmModelService: LlmModelService,
   ) {}
 
   async run(
@@ -325,32 +331,71 @@ export class OnboardingConversationService {
     user: User;
     agentContext: AgentContext;
   }): Promise<string> {
-    const stream = await this.onboardingAssistantAgent.streamConversation(
-      params.prompt,
-      params.user,
-      params.agentContext,
-      params.threadId,
+    const modelName = this.llmModelService.getObservabilityMetadata(
+      this.llmModelService.getLlmModel('user-interaction'),
+    ).ls_model_name;
+
+    return langWatchTracer.withActiveSpan(
+      'onboarding.assistant.reply',
+      async (span) => {
+        span
+          .setType('llm')
+          .setRequestModel(modelName)
+          .setInput('chat_messages', [
+            {
+              role: 'user',
+              content: params.prompt,
+            },
+          ])
+          .setAttributes(
+            buildLangWatchAttributes({
+              companyId: params.agentContext.companyId,
+              instanceName: params.agentContext.instanceName,
+              operation: 'onboarding_assistant_reply',
+              threadId: params.threadId,
+              userId: params.user.id,
+            }),
+          );
+
+        const stream = await this.onboardingAssistantAgent.streamConversation(
+          params.prompt,
+          params.user,
+          params.agentContext,
+          params.threadId,
+        );
+
+        const messageParts: string[] = [];
+
+        for await (const chunk of stream) {
+          if (!chunk.assistant) {
+            continue;
+          }
+
+          const part = this.extractAiMessageService.extractFromChunkMessages(
+            chunk.assistant.messages,
+          );
+
+          if (!part.trim()) {
+            continue;
+          }
+
+          messageParts.push(part.trim());
+        }
+
+        const content = messageParts.join('\n').trim();
+
+        span
+          .setResponseModel(modelName)
+          .setOutput('chat_messages', [
+            {
+              role: 'assistant',
+              content,
+            },
+          ]);
+
+        return content;
+      },
     );
-
-    const messageParts: string[] = [];
-
-    for await (const chunk of stream) {
-      if (!chunk.assistant) {
-        continue;
-      }
-
-      const part = this.extractAiMessageService.extractFromChunkMessages(
-        chunk.assistant.messages,
-      );
-
-      if (!part.trim()) {
-        continue;
-      }
-
-      messageParts.push(part.trim());
-    }
-
-    return messageParts.join('\n').trim();
   }
 
   private buildAgentContext(user: User, company: Company): AgentContext {

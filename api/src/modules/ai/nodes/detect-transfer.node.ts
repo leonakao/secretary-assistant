@@ -5,7 +5,10 @@ import {
   LlmChatModel,
   type LlmModelObservabilityMetadata,
 } from '../services/llm-model.service';
-import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
+import {
+  buildLangWatchAttributes,
+  langWatchTracer,
+} from 'src/observability/langwatch';
 
 export const createDetectTransferNode =
   (model: LlmChatModel, llmMetadata: LlmModelObservabilityMetadata) =>
@@ -49,17 +52,36 @@ Somente direcione para o humano se você tiver certeza que o agente não vai con
     );
 
     const context = state.context;
-    const response = await modelWithStructuredOutput.invoke(
-      messages,
-      createLangWatchRunnableConfig(undefined, {
-        companyId: context.companyId,
-        contactId: context.contactId,
-        instanceName: context.instanceName,
-        ...llmMetadata,
-        operation: 'detect_transfer_node',
-        threadId: context.contactId ?? context.userId,
-        userId: context.userId,
-      }),
+    const response = await langWatchTracer.withActiveSpan(
+      'agent.detect_transfer',
+      async (span) => {
+        span
+          .setType('llm')
+          .setRequestModel(llmMetadata.ls_model_name)
+          .setInput('chat_messages', messages)
+          .setAttributes(
+            buildLangWatchAttributes({
+              companyId: context.companyId,
+              contactId: context.contactId,
+              instanceName: context.instanceName,
+              operation: 'detect_transfer_node',
+              userId: context.userId,
+            }),
+          );
+
+        const response = await modelWithStructuredOutput.invoke(messages);
+
+        span
+          .setResponseModel(llmMetadata.ls_model_name)
+          .setOutput(
+            'text',
+            response.needsHumanSupport
+              ? `Encaminhar para humano. Motivo: ${response.reason}`
+              : `Continuar com o agente. Motivo: ${response.reason}`,
+          );
+
+        return response;
+      },
     );
 
     const needsHumanSupport = response.needsHumanSupport;
