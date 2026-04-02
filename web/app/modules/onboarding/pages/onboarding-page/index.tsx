@@ -126,7 +126,7 @@ export function OnboardingPage() {
 
           {data.company && (
             <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-              <p className="text-xs text-white/40">Company</p>
+              <p className="text-xs text-white/40">Empresa</p>
               <p className="mt-0.5 text-sm font-medium text-white">{data.company.name}</p>
             </div>
           )}

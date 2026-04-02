@@ -92,7 +92,7 @@ export const OnboardingComposer = forwardRef<
                   : 'Conte ao assistente sobre o seu negócio...'
           }
           data-testid="onboarding-chat-input"
-          className="flex-1 resize-none bg-transparent py-1 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
+          className="flex-1 resize-none bg-transparent py-1 text-base text-foreground placeholder:text-muted-foreground focus:outline-none disabled:opacity-50 sm:text-sm"
         />
         <Button
           type="button"

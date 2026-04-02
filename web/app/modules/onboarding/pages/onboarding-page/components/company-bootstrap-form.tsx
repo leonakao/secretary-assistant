@@ -46,7 +46,7 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
           htmlFor="company-name"
           className="block text-sm font-medium text-foreground"
         >
-          Company name
+          Nome da empresa
         </label>
         <input
           id="company-name"
@@ -57,7 +57,7 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
           placeholder="Acme Ltda."
           disabled={isSubmitting}
           data-testid="company-bootstrap-name-input"
-          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 disabled:opacity-50"
+          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 disabled:opacity-50 sm:text-sm"
         />
       </div>
 
@@ -66,7 +66,7 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
           htmlFor="business-type"
           className="block text-sm font-medium text-foreground"
         >
-          Type of business
+          Tipo de negócio
         </label>
         <input
           id="business-type"
@@ -74,10 +74,10 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
           required
           value={businessType}
           onChange={(e) => setBusinessType(e.target.value)}
-          placeholder="e.g. Plumbing, Catering, Beauty salon"
+          placeholder="Ex.: Encanamento, buffet, salão de beleza"
           disabled={isSubmitting}
           data-testid="company-bootstrap-business-type-input"
-          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 disabled:opacity-50"
+          className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand/50 disabled:opacity-50 sm:text-sm"
         />
       </div>
 
@@ -97,10 +97,10 @@ export function CompanyBootstrapForm({ onSuccess }: CompanyBootstrapFormProps) {
         {isSubmitting ? (
           <>
             <LoaderCircle className="h-4 w-4 animate-spin" />
-            Setting up your company...
+            Configurando sua empresa...
           </>
         ) : (
-          'Continue'
+          'Continuar'
         )}
       </Button>
     </form>
