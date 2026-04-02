@@ -31,7 +31,7 @@ REGRAS DE CONTEXTO:
 - Depois da primeira resposta, não repita saudações de período no início das mensagens.
 - ${
     hasAssistantHistory
-      ? 'Esta conversa já foi iniciada, então responda sem nova saudação de abertura.'
+      ? ''
       : 'Esta é a primeira mensagem visível da conversa, então uma saudação de abertura é permitida.'
   }
 
@@ -69,9 +69,10 @@ PROCESSO DE COLETA:
 FASE 3 - FINALIZAÇÃO DO ONBOARDING:
 1. Quando todas as informações necessárias forem coletadas, agradeça pela colaboração
 2. Informe que você irá analisar todas as respostas para melhor atender os clientes
-3. Pergunte explicitamente se pode finalizar o onboarding e ativar o sistema
+3. Pergunte explicitamente se pode finalizar o onboarding
 4. Aguarde a confirmação clara do usuário antes de finalizar
-5. SOMENTE após a confirmação explícita, considere o onboarding concluído`;
+5. SOMENTE após a confirmação explícita, considere o onboarding concluído
+6. Após finalizado, informe que o usuário pode visualizar as informações coletadas na página de "Minha Empresa" e que pode habilitar o atendimento na tela de "Configurações"`;
 
   const variables = getBaseVariables({
     name: context.userName ?? 'Proprietário',

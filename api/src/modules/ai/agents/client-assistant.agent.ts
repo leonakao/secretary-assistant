@@ -28,6 +28,7 @@ import { createAssistantNode } from '../nodes/assistant.node';
 import { buildClientPromptFromState } from '../agent-prompts/assistant-client';
 import { ensureCheckpointerSetup } from './checkpointer-setup';
 import { LlmChatModel, LlmModelService } from '../services/llm-model.service';
+import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
 
 @Injectable()
 export class ClientAssistantAgent implements OnModuleInit {
@@ -141,12 +142,22 @@ export class ClientAssistantAgent implements OnModuleInit {
     context: AgentContext,
     threadId: string = 'default',
   ) {
-    const config = {
-      configurable: {
-        thread_id: threadId,
-        context,
+    const config = createLangWatchRunnableConfig(
+      {
+        configurable: {
+          thread_id: threadId,
+          context,
+        },
       },
-    };
+      {
+        companyId: context.companyId,
+        contactId: context.contactId,
+        instanceName: context.instanceName,
+        operation: 'client_assistant_graph_stream',
+        threadId,
+        userId: context.userId,
+      },
+    );
 
     return await this.graph.stream(
       {

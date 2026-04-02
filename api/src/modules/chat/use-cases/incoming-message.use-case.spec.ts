@@ -74,6 +74,11 @@ function makeUseCase(options?: {
   const memoryRepository = {
     findOne: vi.fn().mockResolvedValue(options?.memoryMessage ?? null),
   } as any;
+  const contactSessionService = {
+    resolveActiveSessionId: vi
+      .fn()
+      .mockResolvedValue('contact:contact-1:session:2026-04-02T00:00:00.000Z'),
+  } as any;
   const messageQueueService = {
     enqueueMessage: vi.fn().mockResolvedValue({ id: 'item-1' }),
   } as any;
@@ -82,12 +87,14 @@ function makeUseCase(options?: {
     contactRepository,
     userCompanyRepository,
     memoryRepository,
+    contactSessionService,
     messageQueueService,
     useCase: new IncomingMessageUseCase(
       contactRepository,
       userCompanyRepository,
       companyRepository,
       memoryRepository,
+      contactSessionService,
       messageQueueService,
     ),
   };

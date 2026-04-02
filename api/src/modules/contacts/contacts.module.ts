@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
-import { Memory } from '../chat/entities/memory.entity';
+import { ChatModule } from '../chat/chat.module';
 import { UserCompany } from '../companies/entities/user-company.entity';
 import { ContactsMeController } from './controllers/contacts-me.controller';
 import { Contact } from './entities/contact.entity';
@@ -11,8 +11,9 @@ import { UpdateManagedContactIgnoreUntilUseCase } from './use-cases/update-manag
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Contact, Memory, UserCompany]),
+    TypeOrmModule.forFeature([Contact, UserCompany]),
     AuthModule,
+    ChatModule,
   ],
   controllers: [ContactsMeController],
   providers: [

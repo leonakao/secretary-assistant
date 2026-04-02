@@ -11,6 +11,7 @@ import {
   MessageQueueChannel,
   type QueuedWhatsappRoute,
 } from '../../message-queue/entities/message-queue.entity';
+import { ContactSessionService } from '../services/contact-session.service';
 
 export interface IncomingMessageResult {
   success: true;
@@ -35,6 +36,7 @@ export class IncomingMessageUseCase {
     private readonly companyRepository: Repository<Company>,
     @InjectRepository(Memory)
     private readonly memoryRepository: Repository<Memory>,
+    private readonly contactSessionService: ContactSessionService,
     private readonly messageQueueService: MessageQueueService,
   ) {}
 
@@ -350,10 +352,15 @@ export class IncomingMessageUseCase {
     contact: Contact,
     messageText: string,
   ): Promise<void> {
+    const sessionId = await this.contactSessionService.resolveActiveSessionId({
+      companyId,
+      contactId: contact.id,
+    });
+
     const existingMessage = await this.memoryRepository.findOne({
       where: {
         companyId,
-        sessionId: contact.id,
+        sessionId,
         role: 'assistant',
         content: messageText,
       },

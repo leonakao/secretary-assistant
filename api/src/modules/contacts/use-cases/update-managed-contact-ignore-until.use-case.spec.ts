@@ -39,7 +39,7 @@ describe('UpdateManagedContactIgnoreUntilUseCase', () => {
     const useCase = new UpdateManagedContactIgnoreUntilUseCase(
       contactRepository,
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      { findOne: vi.fn().mockResolvedValue(null) } as any,
+      { findLatestMemoryForContact: vi.fn().mockResolvedValue(null) } as any,
     );
 
     const result = await useCase.execute(makeUser(), 'contact-1', {
@@ -62,7 +62,7 @@ describe('UpdateManagedContactIgnoreUntilUseCase', () => {
       contactRepository,
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
       {
-        findOne: vi.fn().mockResolvedValue({
+        findLatestMemoryForContact: vi.fn().mockResolvedValue({
           createdAt: new Date('2098-12-31T12:00:00.000Z'),
         }),
       } as any,
@@ -86,7 +86,7 @@ describe('UpdateManagedContactIgnoreUntilUseCase', () => {
         save: vi.fn(),
       } as any,
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      { findOne: vi.fn() } as any,
+      { findLatestMemoryForContact: vi.fn() } as any,
     );
 
     await expect(
@@ -103,7 +103,7 @@ describe('UpdateManagedContactIgnoreUntilUseCase', () => {
         save: vi.fn(),
       } as any,
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      { findOne: vi.fn() } as any,
+      { findLatestMemoryForContact: vi.fn() } as any,
     );
 
     await expect(

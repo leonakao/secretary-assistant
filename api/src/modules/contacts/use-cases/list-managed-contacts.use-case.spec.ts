@@ -39,22 +39,20 @@ describe('ListManagedContactsUseCase', () => {
     const userCompanyRepository = {
       findOne: vi.fn().mockResolvedValue(makeUserCompany()),
     } as any;
-    const memoryRepository = {
-      find: vi.fn().mockResolvedValue([
-        {
-          id: 'memory-1',
-          sessionId: 'whatsapp:company-1:+5511999999999',
-          companyId: 'company-1',
-          content: 'Última mensagem enviada pelo cliente',
-          createdAt: new Date('2026-03-20T09:00:00.000Z'),
-        },
-      ]),
+    const contactSessionService = {
+      findLatestMemoryForContact: vi.fn().mockResolvedValue({
+        id: 'memory-1',
+        sessionId: 'contact:contact-1:session:2026-03-20T09:00:00.000Z',
+        companyId: 'company-1',
+        content: 'Última mensagem enviada pelo cliente',
+        createdAt: new Date('2026-03-20T09:00:00.000Z'),
+      }),
     } as any;
 
     const useCase = new ListManagedContactsUseCase(
       contactRepository,
       userCompanyRepository,
-      memoryRepository,
+      contactSessionService,
     );
 
     const result = await useCase.execute(makeUser(), { page: 1, pageSize: 20 });
@@ -101,28 +99,37 @@ describe('ListManagedContactsUseCase', () => {
         }),
       ]),
     } as any;
-    const memoryRepository = {
-      find: vi.fn().mockResolvedValue([
-        {
-          id: 'memory-latest',
-          sessionId: 'whatsapp:company-1:+5511222222222',
-          companyId: 'company-1',
-          content: 'Mensagem mais recente',
-          createdAt: new Date('2026-04-05T12:00:00.000Z'),
-        },
-        {
-          id: 'memory-older',
-          sessionId: 'whatsapp:company-1:+5511111111111',
-          companyId: 'company-1',
-          content: 'Mensagem antiga',
-          createdAt: new Date('2026-04-01T12:00:00.000Z'),
-        },
-      ]),
+    const contactSessionService = {
+      findLatestMemoryForContact: vi.fn(async ({ contactId }: any) => {
+        if (contactId === 'contact-latest-interaction') {
+          return {
+            id: 'memory-latest',
+            sessionId:
+              'contact:contact-latest-interaction:session:2026-04-05T12:00:00.000Z',
+            companyId: 'company-1',
+            content: 'Mensagem mais recente',
+            createdAt: new Date('2026-04-05T12:00:00.000Z'),
+          };
+        }
+
+        if (contactId === 'contact-older-interaction') {
+          return {
+            id: 'memory-older',
+            sessionId:
+              'contact:contact-older-interaction:session:2026-04-01T12:00:00.000Z',
+            companyId: 'company-1',
+            content: 'Mensagem antiga',
+            createdAt: new Date('2026-04-01T12:00:00.000Z'),
+          };
+        }
+
+        return null;
+      }),
     } as any;
     const useCase = new ListManagedContactsUseCase(
       contactRepository,
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      memoryRepository,
+      contactSessionService,
     );
 
     const firstPage = await useCase.execute(makeUser(), {
@@ -169,7 +176,7 @@ describe('ListManagedContactsUseCase', () => {
     const useCase = new ListManagedContactsUseCase(
       contactRepository,
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      { find: vi.fn().mockResolvedValue([]) } as any,
+      { findLatestMemoryForContact: vi.fn().mockResolvedValue(null) } as any,
     );
 
     const result = await useCase.execute(makeUser(), { page: 1, pageSize: 20 });
@@ -192,7 +199,7 @@ describe('ListManagedContactsUseCase', () => {
     const useCase = new ListManagedContactsUseCase(
       contactRepository,
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      { find: vi.fn().mockResolvedValue([]) } as any,
+      { findLatestMemoryForContact: vi.fn().mockResolvedValue(null) } as any,
     );
 
     const result = await useCase.execute(makeUser(), { page: 1, pageSize: 20 });
@@ -204,7 +211,7 @@ describe('ListManagedContactsUseCase', () => {
     const useCase = new ListManagedContactsUseCase(
       { find: vi.fn() } as any,
       { findOne: vi.fn().mockResolvedValue(null) } as any,
-      { find: vi.fn() } as any,
+      { findLatestMemoryForContact: vi.fn() } as any,
     );
 
     await expect(
@@ -222,7 +229,7 @@ describe('ListManagedContactsUseCase', () => {
           .mockResolvedValueOnce(null)
           .mockResolvedValueOnce({ id: 'relation-employee', role: 'employee' }),
       } as any,
-      { find: vi.fn() } as any,
+      { findLatestMemoryForContact: vi.fn() } as any,
     );
 
     await expect(

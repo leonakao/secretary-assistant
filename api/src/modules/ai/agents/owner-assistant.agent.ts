@@ -21,6 +21,7 @@ import { createAssistantNode } from '../nodes/assistant.node';
 import { buildOwnerPromptFromState } from '../agent-prompts/assistant-owner';
 import { ensureCheckpointerSetup } from './checkpointer-setup';
 import { LlmChatModel, LlmModelService } from '../services/llm-model.service';
+import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
 
 @Injectable()
 export class OwnerAssistantAgent implements OnModuleInit {
@@ -112,12 +113,21 @@ export class OwnerAssistantAgent implements OnModuleInit {
     try {
       this.logger.log(`🚀 Executing agent for user ${user.name}: ${message}`);
 
-      const config = {
-        configurable: {
-          thread_id: threadId,
-          context,
+      const config = createLangWatchRunnableConfig(
+        {
+          configurable: {
+            thread_id: threadId,
+            context,
+          },
         },
-      };
+        {
+          companyId: context.companyId,
+          instanceName: context.instanceName,
+          operation: 'owner_assistant_graph_stream',
+          threadId,
+          userId: context.userId,
+        },
+      );
 
       this.logger.log('📡 Starting stream...');
       this.logger.log(

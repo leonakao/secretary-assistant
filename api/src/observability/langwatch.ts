@@ -8,7 +8,7 @@ import {
 
 const SERVICE_NAME = 'secretary-assistant-api';
 
-type LangWatchMetadata = {
+export type LangWatchMetadata = {
   companyId?: string;
   contactId?: string;
   instanceName?: string;

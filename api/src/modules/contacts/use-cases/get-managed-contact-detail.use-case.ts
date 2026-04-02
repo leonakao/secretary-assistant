@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import type { User } from 'src/modules/users/entities/user.entity';
 import { UserCompany } from 'src/modules/companies/entities/user-company.entity';
 import { findManagedUserCompany } from 'src/modules/companies/utils/find-managed-user-company';
+import { ContactSessionService } from 'src/modules/chat/services/contact-session.service';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { Contact } from '../entities/contact.entity';
 import type { ManagedContactDetailResponse } from './contacts-management.types';
@@ -17,8 +18,7 @@ export class GetManagedContactDetailUseCase {
     private readonly contactRepository: Repository<Contact>,
     @InjectRepository(UserCompany)
     private readonly userCompanyRepository: Repository<UserCompany>,
-    @InjectRepository(Memory)
-    private readonly memoryRepository: Repository<Memory>,
+    private readonly contactSessionService: ContactSessionService,
   ) {}
 
   async execute(
@@ -47,7 +47,7 @@ export class GetManagedContactDetailUseCase {
 
     const { memories, hasMore } = await this.findConversationMemories(
       userCompany.companyId,
-      contact.phone,
+      contact.id,
     );
 
     const lastInteractionAt =
@@ -81,19 +81,12 @@ export class GetManagedContactDetailUseCase {
 
   private async findConversationMemories(
     companyId: string,
-    phone: string | null,
+    contactId: string,
   ): Promise<{ memories: Memory[]; hasMore: boolean }> {
-    if (!phone) {
-      return { memories: [], hasMore: false };
-    }
-
-    const memories = await this.memoryRepository.find({
-      where: {
-        companyId,
-        sessionId: `whatsapp:${companyId}:${phone}`,
-      },
-      order: { createdAt: 'DESC' },
-      take: DETAIL_MESSAGE_LIMIT + 1,
+    const memories = await this.contactSessionService.findConversationMemories({
+      companyId,
+      contactId,
+      limit: DETAIL_MESSAGE_LIMIT + 1,
     });
 
     const hasMore = memories.length > DETAIL_MESSAGE_LIMIT;

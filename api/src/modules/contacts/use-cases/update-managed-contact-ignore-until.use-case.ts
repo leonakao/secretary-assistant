@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Memory } from 'src/modules/chat/entities/memory.entity';
+import { ContactSessionService } from 'src/modules/chat/services/contact-session.service';
 import { UserCompany } from 'src/modules/companies/entities/user-company.entity';
 import { findManagedUserCompany } from 'src/modules/companies/utils/find-managed-user-company';
 import type { User } from 'src/modules/users/entities/user.entity';
@@ -20,8 +20,7 @@ export class UpdateManagedContactIgnoreUntilUseCase {
     private readonly contactRepository: Repository<Contact>,
     @InjectRepository(UserCompany)
     private readonly userCompanyRepository: Repository<UserCompany>,
-    @InjectRepository(Memory)
-    private readonly memoryRepository: Repository<Memory>,
+    private readonly contactSessionService: ContactSessionService,
   ) {}
 
   async execute(
@@ -68,7 +67,7 @@ export class UpdateManagedContactIgnoreUntilUseCase {
         ),
         lastInteractionAt: await this.findLastInteractionAt(
           userCompany.companyId,
-          updatedContact.phone,
+          updatedContact.id,
         ),
         preferredUserId: updatedContact.preferredUserId ?? null,
       },
@@ -95,21 +94,13 @@ export class UpdateManagedContactIgnoreUntilUseCase {
 
   private async findLastInteractionAt(
     companyId: string,
-    phone: string | null,
+    contactId: string,
   ): Promise<Date | null> {
-    if (!phone) {
-      return null;
-    }
-
-    const latestMemory = await this.memoryRepository.findOne({
-      where: {
+    const latestMemory =
+      await this.contactSessionService.findLatestMemoryForContact({
         companyId,
-        sessionId: `whatsapp:${companyId}:${phone}`,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+        contactId,
+      });
 
     return latestMemory?.createdAt ?? null;
   }

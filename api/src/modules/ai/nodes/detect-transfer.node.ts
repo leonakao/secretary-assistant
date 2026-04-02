@@ -1,4 +1,5 @@
 import { AgentState } from '../agents/agent.state';
+import { RunnableConfig } from '@langchain/core/runnables';
 import z from 'zod';
 import { Command } from '@langchain/langgraph';
 import {
@@ -7,12 +8,13 @@ import {
 } from '../services/llm-model.service';
 import {
   buildLangWatchAttributes,
+  createLangWatchRunnableConfig,
   langWatchTracer,
 } from 'src/observability/langwatch';
 
 export const createDetectTransferNode =
   (model: LlmChatModel, llmMetadata: LlmModelObservabilityMetadata) =>
-  async (state: typeof AgentState.State) => {
+  async (state: typeof AgentState.State, config?: RunnableConfig) => {
     const systemMessage = `Você é um analisador de mensagens. Sua única tarefa é determinar se o usuário está solicitando falar com um humano ou suporte humano.
 
 Exemplos de solicitações de humano:
@@ -69,7 +71,18 @@ Somente direcione para o humano se você tiver certeza que o agente não vai con
             }),
           );
 
-        const response = await modelWithStructuredOutput.invoke(messages);
+        const response = await modelWithStructuredOutput.invoke(
+          messages,
+          createLangWatchRunnableConfig(config, {
+            ...llmMetadata,
+            companyId: context.companyId,
+            contactId: context.contactId,
+            instanceName: context.instanceName,
+            operation: 'detect_transfer_model_invoke',
+            threadId: context.contactId ?? context.userId,
+            userId: context.userId,
+          }),
+        );
 
         span
           .setResponseModel(llmMetadata.ls_model_name)

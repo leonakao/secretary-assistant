@@ -19,6 +19,22 @@ function makeUserCompany() {
 
 describe('GetManagedContactDetailUseCase', () => {
   it('returns the selected contact with chronological conversation history', async () => {
+    const contactSessionService = {
+      findConversationMemories: vi.fn().mockResolvedValue([
+        {
+          id: 'memory-2',
+          role: 'assistant',
+          content: 'Olá, em que posso ajudar?',
+          createdAt: new Date('2026-03-21T10:05:00.000Z'),
+        },
+        {
+          id: 'memory-1',
+          role: 'user',
+          content: 'Preciso de um orçamento',
+          createdAt: new Date('2026-03-21T10:00:00.000Z'),
+        },
+      ]),
+    } as any;
     const useCase = new GetManagedContactDetailUseCase(
       {
         findOne: vi.fn().mockResolvedValue({
@@ -33,22 +49,7 @@ describe('GetManagedContactDetailUseCase', () => {
         }),
       } as any,
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      {
-        find: vi.fn().mockResolvedValue([
-          {
-            id: 'memory-2',
-            role: 'assistant',
-            content: 'Olá, em que posso ajudar?',
-            createdAt: new Date('2026-03-21T10:05:00.000Z'),
-          },
-          {
-            id: 'memory-1',
-            role: 'user',
-            content: 'Preciso de um orçamento',
-            createdAt: new Date('2026-03-21T10:00:00.000Z'),
-          },
-        ]),
-      } as any,
+      contactSessionService,
     );
 
     const result = await useCase.execute(makeUser(), 'contact-1');
@@ -62,6 +63,9 @@ describe('GetManagedContactDetailUseCase', () => {
   });
 
   it('returns empty history when the contact has no phone', async () => {
+    const contactSessionService = {
+      findConversationMemories: vi.fn().mockResolvedValue([]),
+    } as any;
     const useCase = new GetManagedContactDetailUseCase(
       {
         findOne: vi.fn().mockResolvedValue({
@@ -76,7 +80,7 @@ describe('GetManagedContactDetailUseCase', () => {
         }),
       } as any,
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      { find: vi.fn() } as any,
+      contactSessionService,
     );
 
     const result = await useCase.execute(makeUser(), 'contact-1');
@@ -89,7 +93,7 @@ describe('GetManagedContactDetailUseCase', () => {
     const useCase = new GetManagedContactDetailUseCase(
       { findOne: vi.fn().mockResolvedValue(null) } as any,
       { findOne: vi.fn().mockResolvedValue(makeUserCompany()) } as any,
-      { find: vi.fn() } as any,
+      { findConversationMemories: vi.fn() } as any,
     );
 
     await expect(

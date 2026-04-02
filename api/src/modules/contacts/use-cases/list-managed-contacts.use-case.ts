@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import type { User } from 'src/modules/users/entities/user.entity';
 import { UserCompany } from 'src/modules/companies/entities/user-company.entity';
 import { findManagedUserCompany } from 'src/modules/companies/utils/find-managed-user-company';
+import { ContactSessionService } from 'src/modules/chat/services/contact-session.service';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { Contact } from '../entities/contact.entity';
 import type {
@@ -23,8 +24,7 @@ export class ListManagedContactsUseCase {
     private readonly contactRepository: Repository<Contact>,
     @InjectRepository(UserCompany)
     private readonly userCompanyRepository: Repository<UserCompany>,
-    @InjectRepository(Memory)
-    private readonly memoryRepository: Repository<Memory>,
+    private readonly contactSessionService: ContactSessionService,
   ) {}
 
   async execute(
@@ -106,40 +106,23 @@ export class ListManagedContactsUseCase {
     companyId: string,
     contacts: Contact[],
   ): Promise<Map<string, Memory>> {
-    const contactIdsBySessionId = new Map<string, string>();
-
-    for (const contact of contacts) {
-      if (!contact.phone) {
-        continue;
-      }
-
-      contactIdsBySessionId.set(
-        `whatsapp:${companyId}:${contact.phone}`,
-        contact.id,
-      );
-    }
-
-    if (contactIdsBySessionId.size === 0) {
-      return new Map();
-    }
-
-    const memories = await this.memoryRepository.find({
-      where: {
-        companyId,
-        sessionId: In([...contactIdsBySessionId.keys()]),
-      },
-      order: { createdAt: 'DESC' },
-    });
-
     const latestMemoryByContactId = new Map<string, Memory>();
+    const latestMemories = await Promise.all(
+      contacts.map(async (contact) => {
+        const latestMemory =
+          await this.contactSessionService.findLatestMemoryForContact({
+            companyId,
+            contactId: contact.id,
+          });
 
-    for (const memory of memories) {
-      const contactId = contactIdsBySessionId.get(memory.sessionId);
-      if (!contactId || latestMemoryByContactId.has(contactId)) {
-        continue;
+        return [contact.id, latestMemory] as const;
+      }),
+    );
+
+    for (const [contactId, memory] of latestMemories) {
+      if (memory) {
+        latestMemoryByContactId.set(contactId, memory);
       }
-
-      latestMemoryByContactId.set(contactId, memory);
     }
 
     return latestMemoryByContactId;

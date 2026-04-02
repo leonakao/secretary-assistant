@@ -1,10 +1,11 @@
 import { StructuredTool } from '@langchain/core/tools';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { z } from 'zod';
 import { Memory } from 'src/modules/chat/entities/memory.entity';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
+import { buildContactSessionPrefix } from 'src/modules/chat/services/contact-session.service';
 import { AgentState } from '../agents/agent.state';
 
 const searchConversationSchema = z.object({
@@ -55,7 +56,7 @@ export class SearchConversationTool extends StructuredTool {
       throw new Error('Company ID missing in the context');
     }
 
-    let sessionId: string | undefined;
+    let contactId: string | undefined;
 
     // Find contact if name or phone provided
     if (contactName || contactPhone) {
@@ -89,7 +90,7 @@ export class SearchConversationTool extends StructuredTool {
         return JSON.stringify(result, null, 2);
       }
 
-      sessionId = matchingContacts[0].id;
+      contactId = matchingContacts[0].id;
     }
 
     const daysAgo = new Date();
@@ -101,8 +102,14 @@ export class SearchConversationTool extends StructuredTool {
       .orderBy('memory.createdAt', 'DESC')
       .take(10);
 
-    if (sessionId) {
-      queryBuilder.andWhere('memory.sessionId = :sessionId', { sessionId });
+    if (contactId) {
+      queryBuilder.andWhere(
+        new Brackets((qb) => {
+          qb.where('memory.sessionId LIKE :sessionPrefix', {
+            sessionPrefix: `${buildContactSessionPrefix(contactId)}%`,
+          });
+        }),
+      );
     }
 
     if (query) {

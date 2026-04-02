@@ -1,9 +1,11 @@
 import { StructuredTool } from '@langchain/core/tools';
 import { AIMessage, ToolMessage } from '@langchain/core/messages';
+import { RunnableConfig } from '@langchain/core/runnables';
 import { Command } from '@langchain/langgraph';
 import { AgentState } from '../agents/agent.state';
 import {
   buildLangWatchAttributes,
+  createLangWatchRunnableConfig,
   langWatchTracer,
 } from 'src/observability/langwatch';
 
@@ -32,7 +34,7 @@ export const createToolNode = (tools: StructuredTool[]) => {
     {} as Record<string, StructuredTool>,
   );
 
-  return async (state: typeof AgentState.State) => {
+  return async (state: typeof AgentState.State, config?: RunnableConfig) => {
     const toolCalls =
       (state.messages[state.messages.length - 1] as AIMessage).tool_calls || [];
 
@@ -65,7 +67,27 @@ export const createToolNode = (tools: StructuredTool[]) => {
                   }),
                 );
 
-              const result = await tool.invoke(toolCall.args, state);
+              const result = await tool.invoke(
+                toolCall.args,
+                createLangWatchRunnableConfig(
+                  {
+                    ...(state as RunnableConfig),
+                    ...config,
+                    configurable: {
+                      ...(config?.configurable ?? {}),
+                      context: state.context,
+                    },
+                  },
+                  {
+                    companyId: state.context.companyId,
+                    contactId: state.context.contactId,
+                    instanceName: state.context.instanceName,
+                    operation: `tool_${toolCall.name}_invoke`,
+                    threadId: state.context.contactId ?? state.context.userId,
+                    userId: state.context.userId,
+                  },
+                ),
+              );
 
               span.setOutput('text', normalizeToolResult(result));
 

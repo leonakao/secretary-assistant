@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { Contact } from 'src/modules/contacts/entities/contact.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { ChatService } from 'src/modules/chat/services/chat.service';
+import { ContactSessionService } from 'src/modules/chat/services/contact-session.service';
 import { AgentState } from '../agents/agent.state';
 
 const sendMessageSchema = z.object({
@@ -29,6 +30,7 @@ export class SendMessageTool extends StructuredTool {
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly chatService: ChatService,
+    private readonly contactSessionService: ContactSessionService,
   ) {
     super();
   }
@@ -61,9 +63,16 @@ export class SendMessageTool extends StructuredTool {
     }
 
     const remoteJid = this.buildRemoteJid(recipient.phone);
+    const sessionId =
+      recipientType === 'contact'
+        ? await this.contactSessionService.resolveActiveSessionId({
+            companyId,
+            contactId: recipient.id,
+          })
+        : recipient.id;
 
     await this.chatService.sendMessageAndSaveToMemory({
-      sessionId: recipient.id,
+      sessionId,
       companyId,
       instanceName,
       remoteJid,

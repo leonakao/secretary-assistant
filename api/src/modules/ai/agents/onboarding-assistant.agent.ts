@@ -13,6 +13,7 @@ import { createAssistantNode } from '../nodes/assistant.node';
 import { buildOnboardingPromptFromState } from '../agent-prompts/assistant-onboarding';
 import { ensureCheckpointerSetup } from './checkpointer-setup';
 import { LlmChatModel, LlmModelService } from '../services/llm-model.service';
+import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
 
 @Injectable()
 export class OnboardingAssistantAgent implements OnModuleInit {
@@ -91,12 +92,21 @@ export class OnboardingAssistantAgent implements OnModuleInit {
       `Executing onboarding assistant for user ${user.name}: ${message}`,
     );
 
-    const config = {
-      configurable: {
-        thread_id: threadId,
-        context,
+    const config = createLangWatchRunnableConfig(
+      {
+        configurable: {
+          thread_id: threadId,
+          context,
+        },
       },
-    };
+      {
+        companyId: context.companyId,
+        instanceName: context.instanceName,
+        operation: 'onboarding_assistant_graph_stream',
+        threadId,
+        userId: context.userId,
+      },
+    );
 
     return await this.graph.stream(
       {

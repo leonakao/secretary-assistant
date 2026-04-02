@@ -13,6 +13,7 @@ import { ChatService } from '../services/chat.service';
 import { ExtractAiMessageService } from '../../ai/services/extract-ai-message.service';
 import { AgentContext } from 'src/modules/ai/agents/agent.state';
 import { FindPendingConfirmationsService } from 'src/modules/service-requests/services/find-pending-confirmations.service';
+import { ContactSessionService } from '../services/contact-session.service';
 
 @Injectable()
 export class ClientConversationStrategy implements ConversationStrategy {
@@ -26,6 +27,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
     private readonly companyRepository: Repository<Company>,
     private readonly configService: ConfigService,
     private readonly chatService: ChatService,
+    private readonly contactSessionService: ContactSessionService,
     private readonly clientAssistantAgent: ClientAssistantAgent,
     private readonly extractAiMessageService: ExtractAiMessageService,
     private readonly findPendingConfirmations: FindPendingConfirmationsService,
@@ -54,8 +56,13 @@ export class ClientConversationStrategy implements ConversationStrategy {
       id: params.companyId,
     });
 
+    const sessionId = await this.contactSessionService.resolveActiveSessionId({
+      companyId: params.companyId,
+      contactId: params.contactId,
+    });
+
     await this.chatService.addMessageToMemory({
-      sessionId: params.contactId,
+      sessionId,
       companyId: params.companyId,
       role: 'user',
       content: params.message,
@@ -65,7 +72,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
       const message = this.buildDeterministicReply(contact, company, params);
 
       await this.chatService.addMessageToMemory({
-        sessionId: params.contactId,
+        sessionId,
         companyId: params.companyId,
         role: 'assistant',
         content: message,
@@ -102,7 +109,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
     const stream = await this.clientAssistantAgent.streamConversation(
       params.message,
       agentContext,
-      params.contactId,
+      sessionId,
     );
 
     for await (const chunk of stream) {
@@ -138,7 +145,7 @@ export class ClientConversationStrategy implements ConversationStrategy {
     }
 
     await this.chatService.sendMessageAndSaveToMemory({
-      sessionId: params.contactId,
+      sessionId,
       companyId: params.companyId,
       instanceName: params.instanceName,
       remoteJid: params.remoteJid,

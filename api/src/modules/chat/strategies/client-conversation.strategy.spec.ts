@@ -100,6 +100,11 @@ function makeStrategy(options?: {
     sendMessageAndSaveToMemory: vi.fn().mockResolvedValue(undefined),
     sendPresenceNotification: vi.fn().mockResolvedValue(undefined),
   } as any;
+  const contactSessionService = {
+    resolveActiveSessionId: vi
+      .fn()
+      .mockResolvedValue('contact:contact-1:session:2026-04-02T00:00:00.000Z'),
+  } as any;
   const clientAssistantAgent = {
     streamConversation: vi
       .fn()
@@ -125,6 +130,7 @@ function makeStrategy(options?: {
 
   return {
     chatService,
+    contactSessionService,
     clientAssistantAgent,
     findPendingConfirmations,
     strategy: new ClientConversationStrategy(
@@ -135,6 +141,7 @@ function makeStrategy(options?: {
         nodeEnv: options?.nodeEnv,
       }),
       chatService,
+      contactSessionService,
       clientAssistantAgent,
       extractAiMessageService,
       findPendingConfirmations,
@@ -147,6 +154,7 @@ describe('ClientConversationStrategy', () => {
     const {
       strategy,
       chatService,
+      contactSessionService,
       clientAssistantAgent,
       findPendingConfirmations,
     } = makeStrategy({
@@ -164,6 +172,10 @@ describe('ClientConversationStrategy', () => {
     expect(result).toEqual({
       message:
         'Oi, Cliente! Recebi sua mensagem para Settings E2E Co.: "Oi, preciso de ajuda".',
+    });
+    expect(contactSessionService.resolveActiveSessionId).toHaveBeenCalledWith({
+      companyId: 'company-1',
+      contactId: 'contact-1',
     });
     expect(chatService.addMessageToMemory).toHaveBeenCalledTimes(2);
     expect(chatService.sendPresenceNotification).not.toHaveBeenCalled();
@@ -199,7 +211,7 @@ describe('ClientConversationStrategy', () => {
     expect(clientAssistantAgent.streamConversation).toHaveBeenCalledOnce();
     expect(chatService.sendPresenceNotification).toHaveBeenCalled();
     expect(chatService.sendMessageAndSaveToMemory).toHaveBeenCalledWith({
-      sessionId: 'contact-1',
+      sessionId: 'contact:contact-1:session:2026-04-02T00:00:00.000Z',
       companyId: 'company-1',
       instanceName: 'instance-1',
       remoteJid: '5511999999999@s.whatsapp.net',

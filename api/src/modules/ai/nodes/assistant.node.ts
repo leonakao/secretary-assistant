@@ -1,7 +1,8 @@
-import { Runnable } from '@langchain/core/runnables';
+import { Runnable, RunnableConfig } from '@langchain/core/runnables';
 import { AgentState } from '../agents/agent.state';
 import {
   buildLangWatchAttributes,
+  createLangWatchRunnableConfig,
   langWatchTracer,
 } from 'src/observability/langwatch';
 import type { LlmModelObservabilityMetadata } from '../services/llm-model.service';
@@ -92,7 +93,7 @@ export const createAssistantNode =
     buildPromptFromState: BuildPromptFromState,
     llmMetadata: LlmModelObservabilityMetadata,
   ) =>
-  async (state: typeof AgentState.State) => {
+  async (state: typeof AgentState.State, config?: RunnableConfig) => {
     const systemMessage = buildPromptFromState(state);
     const messages = [
       { role: 'system', content: systemMessage },
@@ -125,11 +126,27 @@ export const createAssistantNode =
             }),
           );
 
-        const response = await modelWithTools.invoke(messages, {
-          configurable: {
-            context,
-          },
-        });
+        const response = await modelWithTools.invoke(
+          messages,
+          createLangWatchRunnableConfig(
+            {
+              ...config,
+              configurable: {
+                ...(config?.configurable ?? {}),
+                context,
+              },
+            },
+            {
+              ...llmMetadata,
+              companyId: context.companyId,
+              contactId: context.contactId,
+              instanceName: context.instanceName,
+              operation: 'agent_assistant_model_invoke',
+              threadId: context.contactId ?? context.userId,
+              userId: context.userId,
+            },
+          ),
+        );
         const responseContent = normalizeMessageContent(response.content);
         const toolCalls = getToolCalls(response);
         const assistantOutput =
