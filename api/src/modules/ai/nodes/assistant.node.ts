@@ -1,4 +1,5 @@
 import { Runnable } from '@langchain/core/runnables';
+import { AIMessage } from '@langchain/core/messages';
 import { AgentState } from '../agents/agent.state';
 import {
   buildLangWatchAttributes,
@@ -7,6 +8,12 @@ import {
 import type { LlmModelObservabilityMetadata } from '../services/llm-model.service';
 
 export type BuildPromptFromState = (state: typeof AgentState.State) => string;
+
+type ToolCallLike = {
+  id?: string;
+  name?: string;
+  args?: unknown;
+};
 
 function normalizeMessageContent(content: unknown): string {
   if (typeof content === 'string') {
@@ -52,6 +59,19 @@ function getMessageRole(message: { role?: string; type?: string }): string {
   }
 }
 
+function getToolCalls(message: unknown): ToolCallLike[] {
+  if (
+    message &&
+    typeof message === 'object' &&
+    'tool_calls' in message &&
+    Array.isArray(message.tool_calls)
+  ) {
+    return message.tool_calls as ToolCallLike[];
+  }
+
+  return [];
+}
+
 export const createAssistantNode =
   (
     modelWithTools: Runnable,
@@ -95,17 +115,34 @@ export const createAssistantNode =
           },
         });
         const responseContent = normalizeMessageContent(response.content);
+        const toolCalls = getToolCalls(response);
+        const assistantOutput =
+          responseContent ||
+          (toolCalls.length > 0
+            ? `[assistant requested ${toolCalls.length} tool call(s)]`
+            : '[resposta sem texto visível; verifique tool calls associados]');
 
         span
           .setResponseModel(llmMetadata.ls_model_name)
           .setOutput('chat_messages', [
             {
               role: 'assistant',
-              content:
-                responseContent ||
-                '[resposta sem texto visível; verifique tool calls associados]',
+              content: assistantOutput,
             },
           ]);
+
+        if (toolCalls.length > 0) {
+          span.setOutput({
+            assistant: {
+              content: assistantOutput,
+              tool_calls: toolCalls.map((toolCall) => ({
+                id: toolCall.id,
+                name: toolCall.name,
+                args: toolCall.args,
+              })),
+            },
+          });
+        }
 
         return response;
       },

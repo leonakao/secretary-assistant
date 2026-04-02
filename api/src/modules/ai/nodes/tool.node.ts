@@ -2,6 +2,26 @@ import { StructuredTool } from '@langchain/core/tools';
 import { AIMessage, ToolMessage } from '@langchain/core/messages';
 import { Command } from '@langchain/langgraph';
 import { AgentState } from '../agents/agent.state';
+import {
+  buildLangWatchAttributes,
+  langWatchTracer,
+} from 'src/observability/langwatch';
+
+function normalizeToolResult(result: unknown): string {
+  if (typeof result === 'string') {
+    return result;
+  }
+
+  if (result instanceof Command) {
+    return JSON.stringify({
+      goto: result.goto,
+      result: (result as any).result,
+      update: result.update,
+    });
+  }
+
+  return JSON.stringify(result);
+}
 
 export const createToolNode = (tools: StructuredTool[]) => {
   const toolByName = tools.reduce(
@@ -28,11 +48,30 @@ export const createToolNode = (tools: StructuredTool[]) => {
         }
 
         try {
-          console.log(`🔧 [TOOL] Executing tool:`, toolCall.name);
-          console.log(`🔧 [TOOL] Args: ${JSON.stringify(toolCall.args)}`);
-          const result = await tool.invoke(toolCall.args, state);
+          const result = await langWatchTracer.withActiveSpan(
+            `tool.${toolCall.name}`,
+            async (span) => {
+              span
+                .setType('tool')
+                .setInput('json', toolCall.args)
+                .setAttributes(
+                  buildLangWatchAttributes({
+                    companyId: state.context.companyId,
+                    contactId: state.context.contactId,
+                    instanceName: state.context.instanceName,
+                    operation: `tool_${toolCall.name}`,
+                    threadId: state.context.contactId ?? state.context.userId,
+                    userId: state.context.userId,
+                  }),
+                );
 
-          console.log(`🔧 [TOOL] Result: ${JSON.stringify(result)}`);
+              const result = await tool.invoke(toolCall.args, state);
+
+              span.setOutput('text', normalizeToolResult(result));
+
+              return result;
+            },
+          );
 
           const content =
             result instanceof Command
