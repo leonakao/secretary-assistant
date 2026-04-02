@@ -11,8 +11,19 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const port = Number(process.env.PORT?.trim() || '3000');
   const requestBodyLimit = process.env.REQUEST_BODY_LIMIT?.trim() || '25mb';
+  const allowedOrigins = (
+    process.env.CORS_ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:5173']
+  )
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
   app.enableShutdownHooks();
+  app.enableCors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+  });
 
   app.useBodyParser('json', { limit: requestBodyLimit });
   app.useBodyParser('urlencoded', {
