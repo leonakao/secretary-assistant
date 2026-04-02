@@ -29,7 +29,7 @@ ${context.confirmations?.map((confirmation) => `ID: ${confirmation.id}, UserId: 
 
   return buildPrompt({
     persona: getClientPersona(),
-    context: '',
+    context: context.companyDescription?.trim() ?? '',
     instructions,
     variables: getBaseVariables({
       name: context.contactName ?? 'Cliente',
