@@ -33,7 +33,7 @@ projects:
             branch: main
             rootDir: web
             buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
-            publishPath: build/client
+            staticPublishPath: build/client
             routes:
               - type: rewrite
                 source: /*
