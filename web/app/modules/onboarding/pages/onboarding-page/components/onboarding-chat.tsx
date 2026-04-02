@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
+import { Button } from '~/components/ui/button';
 import { useApiClient } from '~/lib/api-client-context';
 import {
   getOnboardingMessages,
@@ -22,7 +23,6 @@ interface OnboardingChatProps {
   onComplete: () => void;
 }
 
-const COMPLETION_REDIRECT_DELAY_MS = 3000;
 let conversationBootstrapPromise: Promise<OnboardingConversation | null> | null = null;
 
 function loadConversationOnce(client: ReturnType<typeof useApiClient>) {
@@ -58,7 +58,6 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const initializeAttemptedRef = useRef(false);
-  const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAssistantCountRef = useRef<number>(0);
   const pendingUserMessageIdRef = useRef<string | null>(null);
   const lastSentTextRef = useRef<string>('');
@@ -70,7 +69,7 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
     composerState === 'sending-text' ||
     composerState === 'awaiting-reply' ||
     composerState === 'sending-audio' ||
-    composerState === 'completing';
+    composerState === 'completed';
   const isInputDisabled = isBusy || composerState === 'recording-audio';
   const transcriptItems = useMemo<TranscriptItem[]>(() => {
     const baseItems: TranscriptItem[] = [...messages];
@@ -117,14 +116,6 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
   };
 
   useEffect(() => {
-    return () => {
-      if (completionTimeoutRef.current) {
-        clearTimeout(completionTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     let isCancelled = false;
 
     const loadConversation = async () => {
@@ -140,11 +131,18 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
 
         const nextMessages = conversation?.messages ?? [];
         const nextIsInitialized = conversation?.isInitialized ?? false;
+        const nextStep = conversation?.onboarding.step;
 
         setMessages(nextMessages);
         setIsConversationInitialized(nextIsInitialized);
         setHasLoadedConversation(true);
-        setComposerState(nextIsInitialized ? 'idle' : 'initializing');
+        setComposerState(
+          nextStep === 'complete'
+            ? 'completed'
+            : nextIsInitialized
+              ? 'idle'
+              : 'initializing',
+        );
       } catch (cause) {
         if (isCancelled) {
           return;
@@ -214,10 +212,11 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
       }
 
       setIsConversationInitialized(true);
-      setComposerState('idle');
-      focusComposer();
-
       handleOnboardingStepChange(response.onboarding.step);
+      if (response.onboarding.step !== 'complete') {
+        setComposerState('idle');
+        focusComposer();
+      }
     } catch (cause) {
       setComposerState('idle');
       setError(
@@ -249,14 +248,13 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
       return;
     }
 
-    setComposerState('completing');
+    setComposerState('completed');
     setError(null);
-    completionTimeoutRef.current = setTimeout(() => {
-      onComplete();
-    }, COMPLETION_REDIRECT_DELAY_MS);
   };
 
   const handlePollResponse = useCallback((conversation: OnboardingConversation) => {
+    setMessages(conversation.messages);
+
     if (
       pendingUserMessageIdRef.current !== null &&
       conversation.messages.some(
@@ -270,8 +268,10 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
   const handlePollSuccess = useCallback(
     (conversation: OnboardingConversation) => {
       setMessages(conversation.messages);
-      setComposerState('idle');
       handleOnboardingStepChange(conversation.onboarding.step);
+      if (conversation.onboarding.step !== 'complete') {
+        setComposerState('idle');
+      }
       focusComposer();
     },
     [handleOnboardingStepChange],
@@ -494,25 +494,48 @@ export function OnboardingChat({ onComplete }: OnboardingChatProps) {
             />
           ) : null}
 
-          <OnboardingComposer
-            ref={textareaRef}
-            draftText={draftText}
-            composerState={composerState}
-            isBusy={isBusy}
-            isInputDisabled={isInputDisabled}
-            recordingDurationMs={recordingDurationMs}
-            onDraftTextChange={setDraftText}
-            onKeyDown={handleKeyDown}
-            onStartRecording={() => {
-              void handleStartRecording();
-            }}
-            onStopRecording={handleStopRecording}
-            onRecordingButtonKeyDown={handleRecordingButtonKeyDown}
-            onRecordingButtonKeyUp={handleRecordingButtonKeyUp}
-            onSendText={() => {
-              void handleTextSend();
-            }}
-          />
+          {composerState === 'completed' ? (
+            <div className="rounded-2xl border border-brand/20 bg-brand/5 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">
+                    Onboarding concluído.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Sua secretária já está configurada. Quando quiser, entre na área principal para continuar.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  onClick={onComplete}
+                  className="w-full sm:w-auto"
+                  data-testid="onboarding-completion-cta"
+                >
+                  Ir para a home
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <OnboardingComposer
+              ref={textareaRef}
+              draftText={draftText}
+              composerState={composerState}
+              isBusy={isBusy}
+              isInputDisabled={isInputDisabled}
+              recordingDurationMs={recordingDurationMs}
+              onDraftTextChange={setDraftText}
+              onKeyDown={handleKeyDown}
+              onStartRecording={() => {
+                void handleStartRecording();
+              }}
+              onStopRecording={handleStopRecording}
+              onRecordingButtonKeyDown={handleRecordingButtonKeyDown}
+              onRecordingButtonKeyUp={handleRecordingButtonKeyUp}
+              onSendText={() => {
+                void handleTextSend();
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

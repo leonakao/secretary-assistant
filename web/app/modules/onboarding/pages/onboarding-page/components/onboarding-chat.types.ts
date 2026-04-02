@@ -9,7 +9,7 @@ export type ComposerState =
   | 'recording-audio'
   | 'audio-preview'
   | 'sending-audio'
-  | 'completing';
+  | 'completed';
 
 export type PendingTranscriptItem =
   | { id: string; kind: 'assistant-initializing' }

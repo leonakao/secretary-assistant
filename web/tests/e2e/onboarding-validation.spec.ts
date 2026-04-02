@@ -28,7 +28,7 @@ const BOOTSTRAP_COMPANY_INPUT = {
   name: 'Luna Clean',
 } as const;
 
-test('fresh owner completes onboarding and is redirected to /app with interview evidence', async ({
+test('fresh owner completes onboarding and enters /app through the explicit completion CTA', async ({
   page,
 }, testInfo) => {
   const briefingMarkdown = await readFile(BRIEFING_FIXTURE_PATH, 'utf8');
@@ -81,7 +81,7 @@ test('fresh owner completes onboarding and is redirected to /app with interview 
       await expect(page.getByTestId('onboarding-step-assistant-chat')).toBeVisible();
     });
 
-    await test.step('drive the onboarding interview from the real UI transcript until redirect to /app', async () => {
+    await test.step('drive the onboarding interview from the real UI transcript until the completion CTA appears', async () => {
       await waitForInitialAssistantPrompt(page);
 
       artifact.turns = await driveInterview({
@@ -90,7 +90,14 @@ test('fresh owner completes onboarding and is redirected to /app with interview 
         page,
       });
       artifact.completionReached = true;
+      await expect(page.getByTestId('onboarding-completion-cta')).toBeVisible({
+        timeout: WORKSPACE_REDIRECT_TIMEOUT_MS,
+      });
+      artifact.finalRoute = new URL(page.url()).pathname;
+    });
 
+    await test.step('enter the workspace through the explicit CTA', async () => {
+      await page.getByTestId('onboarding-completion-cta').click();
       await expect(page).toHaveURL(/\/app(?:$|[/?#])/, {
         timeout: WORKSPACE_REDIRECT_TIMEOUT_MS,
       });

@@ -1,6 +1,6 @@
 # Onboarding Validation E2E
 
-The onboarding validation flow runs against a dedicated web/API stack and does not assume the default local dev ports.
+The onboarding validation flow runs against a dedicated web/API stack and does not assume the default local dev ports. The happy path now finishes onboarding on the chat screen first and only enters `/app` after clicking the explicit completion CTA.
 
 ## Environment
 

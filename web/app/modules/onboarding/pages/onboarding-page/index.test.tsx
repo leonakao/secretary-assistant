@@ -121,4 +121,17 @@ describe('OnboardingPage', () => {
       expect(loader).toHaveBeenCalledTimes(1);
     });
   });
+
+  it('keeps the user on onboarding when the persisted step is complete', async () => {
+    resolveOnboardingStepMock.mockReturnValue('complete');
+
+    const { OnboardingPage } = await import('./index');
+
+    render(<OnboardingPage />);
+
+    expect(
+      screen.getByText('Seu assistente inicial já está configurado'),
+    ).toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
 });

@@ -41,14 +41,6 @@ export function OnboardingPage() {
     void loadOnboardingStateOnce(loader);
   }, [loader]);
 
-  useEffect(() => {
-    if (!data) return;
-
-    if (resolveOnboardingStep(data) === 'complete') {
-      redirectToApp();
-    }
-  }, [data, redirectToApp]);
-
   if (isLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center gap-3 bg-background text-sm text-muted-foreground">
@@ -79,6 +71,16 @@ export function OnboardingPage() {
     { id: 'complete', label: 'Tudo pronto', icon: CheckCircle2 },
   ] as const;
   const currentStepIndex = steps.findIndex((s) => s.id === step);
+  const stepCopy =
+    step === 'complete'
+      ? {
+          eyebrow: 'Tudo pronto',
+          title: 'Seu assistente inicial já está configurado',
+        }
+      : {
+          eyebrow: 'Etapa 2 de 2',
+          title: 'Configure seu assistente',
+        };
 
   return (
     <main
@@ -166,10 +168,10 @@ export function OnboardingPage() {
               data-testid="onboarding-step-assistant-chat"
             >
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-brand">
-                Etapa 2 de 2
+                {stepCopy.eyebrow}
               </p>
               <h2 className="mt-0.5 text-base font-semibold text-foreground">
-                Configure seu assistente
+                {stepCopy.title}
               </h2>
             </div>
             <div className="flex flex-1 min-h-0 overflow-hidden">

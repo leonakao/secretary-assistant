@@ -509,6 +509,79 @@ describe('OnboardingChat', () => {
     expect(onTimeout).not.toHaveBeenCalled();
   });
 
+  it('shows the transcribed user audio message as soon as polling returns it, before the assistant reply arrives', async () => {
+    getUserMediaMock.mockResolvedValue({
+      getTracks: () => [{ stop: vi.fn() }],
+    } as unknown as MediaStream);
+    sendAudioMock.mockResolvedValue(makeSendResponse({ userMessageId: 'user-audio-1' }));
+
+    getMessagesMock.mockResolvedValueOnce(
+      makeConversation({
+        messages: [],
+        isInitialized: true,
+      }),
+    );
+    getMessagesMock.mockResolvedValueOnce(
+      makeConversation({
+        isTyping: true,
+        messages: [
+          {
+            id: 'user-audio-1',
+            role: 'user',
+            content: 'We handle emergency plumbing repairs.',
+            createdAt: '2026-03-27T12:02:00.000Z',
+          },
+        ],
+      }),
+    );
+    getMessagesMock.mockResolvedValue(
+      makeConversation({
+        isTyping: false,
+        messages: [
+          {
+            id: 'user-audio-1',
+            role: 'user',
+            content: 'We handle emergency plumbing repairs.',
+            createdAt: '2026-03-27T12:02:00.000Z',
+          },
+          {
+            id: 'assistant-audio-1',
+            role: 'assistant',
+            content: 'Do you offer 24/7 service?',
+            createdAt: '2026-03-27T12:02:01.000Z',
+          },
+        ],
+      }),
+    );
+
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar gravação' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Parar gravação' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Áudio gravado')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar áudio' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('We handle emergency plumbing repairs.'),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('audio-transcribing-placeholder')).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.getByText('Do you offer 24/7 service?')).toBeInTheDocument();
+    });
+  });
+
   it('restores the audio preview after an audio send failure', async () => {
     getUserMediaMock.mockResolvedValue({
       getTracks: () => [{ stop: vi.fn() }],
@@ -614,7 +687,7 @@ describe('OnboardingChat', () => {
     });
   });
 
-  it('blocks the composer and redirects after onboarding completion', async () => {
+  it('replaces the composer with a CTA after onboarding completion', async () => {
     const onComplete = vi.fn();
 
     sendTextMock.mockResolvedValue(makeSendResponse({ userMessageId: 'user-complete' }));
@@ -655,13 +728,47 @@ describe('OnboardingChat', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enviar mensagem' }));
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'Ir para a home' }),
+      ).toBeInTheDocument();
     });
 
-    expect(screen.getByDisplayValue('')).toBeDisabled();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.getByText('Onboarding concluído.')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ir para a home' }));
+
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the completion CTA immediately when the persisted onboarding state is already complete', async () => {
+    getMessagesMock.mockResolvedValue(
+      makeConversation({
+        isInitialized: true,
+        onboarding: {
+          requiresOnboarding: false,
+          step: 'complete',
+        },
+        messages: [
+          {
+            id: 'assistant-complete',
+            role: 'assistant',
+            content: 'Tudo certo por aqui.',
+            createdAt: '2026-03-27T12:04:00.000Z',
+          },
+        ],
+      }),
+    );
+
+    render(createElement(OnboardingChat, { onComplete: vi.fn() }));
 
     await waitFor(() => {
-      expect(onComplete).toHaveBeenCalledTimes(1);
-    }, { timeout: 3500 });
+      expect(
+        screen.getByRole('button', { name: 'Ir para a home' }),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.getByText('Tudo certo por aqui.')).toBeInTheDocument();
   });
 });

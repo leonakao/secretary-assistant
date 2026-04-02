@@ -7,6 +7,7 @@ import type {
 
 const DEFAULT_ASSISTANT_REPLY_TIMEOUT_MS = 180000;
 const DEFAULT_TURN_DELAY_MS = 0;
+const ASSISTANT_REPLY_POLL_INTERVAL_MS = 1000;
 
 export interface TranscriptMessage {
   content: string;
@@ -33,6 +34,34 @@ function assistantRowLocator(page: Page): Locator {
   return page.locator(
     '[data-testid="onboarding-message-row"][data-message-role="assistant"]',
   );
+}
+
+export function resolveInterviewProgress(params: {
+  hasCompletionCta: boolean;
+  latestAssistantId: string | null;
+  pathname: string;
+  previousAssistantId: string;
+}): 'workspace' | 'completion' | 'reply' | null {
+  const {
+    hasCompletionCta,
+    latestAssistantId,
+    pathname,
+    previousAssistantId,
+  } = params;
+
+  if (pathname === '/app') {
+    return 'workspace';
+  }
+
+  if (hasCompletionCta) {
+    return 'completion';
+  }
+
+  if (latestAssistantId && latestAssistantId !== previousAssistantId) {
+    return 'reply';
+  }
+
+  return null;
 }
 
 export function resolveTurnDelayMs(
@@ -109,39 +138,38 @@ async function waitForAssistantReply(params: {
   page: Page;
   previousAssistantId: string;
   timeoutMs: number;
-}): Promise<'workspace' | 'reply'> {
+}): Promise<'workspace' | 'completion' | 'reply'> {
   const { page, previousAssistantId, timeoutMs } = params;
+  const deadline = Date.now() + timeoutMs;
 
-  try {
-    await page.waitForFunction(
-      ({ previousId }) => {
-        if (window.location.pathname === '/app') {
-          return true;
-        }
+  while (Date.now() < deadline) {
+    const hasCompletionCta = (await page.getByTestId('onboarding-completion-cta').count()) > 0;
+    const assistantRows = assistantRowLocator(page);
+    const assistantCount = await assistantRows.count();
+    const latestAssistantId =
+      assistantCount > 0
+        ? await assistantRows
+            .nth(assistantCount - 1)
+            .getAttribute('data-message-id')
+        : null;
+    const outcome = resolveInterviewProgress({
+      hasCompletionCta,
+      latestAssistantId,
+      pathname: new URL(page.url()).pathname,
+      previousAssistantId,
+    });
 
-        const assistantRows = Array.from(
-          document.querySelectorAll<HTMLElement>(
-            '[data-testid="onboarding-message-row"][data-message-role="assistant"]',
-          ),
-        );
-        const latestAssistantRow = assistantRows.at(-1);
+    if (outcome) {
+      return outcome;
+    }
 
-        return (
-          Boolean(latestAssistantRow) &&
-          latestAssistantRow?.getAttribute('data-message-id') !== previousId
-        );
-      },
-      { previousId: previousAssistantId },
-      { timeout: timeoutMs },
-    );
-  } catch {
-    throw new InterviewDriverError(
-      'interview-message-send',
-      `No follow-up assistant prompt arrived within ${timeoutMs}ms after replying to assistant message ${previousAssistantId}.`,
-    );
+    await page.waitForTimeout(ASSISTANT_REPLY_POLL_INTERVAL_MS);
   }
 
-  return page.url().includes('/app') ? 'workspace' : 'reply';
+  throw new InterviewDriverError(
+    'interview-message-send',
+    `No follow-up assistant prompt or completion CTA appeared within ${timeoutMs}ms after replying to assistant message ${previousAssistantId}.`,
+  );
 }
 
 export async function driveInterview(params: {
@@ -171,7 +199,7 @@ export async function driveInterview(params: {
     if (answeredAssistantIds.has(assistantPrompt.id)) {
       throw new InterviewDriverError(
         'completion-not-reached',
-        `Interview stalled on assistant prompt ${assistantPrompt.id} without reaching the app workspace.`,
+        `Interview stalled on assistant prompt ${assistantPrompt.id} without reaching onboarding completion.`,
         turns,
       );
     }
@@ -220,14 +248,14 @@ export async function driveInterview(params: {
       timeoutMs: timeoutPerTurnMs,
     });
 
-    if (outcome === 'workspace') {
+    if (outcome === 'workspace' || outcome === 'completion') {
       return turns;
     }
   }
 
   throw new InterviewDriverError(
     'completion-not-reached',
-    `Interview exceeded the maximum turn limit of ${maxTurns} without reaching the app workspace.`,
+    `Interview exceeded the maximum turn limit of ${maxTurns} without reaching onboarding completion.`,
     turns,
   );
 }

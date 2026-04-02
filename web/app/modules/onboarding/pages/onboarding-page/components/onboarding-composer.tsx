@@ -87,8 +87,8 @@ export const OnboardingComposer = forwardRef<
                 ? 'Gravando áudio...'
                 : composerState === 'sending-audio'
                   ? 'Transcrevendo seu áudio...'
-                  : composerState === 'completing'
-                    ? 'Concluindo onboarding... Redirecionando para sua área.'
+                  : composerState === 'completed'
+                    ? 'Onboarding concluído.'
                   : 'Conte ao assistente sobre o seu negócio...'
           }
           data-testid="onboarding-chat-input"
@@ -142,8 +142,8 @@ export const OnboardingComposer = forwardRef<
         {isHoldToRecordMode ? 'segure o microfone para gravar' : 'clique no microfone para gravar'}
         {composerState === 'recording-audio'
           ? ` · Gravando ${formatDuration(recordingDurationMs)}`
-          : composerState === 'completing'
-            ? ' · Redirecionamento em andamento'
+          : composerState === 'completed'
+            ? ' · Conversa finalizada'
           : ''}
       </p>
     </>
