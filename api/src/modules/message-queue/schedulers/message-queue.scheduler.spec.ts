@@ -36,7 +36,7 @@ function makeScheduler(
     process: vi.fn().mockResolvedValue(undefined),
   };
   const configService = overrides.configService ?? {
-    get: vi.fn().mockReturnValue(10000),
+    get: vi.fn().mockReturnValue(30000),
   };
 
   const scheduler = new MessageQueueScheduler(

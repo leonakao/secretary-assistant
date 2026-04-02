@@ -3,7 +3,9 @@ import { AgentState } from '../agents/agent.state';
 import {
   buildLangWatchAttributes,
   createLangWatchRunnableConfig,
+  extractTokenUsage,
   langWatchTracer,
+  setLangWatchContextUtilization,
 } from 'src/observability/langwatch';
 import type { LlmModelObservabilityMetadata } from '../services/llm-model.service';
 
@@ -149,11 +151,14 @@ export const createAssistantNode =
         );
         const responseContent = normalizeMessageContent(response.content);
         const toolCalls = getToolCalls(response);
+        const tokenUsage = extractTokenUsage(response);
         const assistantOutput =
           responseContent ||
           (toolCalls.length > 0
             ? `[assistant requested ${toolCalls.length} tool call(s)]`
             : '[resposta sem texto visível; verifique tool calls associados]');
+
+        setLangWatchContextUtilization(span, llmMetadata, tokenUsage);
 
         span
           .setResponseModel(llmMetadata.ls_model_name)

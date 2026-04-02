@@ -47,8 +47,10 @@ describe('LlmModelService', () => {
     const model = service.getLlmModel('helper');
 
     expect(service.getObservabilityMetadata(model)).toEqual({
+      context_window_tokens: 400000,
       ls_model_name: 'gpt-5.4-nano',
       ls_provider: 'openai',
+      max_output_tokens: 8192,
     });
   });
 });

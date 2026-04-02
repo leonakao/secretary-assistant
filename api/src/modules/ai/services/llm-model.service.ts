@@ -5,14 +5,17 @@ import { ChatOpenAI } from '@langchain/openai';
 export type LlmModelType = 'helper' | 'user-interaction';
 export type LlmChatModel = ChatOpenAI;
 export type LlmModelObservabilityMetadata = {
+  context_window_tokens: number;
   ls_model_name: string;
   ls_provider: 'openai';
   ls_temperature?: number;
+  max_output_tokens: number;
 };
 
 const MODEL_CONFIG: Record<
   LlmModelType,
   {
+    contextWindowTokens: number;
     model: string;
     maxTokens: number;
     reasoning: {
@@ -21,6 +24,7 @@ const MODEL_CONFIG: Record<
   }
 > = {
   helper: {
+    contextWindowTokens: 400000,
     model: 'gpt-5.4-nano',
     maxTokens: 8192,
     reasoning: {
@@ -28,6 +32,7 @@ const MODEL_CONFIG: Record<
     },
   },
   'user-interaction': {
+    contextWindowTokens: 400000,
     model: 'gpt-5.4-mini',
     maxTokens: 2048,
     reasoning: {
@@ -59,9 +64,21 @@ export class LlmModelService {
   }
 
   getObservabilityMetadata(model: LlmChatModel): LlmModelObservabilityMetadata {
+    const config = Object.values(MODEL_CONFIG).find(
+      (candidate) => candidate.model === model.model,
+    );
+
+    if (!config) {
+      throw new Error(
+        `No observability metadata configured for ${model.model}`,
+      );
+    }
+
     return {
+      context_window_tokens: config.contextWindowTokens,
       ls_model_name: model.model,
       ls_provider: 'openai',
+      max_output_tokens: config.maxTokens,
       ...(typeof model.temperature === 'number'
         ? { ls_temperature: model.temperature }
         : {}),

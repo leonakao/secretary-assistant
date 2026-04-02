@@ -9,7 +9,9 @@ import {
 import {
   buildLangWatchAttributes,
   createLangWatchRunnableConfig,
+  extractTokenUsage,
   langWatchTracer,
+  setLangWatchContextUtilization,
 } from 'src/observability/langwatch';
 
 export const createDetectTransferNode =
@@ -83,6 +85,10 @@ Somente direcione para o humano se você tiver certeza que o agente não vai con
             userId: context.userId,
           }),
         );
+
+        const tokenUsage = extractTokenUsage(response);
+
+        setLangWatchContextUtilization(span, llmMetadata, tokenUsage);
 
         span
           .setResponseModel(llmMetadata.ls_model_name)

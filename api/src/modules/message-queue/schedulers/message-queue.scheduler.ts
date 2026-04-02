@@ -22,7 +22,7 @@ export class MessageQueueScheduler {
     private webChatProcessor: WebChatQueueProcessorService,
     private configService: ConfigService,
   ) {
-    this.debounceMs = this.configService.get('WHATSAPP_DEBOUNCE_MS', 10000);
+    this.debounceMs = this.configService.get('WHATSAPP_DEBOUNCE_MS', 30000);
   }
 
   @Interval(5000)

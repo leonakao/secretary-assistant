@@ -37,6 +37,7 @@ Key variables to set in `api/.env`:
 
 | Variable | Description |
 |---|---|
+| `WHATSAPP_DEBOUNCE_MS` | Debounce window in milliseconds for batching incoming WhatsApp messages from the same conversation |
 | `OPENAI_API_KEY` | OpenAI API key used for chat, embeddings, and audio transcription |
 | `EVOLUTION_API_KEY` | API key used by the NestJS app when calling Evolution |
 | `AUTHENTICATION_API_KEY` | API key expected by the Evolution API container; set it equal to `EVOLUTION_API_KEY` in local Docker setups |
