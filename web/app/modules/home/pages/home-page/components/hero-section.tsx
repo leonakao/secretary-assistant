@@ -111,7 +111,9 @@ export function HeroSection() {
                 <p className="text-sm font-semibold text-surface-hero-foreground">
                   CoolFix Services
                 </p>
-                <p className="text-xs text-brand-mid">Secretária com IA · online</p>
+                <p className="text-xs text-surface-hero-chat-agent-muted">
+                  Secretária com IA · online
+                </p>
               </div>
               <div className="flex gap-1">
                 {[0, 1, 2].map((i) => (
@@ -131,7 +133,7 @@ export function HeroSection() {
                     className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 text-xs leading-5 ${
                       msg.from === 'client'
                         ? 'rounded-tl-sm bg-surface-hero-card text-surface-hero-foreground'
-                        : 'rounded-tr-sm bg-brand text-brand-foreground'
+                        : 'rounded-tr-sm border border-white/6 bg-surface-hero-chat-agent text-surface-hero-chat-agent-foreground'
                     }`}
                   >
                     <p>{msg.text}</p>
@@ -139,7 +141,7 @@ export function HeroSection() {
                       className={`mt-1 text-right text-[10px] ${
                         msg.from === 'client'
                           ? 'text-surface-hero-muted'
-                          : 'text-brand-foreground/60'
+                          : 'text-surface-hero-chat-agent-muted'
                       }`}
                     >
                       {msg.time}
@@ -150,11 +152,11 @@ export function HeroSection() {
 
               {/* Typing indicator */}
               <div className="flex justify-end">
-                <div className="flex items-center gap-1 rounded-2xl rounded-tr-sm bg-brand/20 px-3.5 py-2.5">
+                <div className="flex items-center gap-1 rounded-2xl rounded-tr-sm border border-white/6 bg-surface-hero-chat-agent/70 px-3.5 py-2.5">
                   {[0, 1, 2].map((i) => (
                     <div
                       key={i}
-                      className="h-1.5 w-1.5 rounded-full bg-brand-mid"
+                      className="h-1.5 w-1.5 rounded-full bg-surface-hero-chat-agent-muted"
                       style={{ animationDelay: `${i * 150}ms` }}
                     />
                   ))}

@@ -33,6 +33,9 @@
   --color-surface-hero-card: var(--surface-hero-card);
   --color-surface-hero-foreground: var(--surface-hero-foreground);
   --color-surface-hero-muted: var(--surface-hero-muted);
+  --color-surface-hero-chat-agent: var(--surface-hero-chat-agent);
+  --color-surface-hero-chat-agent-foreground: var(--surface-hero-chat-agent-foreground);
+  --color-surface-hero-chat-agent-muted: var(--surface-hero-chat-agent-muted);
 
   /* Canvas tokens */
   --color-canvas: var(--canvas);
@@ -94,6 +97,9 @@
   --surface-hero-card: oklch(0.20 0.014 260); /* card on dark bg */
   --surface-hero-foreground: oklch(0.985 0 0);
   --surface-hero-muted: oklch(0.62 0.01 260);
+  --surface-hero-chat-agent: oklch(0.26 0.03 205);
+  --surface-hero-chat-agent-foreground: oklch(0.98 0.005 210);
+  --surface-hero-chat-agent-muted: oklch(0.77 0.018 210);
 
   /* Canvas — off-white section backgrounds */
   --canvas: oklch(0.982 0.006 150);           /* very slight green tint */
@@ -146,6 +152,9 @@
   --surface-hero-card: oklch(0.18 0.012 260);
   --surface-hero-foreground: oklch(0.985 0 0);
   --surface-hero-muted: oklch(0.58 0.01 260);
+  --surface-hero-chat-agent: oklch(0.24 0.028 205);
+  --surface-hero-chat-agent-foreground: oklch(0.98 0.005 210);
+  --surface-hero-chat-agent-muted: oklch(0.74 0.018 210);
 
   --canvas: oklch(0.13 0.010 260);
   --canvas-foreground: oklch(0.985 0 0);
