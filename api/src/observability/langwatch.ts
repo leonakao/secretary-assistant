@@ -12,6 +12,9 @@ type LangWatchMetadata = {
   companyId?: string;
   contactId?: string;
   instanceName?: string;
+  ls_model_name?: string;
+  ls_provider?: string;
+  ls_temperature?: number;
   messageQueueItemId?: string;
   operation?: string;
   routeKind?: string;

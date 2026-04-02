@@ -41,4 +41,14 @@ describe('LlmModelService', () => {
       'OPENAI_API_KEY is not defined in environment variables',
     );
   });
+
+  it('returns observability metadata for the configured model', () => {
+    const service = new LlmModelService(createConfigService('test-key'));
+    const model = service.getLlmModel('helper');
+
+    expect(service.getObservabilityMetadata(model)).toEqual({
+      ls_model_name: 'gpt-5.4-nano',
+      ls_provider: 'openai',
+    });
+  });
 });

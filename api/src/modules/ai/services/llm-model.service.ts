@@ -4,6 +4,11 @@ import { ChatOpenAI } from '@langchain/openai';
 
 export type LlmModelType = 'helper' | 'user-interaction';
 export type LlmChatModel = ChatOpenAI;
+export type LlmModelObservabilityMetadata = {
+  ls_model_name: string;
+  ls_provider: 'openai';
+  ls_temperature?: number;
+};
 
 const MODEL_CONFIG: Record<
   LlmModelType,
@@ -51,5 +56,15 @@ export class LlmModelService {
       reasoning: config.reasoning,
       useResponsesApi: true,
     });
+  }
+
+  getObservabilityMetadata(model: LlmChatModel): LlmModelObservabilityMetadata {
+    return {
+      ls_model_name: model.model,
+      ls_provider: 'openai',
+      ...(typeof model.temperature === 'number'
+        ? { ls_temperature: model.temperature }
+        : {}),
+    };
   }
 }

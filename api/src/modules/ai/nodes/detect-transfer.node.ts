@@ -1,11 +1,15 @@
 import { AgentState } from '../agents/agent.state';
 import z from 'zod';
 import { Command } from '@langchain/langgraph';
-import { LlmChatModel } from '../services/llm-model.service';
+import {
+  LlmChatModel,
+  type LlmModelObservabilityMetadata,
+} from '../services/llm-model.service';
 import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
 
 export const createDetectTransferNode =
-  (model: LlmChatModel) => async (state: typeof AgentState.State) => {
+  (model: LlmChatModel, llmMetadata: LlmModelObservabilityMetadata) =>
+  async (state: typeof AgentState.State) => {
     const systemMessage = `Você é um analisador de mensagens. Sua única tarefa é determinar se o usuário está solicitando falar com um humano ou suporte humano.
 
 Exemplos de solicitações de humano:
@@ -51,6 +55,7 @@ Somente direcione para o humano se você tiver certeza que o agente não vai con
         companyId: context.companyId,
         contactId: context.contactId,
         instanceName: context.instanceName,
+        ...llmMetadata,
         operation: 'detect_transfer_node',
         threadId: context.contactId ?? context.userId,
         userId: context.userId,

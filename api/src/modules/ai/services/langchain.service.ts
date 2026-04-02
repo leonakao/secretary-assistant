@@ -10,9 +10,13 @@ import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
 @Injectable()
 export class LangchainService {
   private readonly model: LlmChatModel;
+  private readonly modelMetadata;
 
   constructor(private readonly llmModelService: LlmModelService) {
     this.model = this.llmModelService.getLlmModel('helper');
+    this.modelMetadata = this.llmModelService.getObservabilityMetadata(
+      this.model,
+    );
   }
 
   /**
@@ -33,6 +37,7 @@ export class LangchainService {
     const response = await model.invoke(
       [new HumanMessage(message)],
       createLangWatchRunnableConfig(undefined, {
+        ...this.llmModelService.getObservabilityMetadata(model),
         operation: 'langchain_service.chat',
       }),
     );
@@ -54,6 +59,7 @@ export class LangchainService {
     const response = await this.model.invoke(
       messages,
       createLangWatchRunnableConfig(undefined, {
+        ...this.modelMetadata,
         operation: 'langchain_service.chat_with_context',
       }),
     );
@@ -82,6 +88,7 @@ export class LangchainService {
     const response = await this.model.invoke(
       langchainMessages,
       createLangWatchRunnableConfig(undefined, {
+        ...this.modelMetadata,
         operation: 'langchain_service.chat_with_history',
       }),
     );
@@ -95,6 +102,7 @@ export class LangchainService {
     const stream = await this.model.stream(
       [new HumanMessage(message)],
       createLangWatchRunnableConfig(undefined, {
+        ...this.modelMetadata,
         operation: 'langchain_service.stream_chat',
       }),
     );

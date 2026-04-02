@@ -90,9 +90,16 @@ export class ClientAssistantAgent implements OnModuleInit {
     };
 
     const workflow = new StateGraph(AgentState)
-      .addNode('detectTransfer', createDetectTransferNode(this.helperModel), {
+      .addNode(
+        'detectTransfer',
+        createDetectTransferNode(
+          this.helperModel,
+          this.llmModelService.getObservabilityMetadata(this.helperModel),
+        ),
+        {
         ends: ['requestHuman', 'assistant'],
-      })
+        },
+      )
       .addNode(
         'requestHuman',
         createRequestHumanNode(
@@ -106,6 +113,9 @@ export class ClientAssistantAgent implements OnModuleInit {
         createAssistantNode(
           this.userInteractionModel.bindTools(this.getTools()),
           buildClientPromptFromState,
+          this.llmModelService.getObservabilityMetadata(
+            this.userInteractionModel,
+          ),
         ),
       )
       .addNode('tools', createToolNode(this.getTools()), {

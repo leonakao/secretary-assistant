@@ -1,11 +1,16 @@
 import { Runnable } from '@langchain/core/runnables';
 import { AgentState } from '../agents/agent.state';
 import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
+import type { LlmModelObservabilityMetadata } from '../services/llm-model.service';
 
 export type BuildPromptFromState = (state: typeof AgentState.State) => string;
 
 export const createAssistantNode =
-  (modelWithTools: Runnable, buildPromptFromState: BuildPromptFromState) =>
+  (
+    modelWithTools: Runnable,
+    buildPromptFromState: BuildPromptFromState,
+    llmMetadata: LlmModelObservabilityMetadata,
+  ) =>
   async (state: typeof AgentState.State) => {
     const systemMessage = buildPromptFromState(state);
     const messages = [
@@ -27,6 +32,7 @@ export const createAssistantNode =
           companyId: context.companyId,
           contactId: context.contactId,
           instanceName: context.instanceName,
+          ...llmMetadata,
           operation: 'agent_assistant_node',
           threadId: context.contactId ?? context.userId,
           userId: context.userId,

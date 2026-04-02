@@ -87,6 +87,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
         createAssistantNode(
           this.model.bindTools(tools),
           buildOwnerPromptFromState,
+          this.llmModelService.getObservabilityMetadata(this.model),
         ),
       )
       .addNode('tools', createToolNode(this.getTools()))

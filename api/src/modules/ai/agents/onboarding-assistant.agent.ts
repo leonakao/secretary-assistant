@@ -65,6 +65,7 @@ export class OnboardingAssistantAgent implements OnModuleInit {
         createAssistantNode(
           this.model.bindTools(tools),
           buildOnboardingPromptFromState,
+          this.llmModelService.getObservabilityMetadata(this.model),
         ),
       )
       .addNode('tools', createToolNode(this.getTools()))
