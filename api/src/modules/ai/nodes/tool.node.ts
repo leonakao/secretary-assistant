@@ -8,6 +8,7 @@ import {
   createLangWatchRunnableConfig,
   langWatchTracer,
 } from 'src/observability/langwatch';
+import { resolveThreadId } from '../utils/resolve-thread-id';
 
 function normalizeToolResult(result: unknown): string {
   if (typeof result === 'string') {
@@ -35,6 +36,7 @@ export const createToolNode = (tools: StructuredTool[]) => {
   );
 
   return async (state: typeof AgentState.State, config?: RunnableConfig) => {
+    const threadId = resolveThreadId(config, state.context);
     const toolCalls =
       (state.messages[state.messages.length - 1] as AIMessage).tool_calls || [];
 
@@ -62,7 +64,7 @@ export const createToolNode = (tools: StructuredTool[]) => {
                     contactId: state.context.contactId,
                     instanceName: state.context.instanceName,
                     operation: `tool_${toolCall.name}`,
-                    threadId: state.context.contactId ?? state.context.userId,
+                    threadId,
                     userId: state.context.userId,
                   }),
                 );
@@ -83,7 +85,7 @@ export const createToolNode = (tools: StructuredTool[]) => {
                     contactId: state.context.contactId,
                     instanceName: state.context.instanceName,
                     operation: `tool_${toolCall.name}_invoke`,
-                    threadId: state.context.contactId ?? state.context.userId,
+                    threadId,
                     userId: state.context.userId,
                   },
                 ),

@@ -1,4 +1,5 @@
 import { Runnable, RunnableConfig } from '@langchain/core/runnables';
+import { AIMessage } from '@langchain/core/messages';
 import { AgentState } from '../agents/agent.state';
 import {
   buildLangWatchAttributes,
@@ -8,8 +9,14 @@ import {
   setLangWatchContextUtilization,
 } from 'src/observability/langwatch';
 import type { LlmModelObservabilityMetadata } from '../services/llm-model.service';
+import { resolveThreadId } from '../utils/resolve-thread-id';
 
 export type BuildPromptFromState = (state: typeof AgentState.State) => string;
+export type AssistantResponseGuard = (params: {
+  config?: RunnableConfig;
+  response: AIMessage;
+  state: typeof AgentState.State;
+}) => Promise<AIMessage>;
 
 type ToolCallLike = {
   id?: string;
@@ -94,6 +101,7 @@ export const createAssistantNode =
     modelWithTools: Runnable,
     buildPromptFromState: BuildPromptFromState,
     llmMetadata: LlmModelObservabilityMetadata,
+    responseGuard?: AssistantResponseGuard,
   ) =>
   async (state: typeof AgentState.State, config?: RunnableConfig) => {
     const systemMessage = buildPromptFromState(state);
@@ -103,6 +111,7 @@ export const createAssistantNode =
     ];
 
     const context = state.context;
+    const threadId = resolveThreadId(config, context);
     const response = await langWatchTracer.withActiveSpan(
       'agent.assistant.reply',
       async (span) => {
@@ -128,7 +137,7 @@ export const createAssistantNode =
             }),
           );
 
-        const response = await modelWithTools.invoke(
+        let response = (await modelWithTools.invoke(
           messages,
           createLangWatchRunnableConfig(
             {
@@ -144,11 +153,20 @@ export const createAssistantNode =
               contactId: context.contactId,
               instanceName: context.instanceName,
               operation: 'agent_assistant_model_invoke',
-              threadId: context.contactId ?? context.userId,
+              threadId,
               userId: context.userId,
             },
           ),
-        );
+        )) as AIMessage;
+
+        if (responseGuard) {
+          response = await responseGuard({
+            config,
+            response,
+            state,
+          });
+        }
+
         const responseContent = normalizeMessageContent(response.content);
         const toolCalls = getToolCalls(response);
         const tokenUsage = extractTokenUsage(response);

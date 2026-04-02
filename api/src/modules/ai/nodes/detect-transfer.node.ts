@@ -13,6 +13,7 @@ import {
   langWatchTracer,
   setLangWatchContextUtilization,
 } from 'src/observability/langwatch';
+import { resolveThreadId } from '../utils/resolve-thread-id';
 
 export const createDetectTransferNode =
   (model: LlmChatModel, llmMetadata: LlmModelObservabilityMetadata) =>
@@ -56,6 +57,7 @@ Somente direcione para o humano se você tiver certeza que o agente não vai con
     );
 
     const context = state.context;
+    const threadId = resolveThreadId(config, context);
     const response = await langWatchTracer.withActiveSpan(
       'agent.detect_transfer',
       async (span) => {
@@ -81,7 +83,7 @@ Somente direcione para o humano se você tiver certeza que o agente não vai con
             contactId: context.contactId,
             instanceName: context.instanceName,
             operation: 'detect_transfer_model_invoke',
-            threadId: context.contactId ?? context.userId,
+            threadId,
             userId: context.userId,
           }),
         );

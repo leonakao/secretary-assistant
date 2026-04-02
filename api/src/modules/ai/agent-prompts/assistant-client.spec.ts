@@ -16,7 +16,8 @@ describe('buildClientPromptFromState', () => {
       needsHumanSupport: false,
     });
 
-    expect(prompt).toContain('<contexto>');
+    expect(prompt).toContain('# Business Context');
+    expect(prompt).toContain('# Conversation State');
     expect(prompt).toContain('# Acme');
     expect(prompt).toContain('Atendemos de segunda a sexta.');
   });
@@ -36,6 +37,8 @@ describe('buildClientPromptFromState', () => {
       needsHumanSupport: false,
     });
 
+    expect(prompt).not.toContain('<prompt>');
     expect(prompt).not.toContain('<contexto>');
+    expect(prompt).toContain('# Role');
   });
 });

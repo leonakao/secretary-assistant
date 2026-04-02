@@ -1,12 +1,11 @@
 interface PromptComponents {
-  persona: string;
-  context: string;
-  instructions?: string;
-  variables: string;
-  system?: string;
-  rules?: string;
-  tools?: string;
-  memory?: string;
+  role: string;
+  objective: string;
+  businessContext?: string;
+  conversationState: string;
+  responseGuidelines: string;
+  toolUsage: string;
+  agentSpecificRules?: string;
 }
 
 export const DEFAULT_AGENT_TIME_ZONE = 'America/Sao_Paulo';
@@ -19,64 +18,29 @@ function formatDateTimeInAgentTimeZone(value: Date): string {
   }).format(value);
 }
 
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+function renderSection(title: string, content?: string): string | null {
+  if (!content || content.trim().length === 0) {
+    return null;
+  }
+
+  return `# ${title}\n${content.trim()}`;
 }
 
 /**
- * Builds a complete prompt from modular components
+ * Builds a shared Markdown prompt from modular components
  */
 export function buildPrompt(components: PromptComponents): string {
-  const { persona, context, instructions, variables } = components;
-  const system = components.system ?? getBaseSystem();
-  const rules = components.rules ?? getBaseRules();
-  const tools = components.tools ?? getBaseTools();
-  const memory = components.memory ?? getBaseMemory();
-
-  const parts: string[] = [];
-
-  parts.push('<prompt>');
-  parts.push('  <persona>');
-  parts.push(escapeXml(persona));
-  parts.push('  </persona>');
-
-  if (instructions && instructions.trim().length > 0) {
-    parts.push('  <instruções>');
-    parts.push(escapeXml(instructions));
-    parts.push('  </instruções>');
-  }
-
-  if (context.trim().length > 0) {
-    parts.push('  <contexto>');
-    parts.push(escapeXml(context));
-    parts.push('  </contexto>');
-  }
-
-  parts.push('  <sistema>');
-  parts.push(escapeXml(system));
-  parts.push('  </sistema>');
-
-  parts.push('  <regras>');
-  parts.push(escapeXml(rules));
-  parts.push('  </regras>');
-
-  parts.push('  <ferramentas>');
-  parts.push(escapeXml(tools));
-  parts.push('  </ferramentas>');
-
-  parts.push('  <memoria>');
-  parts.push(escapeXml(memory));
-  parts.push('  </memoria>');
-
-  parts.push('  <variáveis>');
-  parts.push(escapeXml(variables));
-  parts.push('  </variáveis>');
-  parts.push('</prompt>');
-
-  return parts.join('\n');
+  return [
+    renderSection('Role', components.role),
+    renderSection('Objective', components.objective),
+    renderSection('Business Context', components.businessContext),
+    renderSection('Conversation State', components.conversationState),
+    renderSection('Response Guidelines', components.responseGuidelines),
+    renderSection('Tool Usage', components.toolUsage),
+    renderSection('Agent-Specific Rules', components.agentSpecificRules),
+  ]
+    .filter((section): section is string => section !== null)
+    .join('\n\n');
 }
 
 /**

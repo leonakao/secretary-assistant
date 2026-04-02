@@ -90,5 +90,8 @@
       "@nestjs/core",
       "@swc/core"
     ]
+  },
+  "volta": {
+    "node": "24.14.1"
   }
 }

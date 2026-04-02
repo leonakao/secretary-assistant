@@ -29,6 +29,10 @@ import { buildClientPromptFromState } from '../agent-prompts/assistant-client';
 import { ensureCheckpointerSetup } from './checkpointer-setup';
 import { LlmChatModel, LlmModelService } from '../services/llm-model.service';
 import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
+import { createPolicyGateNode } from '../nodes/policy-gate.node';
+import { AgentPolicy } from '../policies/agent-policy.interface';
+import { RequireConfirmationBeforeServiceRequestPolicy } from '../policies/require-confirmation-before-service-request.policy';
+import { createClientScopeResponseGuard } from '../guards/client-scope-response.guard';
 
 @Injectable()
 export class ClientAssistantAgent implements OnModuleInit {
@@ -86,7 +90,7 @@ export class ClientAssistantAgent implements OnModuleInit {
         return 'end';
       }
 
-      return 'tools';
+      return 'policyGate';
     };
 
     const workflow = new StateGraph(AgentState)
@@ -116,8 +120,15 @@ export class ClientAssistantAgent implements OnModuleInit {
           this.llmModelService.getObservabilityMetadata(
             this.userInteractionModel,
           ),
+          createClientScopeResponseGuard(
+            this.helperModel,
+            this.llmModelService.getObservabilityMetadata(this.helperModel),
+          ),
         ),
       )
+      .addNode('policyGate', createPolicyGateNode(this.getPolicies()), {
+        ends: ['assistant', 'tools'],
+      })
       .addNode('tools', createToolNode(this.getTools()), {
         retryPolicy: {
           logWarning: true,
@@ -126,7 +137,7 @@ export class ClientAssistantAgent implements OnModuleInit {
       .addEdge(START, 'detectTransfer')
       .addEdge('requestHuman', END)
       .addConditionalEdges('assistant', shouldContinue, {
-        tools: 'tools',
+        policyGate: 'policyGate',
         end: END,
       })
       .addEdge('tools', 'assistant');
@@ -193,5 +204,9 @@ export class ClientAssistantAgent implements OnModuleInit {
       this.updateMemoryTool,
       this.searchMemoryTool,
     ];
+  }
+
+  private getPolicies(): AgentPolicy[] {
+    return [new RequireConfirmationBeforeServiceRequestPolicy()];
   }
 }

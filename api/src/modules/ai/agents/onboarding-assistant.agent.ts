@@ -14,6 +14,9 @@ import { buildOnboardingPromptFromState } from '../agent-prompts/assistant-onboa
 import { ensureCheckpointerSetup } from './checkpointer-setup';
 import { LlmChatModel, LlmModelService } from '../services/llm-model.service';
 import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
+import { createPolicyGateNode } from '../nodes/policy-gate.node';
+import { AgentPolicy } from '../policies/agent-policy.interface';
+import { RequireExplicitConfirmationPolicy } from '../policies/require-explicit-confirmation.policy';
 
 @Injectable()
 export class OnboardingAssistantAgent implements OnModuleInit {
@@ -56,7 +59,7 @@ export class OnboardingAssistantAgent implements OnModuleInit {
         return 'end';
       }
 
-      return 'tools';
+      return 'policyGate';
     };
 
     const workflow = new StateGraph(AgentState)
@@ -68,10 +71,13 @@ export class OnboardingAssistantAgent implements OnModuleInit {
           this.llmModelService.getObservabilityMetadata(this.model),
         ),
       )
+      .addNode('policyGate', createPolicyGateNode(this.getPolicies()), {
+        ends: ['assistant', 'tools'],
+      })
       .addNode('tools', createToolNode(this.getTools()))
       .addEdge(START, 'assistant')
       .addConditionalEdges('assistant', shouldContinue, {
-        tools: 'tools',
+        policyGate: 'policyGate',
         end: END,
       })
       .addEdge('tools', 'assistant');
@@ -130,5 +136,9 @@ export class OnboardingAssistantAgent implements OnModuleInit {
 
   private getTools(): StructuredTool[] {
     return [this.finishOnboardingTool];
+  }
+
+  private getPolicies(): AgentPolicy[] {
+    return [new RequireExplicitConfirmationPolicy('finishOnboarding')];
   }
 }

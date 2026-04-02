@@ -27,11 +27,13 @@ describe('buildOnboardingPromptFromState', () => {
       needsHumanSupport: false,
     } as never);
 
-    expect(prompt).toContain('Nome da empresa: Acme');
+    expect(prompt).toContain('Nome da empresa conhecido: Acme');
     expect(prompt).toContain('NÃO pergunte novamente qual é o nome da empresa');
     expect(prompt).toContain('Tipo de negócio conhecido: Clínica odontológica');
     expect(prompt).toContain('America/Sao_Paulo');
     expect(prompt).toContain('Data atual: 28/03/2026, 23:30:00');
+    expect(prompt).toContain('# Role');
+    expect(prompt).toContain('# Agent-Specific Rules');
     expect(prompt).toContain(
       'A única ferramenta disponível neste fluxo é "finishOnboarding"',
     );

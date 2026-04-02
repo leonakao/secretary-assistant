@@ -22,6 +22,9 @@ import { buildOwnerPromptFromState } from '../agent-prompts/assistant-owner';
 import { ensureCheckpointerSetup } from './checkpointer-setup';
 import { LlmChatModel, LlmModelService } from '../services/llm-model.service';
 import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
+import { createPolicyGateNode } from '../nodes/policy-gate.node';
+import { AgentPolicy } from '../policies/agent-policy.interface';
+import { RequireConfirmationBeforeServiceRequestPolicy } from '../policies/require-confirmation-before-service-request.policy';
 
 @Injectable()
 export class OwnerAssistantAgent implements OnModuleInit {
@@ -78,7 +81,7 @@ export class OwnerAssistantAgent implements OnModuleInit {
         return 'end';
       }
 
-      return 'tools';
+      return 'policyGate';
     };
 
     const workflow = new StateGraph(AgentState)
@@ -90,10 +93,13 @@ export class OwnerAssistantAgent implements OnModuleInit {
           this.llmModelService.getObservabilityMetadata(this.model),
         ),
       )
+      .addNode('policyGate', createPolicyGateNode(this.getPolicies()), {
+        ends: ['assistant', 'tools'],
+      })
       .addNode('tools', createToolNode(this.getTools()))
       .addEdge(START, 'assistant')
       .addConditionalEdges('assistant', shouldContinue, {
-        tools: 'tools',
+        policyGate: 'policyGate',
         end: END,
       })
       .addEdge('tools', 'assistant');
@@ -173,5 +179,9 @@ export class OwnerAssistantAgent implements OnModuleInit {
       this.updateConfirmationTool,
       this.searchConfirmationTool,
     ];
+  }
+
+  private getPolicies(): AgentPolicy[] {
+    return [new RequireConfirmationBeforeServiceRequestPolicy()];
   }
 }

@@ -92,6 +92,7 @@ export class UpdateServiceRequestTool extends StructuredTool {
         : internalNotes;
     }
 
+    Object.assign(serviceRequest, updates);
     await this.serviceRequestRepository.save(serviceRequest);
 
     return 'Solicitação de serviço atualizada com sucesso';
