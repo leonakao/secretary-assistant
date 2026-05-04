@@ -10,16 +10,37 @@ const EXPLICIT_CONFIRMATION_PATTERNS = [
   /\bpode\b.*\b(finalizar|encerrar|concluir)\b/,
   /\bautorizo\b.*\b(finalizar|encerrar|concluir)\b/,
   /\bquero\b.*\b(finalizar|encerrar|concluir)\b/,
+  /\b(finaliza|finalize|finalizar|encerra|encerre|encerrar|conclui|conclua|concluir)\b/,
 ];
 
 const AMBIGUOUS_CONFIRMATION_PATTERNS = [
   /\bacho que sim\b/,
-  /\bpode ser\b/,
   /\btalvez\b/,
   /\bmais ou menos\b/,
-  /\bok\b/,
-  /\bbeleza\b/,
-  /\bblz\b/,
+];
+
+const CONTEXTUAL_AFFIRMATIVE_RESPONSES = [
+  'sim',
+  'sim sim',
+  'pode',
+  'pode sim',
+  'pode ser',
+  'ok',
+  'okay',
+  'beleza',
+  'blz',
+  'fechado',
+  'combinado',
+  'claro',
+  'perfeito',
+  'ta bom',
+  'tudo bem',
+  'isso',
+  'isso mesmo',
+  'correto',
+  'manda ver',
+  'vamos',
+  'bora',
 ];
 
 const FINALIZATION_REQUEST_PATTERNS = [
@@ -67,7 +88,7 @@ function isExplicitConfirmation(
     return true;
   }
 
-  if (!['sim', 'sim sim', 'pode', 'pode sim'].includes(humanMessage)) {
+  if (!CONTEXTUAL_AFFIRMATIVE_RESPONSES.includes(humanMessage)) {
     return false;
   }
 
