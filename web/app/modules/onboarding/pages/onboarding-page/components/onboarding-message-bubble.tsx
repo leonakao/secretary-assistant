@@ -1,9 +1,53 @@
 import { Bot } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { cn } from '~/lib/utils';
 import type { OnboardingMessage } from '../../../api/onboarding.api';
 
 interface OnboardingMessageBubbleProps {
   message: OnboardingMessage;
+}
+
+function renderBoldMarkdown(content: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  let key = 0;
+
+  while (cursor < content.length) {
+    const start = content.indexOf('**', cursor);
+
+    if (start === -1) {
+      parts.push(content.slice(cursor));
+      break;
+    }
+
+    const end = content.indexOf('**', start + 2);
+
+    if (end === -1) {
+      parts.push(content.slice(cursor));
+      break;
+    }
+
+    if (start > cursor) {
+      parts.push(content.slice(cursor, start));
+    }
+
+    const boldContent = content.slice(start + 2, end);
+
+    if (boldContent.length === 0) {
+      parts.push('****');
+    } else {
+      parts.push(
+        <strong key={`bold-${key}`} className="font-semibold">
+          {boldContent}
+        </strong>,
+      );
+      key += 1;
+    }
+
+    cursor = end + 2;
+  }
+
+  return parts;
 }
 
 export function OnboardingMessageBubble({
@@ -33,7 +77,7 @@ export function OnboardingMessageBubble({
         )}
         data-testid="onboarding-message-content"
       >
-        {message.content}
+        {renderBoldMarkdown(message.content)}
       </div>
     </div>
   );

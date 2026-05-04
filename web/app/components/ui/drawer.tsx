@@ -38,7 +38,7 @@ const drawerContentVariants = cva(
   },
 )
 
-interface DrawerProps extends React.ComponentProps<typeof Drawer> {}
+type DrawerProps = React.ComponentProps<typeof Drawer>
 
 function DrawerRoot(props: DrawerProps) {
   return <Drawer {...props} />
