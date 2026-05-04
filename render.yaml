@@ -118,10 +118,13 @@ projects:
                 value: "true"
               - key: DATABASE_PROVIDER
                 value: postgresql
+              # Evolution must use its own Prisma schema. Render blueprints can
+              # reference a Postgres connection string, but they cannot append
+              # '?schema=evolution' because variable interpolation is unsupported.
+              # Set this secret manually in Render to the new database internal
+              # URL plus '?schema=evolution'.
               - key: DATABASE_CONNECTION_URI
-                fromDatabase:
-                  name: secretary-assistant-db-2
-                  property: connectionString
+                sync: false
               - key: DATABASE_CONNECTION_CLIENT_NAME
                 value: secretary_assistant_evolution
               - key: DATABASE_SAVE_DATA_INSTANCE
