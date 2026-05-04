@@ -119,7 +119,9 @@ projects:
               - key: DATABASE_PROVIDER
                 value: postgresql
               - key: DATABASE_CONNECTION_URI
-                sync: false
+                fromDatabase:
+                  name: secretary-assistant-db-2
+                  property: connectionString
               - key: DATABASE_CONNECTION_CLIENT_NAME
                 value: secretary_assistant_evolution
               - key: DATABASE_SAVE_DATA_INSTANCE
