@@ -63,23 +63,23 @@ projects:
                 value: https://secretary-assistant-web.onrender.com
               - key: DB_HOST
                 fromDatabase:
-                  name: secretary-assistant-db
+                  name: secretary-assistant-db-2
                   property: host
               - key: DB_PORT
                 fromDatabase:
-                  name: secretary-assistant-db
+                  name: secretary-assistant-db-2
                   property: port
               - key: DB_USERNAME
                 fromDatabase:
-                  name: secretary-assistant-db
+                  name: secretary-assistant-db-2
                   property: user
               - key: DB_PASSWORD
                 fromDatabase:
-                  name: secretary-assistant-db
+                  name: secretary-assistant-db-2
                   property: password
               - key: DB_DATABASE
                 fromDatabase:
-                  name: secretary-assistant-db
+                  name: secretary-assistant-db-2
                   property: database
               - key: REDIS_URL
                 fromService:
@@ -157,7 +157,7 @@ projects:
             ipAllowList: []
             maxmemoryPolicy: noeviction
         databases:
-          - name: secretary-assistant-db
+          - name: secretary-assistant-db-2
             plan: free
             postgresMajorVersion: "18"
             ipAllowList: []

@@ -2,7 +2,11 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { END, START, StateGraph } from '@langchain/langgraph';
 import { PostgresSaver } from '@langchain/langgraph-checkpoint-postgres';
-import { HumanMessage, AIMessage } from '@langchain/core/messages';
+import {
+  HumanMessage,
+  AIMessage,
+  SystemMessage,
+} from '@langchain/core/messages';
 import { StructuredTool } from '@langchain/core/tools';
 import { User } from 'src/modules/users/entities/user.entity';
 import { FinishOnboardingTool } from '../tools/finish-onboarding.tool';
@@ -93,6 +97,7 @@ export class OnboardingAssistantAgent implements OnModuleInit {
     user: User,
     context: AgentContext,
     threadId: string = 'default',
+    promptRole: 'system' | 'user' = 'user',
   ) {
     this.logger.log(
       `Executing onboarding assistant for user ${user.name}: ${message}`,
@@ -116,7 +121,11 @@ export class OnboardingAssistantAgent implements OnModuleInit {
 
     return await this.graph.stream(
       {
-        messages: [new HumanMessage(message)],
+        messages: [
+          promptRole === 'system'
+            ? new SystemMessage(message)
+            : new HumanMessage(message),
+        ],
         context,
       },
       config,

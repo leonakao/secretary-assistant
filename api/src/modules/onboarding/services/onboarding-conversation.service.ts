@@ -221,6 +221,7 @@ export class OnboardingConversationService {
 
         const assistantMessage = await this.generateAssistantReply({
           prompt: this.buildInitializationPrompt(userCompany.company),
+          promptRole: 'system',
           threadId,
           user,
           company: userCompany.company,
@@ -289,6 +290,7 @@ export class OnboardingConversationService {
 
   private async generateAssistantReply(params: {
     prompt: string;
+    promptRole?: 'system' | 'user';
     threadId: string;
     user: User;
     company: Company;
@@ -300,12 +302,14 @@ export class OnboardingConversationService {
     const content =
       (await this.collectAssistantReply({
         prompt,
+        promptRole: params.promptRole ?? 'user',
         threadId,
         user,
         agentContext,
       })) ||
       (await this.collectAssistantReply({
         prompt: CONTINUE_AFTER_TOOL_PROMPT,
+        promptRole: 'user',
         threadId,
         user,
         agentContext,
@@ -327,6 +331,7 @@ export class OnboardingConversationService {
 
   private async collectAssistantReply(params: {
     prompt: string;
+    promptRole: 'system' | 'user';
     threadId: string;
     user: User;
     agentContext: AgentContext;
@@ -343,7 +348,7 @@ export class OnboardingConversationService {
           .setRequestModel(modelName)
           .setInput('chat_messages', [
             {
-              role: 'user',
+              role: params.promptRole,
               content: params.prompt,
             },
           ])
@@ -362,6 +367,7 @@ export class OnboardingConversationService {
           params.user,
           params.agentContext,
           params.threadId,
+          params.promptRole,
         );
 
         const messageParts: string[] = [];

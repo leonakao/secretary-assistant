@@ -159,6 +159,7 @@ describe('OnboardingConversationService', () => {
           companyDescription: expect.stringContaining('Nome da empresa: Acme'),
         }),
         'onboarding:company-1:user-1',
+        'user',
       );
     });
 
@@ -269,6 +270,7 @@ describe('OnboardingConversationService', () => {
         expect.anything(),
         expect.anything(),
         'onboarding:company-1:user-1',
+        'user',
       );
       expect(result.assistantMessage).toMatchObject({
         content: 'Qual e o horario de atendimento?',
@@ -305,6 +307,7 @@ describe('OnboardingConversationService', () => {
           businessType: 'Clínica odontológica',
         }),
         'onboarding:company-1:user-1',
+        'system',
       );
     });
 
