@@ -20,6 +20,7 @@ export type LangWatchMetadata = {
   messageQueueItemId?: string;
   operation?: string;
   routeKind?: string;
+  thread_id?: string;
   threadId?: string;
   userId?: string;
 };
@@ -96,8 +97,10 @@ export function buildLangWatchAttributes(
     attributes['secretary.route.kind'] = metadata.routeKind;
   }
 
-  if (metadata.threadId) {
-    attributes['langwatch.thread.id'] = metadata.threadId;
+  const threadId = metadata.thread_id ?? metadata.threadId;
+
+  if (threadId) {
+    attributes['langwatch.thread.id'] = threadId;
   }
 
   if (metadata.userId) {
@@ -112,16 +115,25 @@ export function createLangWatchRunnableConfig(
   metadata: LangWatchMetadata,
 ): RunnableConfig {
   const callbacks = config?.callbacks;
+  const threadId = resolveStringMetadataValue(
+    metadata.thread_id ?? metadata.threadId ?? config?.configurable?.thread_id,
+  );
+  const normalizedMetadata = {
+    ...(config?.metadata ?? {}),
+    ...metadata,
+    ...(threadId ? { thread_id: threadId } : {}),
+  };
 
   return {
     ...config,
+    configurable: {
+      ...(config?.configurable ?? {}),
+      ...(threadId ? { thread_id: threadId } : {}),
+    },
     callbacks: Array.isArray(callbacks)
       ? [...callbacks, new LangWatchCallbackHandler()]
       : callbacks || [new LangWatchCallbackHandler()],
-    metadata: {
-      ...(config?.metadata ?? {}),
-      ...metadata,
-    },
+    metadata: normalizedMetadata,
   };
 }
 
@@ -233,4 +245,14 @@ function pickFirstNumber(values: unknown[]): number | undefined {
   }
 
   return undefined;
+}
+
+function resolveStringMetadataValue(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+
+  return trimmed.length > 0 ? trimmed : undefined;
 }

@@ -14,6 +14,10 @@ import { ExtractAiMessageService } from '../../ai/services/extract-ai-message.se
 import { AgentContext } from 'src/modules/ai/agents/agent.state';
 import { FindPendingConfirmationsService } from 'src/modules/service-requests/services/find-pending-confirmations.service';
 import { ContactSessionService } from '../services/contact-session.service';
+import {
+  buildLangWatchAttributes,
+  langWatchTracer,
+} from 'src/observability/langwatch';
 
 @Injectable()
 export class ClientConversationStrategy implements ConversationStrategy {
@@ -68,93 +72,143 @@ export class ClientConversationStrategy implements ConversationStrategy {
       content: params.message,
     });
 
-    if (this.deterministicE2eRepliesEnabled) {
-      const message = this.buildDeterministicReply(contact, company, params);
-
-      await this.chatService.addMessageToMemory({
-        sessionId,
-        companyId: params.companyId,
-        role: 'assistant',
-        content: message,
-      });
-
-      return {
-        message,
-      };
-    }
-
-    this.logger.log(`Processing owner message: ${params.message}`);
-
-    const agentContext: AgentContext = {
-      companyId: params.companyId,
-      instanceName: params.instanceName,
-      contactId: params.contactId,
-      contactName: contact.name,
-      contactPhone: contact.phone ?? undefined,
-      companyDescription: company.description,
-      confirmations: await this.findPendingConfirmations.execute({
-        companyId: params.companyId,
-        contactId: params.contactId,
-      }),
-    };
-
-    await this.chatService.sendPresenceNotification({
-      instanceName: params.instanceName,
-      remoteJid: params.remoteJid,
-      presence: 'composing',
-    });
-
-    const messages: string[] = [];
-
-    const stream = await this.clientAssistantAgent.streamConversation(
-      params.message,
-      agentContext,
-      sessionId,
-    );
-
-    for await (const chunk of stream) {
-      if (chunk.assistant) {
-        const message = this.extractAiMessageService.extractFromChunkMessages(
-          chunk.assistant.messages,
-        );
-        if (message) {
-          this.logger.log(`AIMessage: ${message}`);
-          messages.push(message);
-        }
-
-        const toolMessages =
-          this.extractAiMessageService.extractToolMessagesFromChunkMessages(
-            chunk.assistant.messages,
+    return langWatchTracer.withActiveSpan(
+      'conversation.client',
+      async (span) => {
+        span
+          .setType('workflow')
+          .setInput('chat_messages', [
+            {
+              role: 'user',
+              content: params.message,
+            },
+          ])
+          .setAttributes(
+            buildLangWatchAttributes({
+              companyId: params.companyId,
+              contactId: params.contactId,
+              instanceName: params.instanceName,
+              operation: 'client_conversation',
+              routeKind: 'client',
+              threadId: sessionId,
+            }),
           );
-        for (const toolMessage of toolMessages) {
-          this.logger.log(`ToolMessage: ${toolMessage}`);
+
+        if (this.deterministicE2eRepliesEnabled) {
+          const message = this.buildDeterministicReply(
+            contact,
+            company,
+            params,
+          );
+
+          await this.chatService.addMessageToMemory({
+            sessionId,
+            companyId: params.companyId,
+            role: 'assistant',
+            content: message,
+          });
+
+          span.setOutput('chat_messages', [
+            {
+              role: 'assistant',
+              content: message,
+            },
+          ]);
+
+          return {
+            message,
+          };
         }
-      }
 
-      await this.chatService.sendPresenceNotification({
-        instanceName: params.instanceName,
-        remoteJid: params.remoteJid,
-        presence: 'composing',
-      });
-    }
+        this.logger.log(`Processing owner message: ${params.message}`);
 
-    const finalMessage = messages.join('\n');
+        const agentContext: AgentContext = {
+          companyId: params.companyId,
+          instanceName: params.instanceName,
+          contactId: params.contactId,
+          contactName: contact.name,
+          contactPhone: contact.phone ?? undefined,
+          companyDescription: company.description,
+          confirmations: await this.findPendingConfirmations.execute({
+            companyId: params.companyId,
+            contactId: params.contactId,
+          }),
+        };
 
-    if (!finalMessage) {
-      return { message: '' };
-    }
+        await this.chatService.sendPresenceNotification({
+          instanceName: params.instanceName,
+          remoteJid: params.remoteJid,
+          presence: 'composing',
+        });
 
-    await this.chatService.sendMessageAndSaveToMemory({
-      sessionId,
-      companyId: params.companyId,
-      instanceName: params.instanceName,
-      remoteJid: params.remoteJid,
-      message: finalMessage,
-    });
+        const messages: string[] = [];
 
-    return {
-      message: finalMessage,
-    };
+        const stream = await this.clientAssistantAgent.streamConversation(
+          params.message,
+          agentContext,
+          sessionId,
+        );
+
+        for await (const chunk of stream) {
+          if (chunk.assistant) {
+            const message =
+              this.extractAiMessageService.extractFromChunkMessages(
+                chunk.assistant.messages,
+              );
+            if (message) {
+              this.logger.log(`AIMessage: ${message}`);
+              messages.push(message);
+            }
+
+            const toolMessages =
+              this.extractAiMessageService.extractToolMessagesFromChunkMessages(
+                chunk.assistant.messages,
+              );
+            for (const toolMessage of toolMessages) {
+              this.logger.log(`ToolMessage: ${toolMessage}`);
+            }
+          }
+
+          await this.chatService.sendPresenceNotification({
+            instanceName: params.instanceName,
+            remoteJid: params.remoteJid,
+            presence: 'composing',
+          });
+        }
+
+        const finalMessage = messages.join('\n');
+
+        if (!finalMessage) {
+          span.setOutput('chat_messages', [
+            {
+              role: 'assistant',
+              content: '',
+            },
+          ]);
+
+          return { message: '' };
+        }
+
+        await this.chatService.sendMessageAndSaveToMemory({
+          sessionId,
+          companyId: params.companyId,
+          instanceName: params.instanceName,
+          remoteJid: params.remoteJid,
+          message: finalMessage,
+        });
+
+        span.setOutput('chat_messages', [
+          {
+            role: 'assistant',
+            content: finalMessage,
+          },
+        ]);
+
+        return {
+          message: finalMessage,
+        };
+      },
+    );
   }
 
   private buildDeterministicReply(

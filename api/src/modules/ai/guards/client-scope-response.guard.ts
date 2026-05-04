@@ -6,7 +6,11 @@ import {
   LlmChatModel,
   LlmModelObservabilityMetadata,
 } from '../services/llm-model.service';
-import { createLangWatchRunnableConfig } from 'src/observability/langwatch';
+import {
+  buildLangWatchAttributes,
+  createLangWatchRunnableConfig,
+  langWatchTracer,
+} from 'src/observability/langwatch';
 import { resolveThreadId } from '../utils/resolve-thread-id';
 
 const clientScopeGuardSchema = z.object({
@@ -14,6 +18,8 @@ const clientScopeGuardSchema = z.object({
   correctedReply: z.string().optional(),
   reason: z.string(),
 });
+
+type GuardDecision = 'allowed' | 'blocked' | 'bypassed' | 'error';
 
 function normalizeContent(content: unknown): string {
   if (typeof content === 'string') {
@@ -49,42 +55,90 @@ export const createClientScopeResponseGuard =
     state: typeof AgentState.State;
   }): Promise<AIMessage> => {
     const { response, state, config } = params;
-    const toolCalls = response.tool_calls ?? [];
 
-    if (toolCalls.length > 0) {
-      return response;
-    }
+    return langWatchTracer.withActiveSpan(
+      'guard.client_scope_response',
+      async (span) => {
+        const threadId = resolveThreadId(config, state.context);
+        const recordDecision = (
+          decision: GuardDecision,
+          details: Record<string, string | number | boolean | undefined>,
+        ) => {
+          span.setOutput('json', {
+            decision,
+            ...Object.fromEntries(
+              Object.entries(details).filter(([, value]) => value !== undefined),
+            ),
+          });
+        };
 
-    const companyDescription = state.context.companyDescription?.trim();
-    if (!companyDescription) {
-      return response;
-    }
+        span
+          .setType('guardrail')
+          .setAttributes(
+            buildLangWatchAttributes({
+              companyId: state.context.companyId,
+              contactId: state.context.contactId,
+              instanceName: state.context.instanceName,
+              operation: 'client_scope_response_guard',
+              threadId,
+              userId: state.context.userId,
+            }),
+          );
 
-    const assistantReply = normalizeContent(response.content);
-    if (!assistantReply) {
-      return response;
-    }
+        const toolCalls = response.tool_calls ?? [];
 
-    const latestHumanMessage = [...state.messages]
-      .reverse()
-      .find((message) => message.type === 'human');
-    const latestUserMessage = normalizeContent(latestHumanMessage?.content);
+        if (toolCalls.length > 0) {
+          recordDecision('bypassed', {
+            bypass_reason: 'tool_calls_present',
+            tool_call_count: toolCalls.length,
+          });
+          return response;
+        }
 
-    if (!latestUserMessage) {
-      return response;
-    }
+        const companyDescription = state.context.companyDescription?.trim();
+        if (!companyDescription) {
+          recordDecision('bypassed', {
+            bypass_reason: 'missing_company_description',
+          });
+          return response;
+        }
 
-    const modelWithStructuredOutput = helperModel.withStructuredOutput(
-      clientScopeGuardSchema,
-    );
-    const threadId = resolveThreadId(config, state.context);
+        const assistantReply = normalizeContent(response.content);
+        if (!assistantReply) {
+          recordDecision('bypassed', {
+            bypass_reason: 'empty_assistant_reply',
+          });
+          return response;
+        }
 
-    try {
-      const result = await modelWithStructuredOutput.invoke(
-        [
-          {
-            role: 'system',
-            content: `Você valida se a resposta de uma secretária virtual está alinhada ao escopo real da empresa.
+        const latestHumanMessage = [...state.messages]
+          .reverse()
+          .find((message) => message.type === 'human');
+        const latestUserMessage = normalizeContent(latestHumanMessage?.content);
+
+        if (!latestUserMessage) {
+          recordDecision('bypassed', {
+            bypass_reason: 'missing_latest_user_message',
+          });
+          return response;
+        }
+
+        span.setInput('json', {
+          assistant_reply_length: assistantReply.length,
+          company_description_length: companyDescription.length,
+          latest_user_message_length: latestUserMessage.length,
+        });
+
+        const modelWithStructuredOutput = helperModel.withStructuredOutput(
+          clientScopeGuardSchema,
+        );
+
+        try {
+          const result = await modelWithStructuredOutput.invoke(
+            [
+              {
+                role: 'system',
+                content: `Você valida se a resposta de uma secretária virtual está alinhada ao escopo real da empresa.
 
 Regras:
 - Use a descrição da empresa como fonte de verdade.
@@ -93,10 +147,10 @@ Regras:
 - A resposta corrigida deve recusar o pedido fora do escopo e, quando fizer sentido, redirecionar para o que a empresa realmente oferece.
 - Se a descrição da empresa não for suficiente para concluir que a resposta está fora do escopo, permita a resposta.
 - Não invente novos produtos, serviços ou capacidades.`,
-          },
-          {
-            role: 'user',
-            content: `Descrição da empresa:
+              },
+              {
+                role: 'user',
+                content: `Descrição da empresa:
 ${companyDescription}
 
 Mensagem do cliente:
@@ -104,27 +158,42 @@ ${latestUserMessage}
 
 Resposta candidata da assistente:
 ${assistantReply}`,
-          },
-        ],
-        createLangWatchRunnableConfig(config, {
-          ...llmMetadata,
-          companyId: state.context.companyId,
-          contactId: state.context.contactId,
-          instanceName: state.context.instanceName,
-          operation: 'client_scope_response_guard',
-          threadId,
-          userId: state.context.userId,
-        }),
-      );
+              },
+            ],
+            createLangWatchRunnableConfig(config, {
+              ...llmMetadata,
+              companyId: state.context.companyId,
+              contactId: state.context.contactId,
+              instanceName: state.context.instanceName,
+              operation: 'client_scope_response_guard_model_invoke',
+              threadId,
+              userId: state.context.userId,
+            }),
+          );
 
-      if (result.allow || !result.correctedReply?.trim()) {
-        return response;
-      }
+          if (result.allow || !result.correctedReply?.trim()) {
+            recordDecision('allowed', {
+              reason: result.reason,
+            });
+            return response;
+          }
 
-      return new AIMessage({
-        content: result.correctedReply.trim(),
-      });
-    } catch {
-      return response;
-    }
+          recordDecision('blocked', {
+            corrected_reply_length: result.correctedReply.trim().length,
+            reason: result.reason,
+          });
+
+          return new AIMessage({
+            content: result.correctedReply.trim(),
+          });
+        } catch (error) {
+          span.recordException(error as Error);
+          recordDecision('error', {
+            error_message:
+              error instanceof Error ? error.message : 'Unknown guard error',
+          });
+          return response;
+        }
+      },
+    );
   };

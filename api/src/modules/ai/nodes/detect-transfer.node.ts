@@ -71,6 +71,7 @@ Somente direcione para o humano se você tiver certeza que o agente não vai con
               contactId: context.contactId,
               instanceName: context.instanceName,
               operation: 'detect_transfer_node',
+              threadId,
               userId: context.userId,
             }),
           );

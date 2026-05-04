@@ -1,6 +1,42 @@
 import { ConfigService } from '@nestjs/config';
 import { ClientConversationStrategy } from './client-conversation.strategy';
 
+const { mockSpan, withActiveSpan } = vi.hoisted(() => {
+  const mockSpan = {
+    recordException: vi.fn(),
+    setAttributes: vi.fn(),
+    setInput: vi.fn(),
+    setOutput: vi.fn(),
+    setType: vi.fn(),
+  };
+
+  mockSpan.setAttributes.mockReturnValue(mockSpan);
+  mockSpan.setInput.mockReturnValue(mockSpan);
+  mockSpan.setOutput.mockReturnValue(mockSpan);
+  mockSpan.setType.mockReturnValue(mockSpan);
+
+  return {
+    mockSpan,
+    withActiveSpan: vi.fn(async (_name: string, callback: any) =>
+      callback(mockSpan),
+    ),
+  };
+});
+
+vi.mock('src/observability/langwatch', async () => {
+  const actual = await vi.importActual<
+    typeof import('src/observability/langwatch')
+  >('src/observability/langwatch');
+
+  return {
+    ...actual,
+    langWatchTracer: {
+      ...actual.langWatchTracer,
+      withActiveSpan,
+    },
+  };
+});
+
 function makeContact(overrides?: Partial<any>) {
   return {
     id: 'contact-1',
@@ -150,6 +186,10 @@ function makeStrategy(options?: {
 }
 
 describe('ClientConversationStrategy', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('returns a deterministic reply in E2E auth mode without calling AI or Evolution', async () => {
     const {
       strategy,
@@ -182,6 +222,23 @@ describe('ClientConversationStrategy', () => {
     expect(chatService.sendMessageAndSaveToMemory).not.toHaveBeenCalled();
     expect(clientAssistantAgent.streamConversation).not.toHaveBeenCalled();
     expect(findPendingConfirmations.execute).not.toHaveBeenCalled();
+    expect(withActiveSpan).toHaveBeenCalledWith(
+      'conversation.client',
+      expect.any(Function),
+    );
+    expect(mockSpan.setInput).toHaveBeenCalledWith('chat_messages', [
+      {
+        role: 'user',
+        content: 'Oi, preciso de ajuda',
+      },
+    ]);
+    expect(mockSpan.setOutput).toHaveBeenCalledWith('chat_messages', [
+      {
+        role: 'assistant',
+        content:
+          'Oi, Cliente! Recebi sua mensagem para Settings E2E Co.: "Oi, preciso de ajuda".',
+      },
+    ]);
   });
 
   it('keeps the normal client assistant flow when deterministic E2E replies are disabled', async () => {
@@ -209,6 +266,16 @@ describe('ClientConversationStrategy', () => {
       contactId: 'contact-1',
     });
     expect(clientAssistantAgent.streamConversation).toHaveBeenCalledOnce();
+    expect(mockSpan.setAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        'langwatch.thread.id':
+          'contact:contact-1:session:2026-04-02T00:00:00.000Z',
+        'secretary.company.id': 'company-1',
+        'secretary.contact.id': 'contact-1',
+        'secretary.operation': 'client_conversation',
+        'secretary.route.kind': 'client',
+      }),
+    );
     expect(chatService.sendPresenceNotification).toHaveBeenCalled();
     expect(chatService.sendMessageAndSaveToMemory).toHaveBeenCalledWith({
       sessionId: 'contact:contact-1:session:2026-04-02T00:00:00.000Z',
@@ -217,6 +284,12 @@ describe('ClientConversationStrategy', () => {
       remoteJid: '5511999999999@s.whatsapp.net',
       message: 'Primeira parte\nSegunda parte',
     });
+    expect(mockSpan.setOutput).toHaveBeenCalledWith('chat_messages', [
+      {
+        role: 'assistant',
+        content: 'Primeira parte\nSegunda parte',
+      },
+    ]);
   });
 
   it('logs tool messages emitted during the agent stream', async () => {

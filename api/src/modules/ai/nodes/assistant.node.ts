@@ -133,6 +133,7 @@ export const createAssistantNode =
               contactId: context.contactId,
               instanceName: context.instanceName,
               operation: 'agent_assistant_node',
+              threadId,
               userId: context.userId,
             }),
           );
