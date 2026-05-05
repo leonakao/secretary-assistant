@@ -7,210 +7,213 @@
 
 ## Architecture Overview
 
-The onboarding assistant gets one new onboarding-only tool,
-`readWebsiteUrl`. The tool validates the URL, fetches bounded public
-content, extracts readable text, summarizes business facts, and returns a
-compact structured tool result to the agent.
+The feature is split into three layers:
 
-The fetched website is treated as untrusted source data. It can inform the
-assistant and company description, but it never becomes system instructions and
-never overrides explicit owner statements.
+```text
+web-content module -> AI URL-reading tool -> onboarding/web integration
+```
 
-This feature must integrate with both active interviewing and onboarding
-completion instead of creating a parallel company-profile pipeline. Reading a
-website URL adds another source of onboarding evidence through ToolMessages in
-the LangGraph conversation state. The interviewing agent receives that evidence
-during the conversation, and `finishOnboarding` remains the single place that
-merges onboarding evidence into the canonical company description.
+`web-content` owns safe public page reading and text extraction. `AiModule` owns
+LLM summarization and the `readWebsiteUrl` tool. Onboarding registers the tool
+initially, uses its ToolMessages during the interview, and `finishOnboarding`
+merges website ToolMessages with the onboarding conversation into the canonical
+`Company.description`.
 
 ```mermaid
 graph TD
     A[Owner sends URL in onboarding chat] --> B[OnboardingAssistantAgent]
     B --> C[readWebsiteUrl tool]
-    C --> D[WebsiteUrlPolicyService]
-    D --> E[WebsiteFetchService]
-    E --> F[WebsiteContentExtractorService]
+    C --> D[WebUrlPolicyService]
+    D --> E[WebPageFetchService]
+    E --> F[WebPageContentExtractorService]
     F --> G[WebsiteSummaryService]
     G --> H[Structured ToolMessage]
     H --> B
-    B --> J[Assistant explains findings and continues onboarding]
-    H --> K[finishOnboarding reads graph/tool history]
-    C --> L[ChatStateService tool activity]
-    L --> M[GET onboarding messages]
+    B --> I[Assistant explains findings and continues onboarding]
+    H --> J[finishOnboarding reads state.messages ToolMessages]
+    C --> K[ChatStateService tool activity]
+    J --> K
+    K --> L[GET /onboarding/messages activity]
 ```
+
+The fetched website is untrusted source data. It can inform the assistant and
+final company description, but it never becomes system instructions and never
+overrides explicit owner statements.
+
+---
+
+## Module Boundaries
+
+### `WebContentModule`
+
+- **Location**: `src/modules/web-content/`
+- **Purpose**: Safe URL validation, bounded HTTP fetch, and text extraction.
+- **May depend on**: Nest common/config, Node DNS/network APIs, HTML parser.
+- **Must not depend on**: `AiModule`, `CompaniesModule`, `OnboardingModule`, or
+  agent/tool classes.
+- **Exports**:
+  - `WebUrlPolicyService`
+  - `WebPageFetchService`
+  - `WebPageContentExtractorService`
+
+### `AiModule`
+
+- **Purpose**: LLM summarization, agent tool, and final profile merge.
+- **Imports**: `WebContentModule`.
+- **Owns**:
+  - `WebsiteSummaryService`
+  - `ReadWebsiteUrlTool`
+  - `WebsiteToolResult` types
+  - `finishOnboarding` ToolMessage merge behavior
+
+### `OnboardingModule`
+
+- **Purpose**: Existing onboarding conversation and message polling.
+- **Owns**:
+  - `GET /onboarding/messages` response activity contract
+  - conversation state mapping for web polling
+
+### `MessageQueueModule`
+
+- **Purpose**: Existing Redis-backed chat state.
+- **Change**: Extend typing state to structured activity state.
 
 ---
 
 ## Code Reuse Analysis
 
-### Existing Components to Leverage
-
 | Component | Location | How to Use |
 | --- | --- | --- |
-| `OnboardingAssistantAgent` | `src/modules/ai/agents/onboarding-assistant.agent.ts` | Add the new tool to the onboarding graph only. |
-| `FinishOnboardingTool` | `src/modules/ai/tools/finish-onboarding.tool.ts` | Extend final description prompt with website ToolMessage context. |
-| `LangchainService` | `src/modules/ai/services/langchain.service.ts` | Summarize cleaned website text with the helper model path. |
-| `Company` | `src/modules/companies/entities/company.entity.ts` | Keep final profile in `description`; no new website table for MVP. |
-| LangGraph ToolMessages | `OnboardingAssistantAgent` graph state | Carry website summaries in the active agent conversation. |
-| `Memory` | `src/modules/chat/entities/memory.entity.ts` | Current persisted transcript source; may need alignment so finalization can include tool evidence. |
-| Existing StructuredTool pattern | `src/modules/ai/tools/*.tool.ts` | Implement `ReadWebsiteUrlTool` consistently with existing tools. |
-| Existing policy gate | `src/modules/ai/policies/*` | Keep `finishOnboarding` confirmation enforcement unchanged; no special policy needed for URL reading beyond tool validation. |
-
-### Integration Points
-
-| System | Integration Method |
-| --- | --- |
-| Onboarding chat | Existing free-form message path; URLs are sent as normal user text. |
-| LangGraph tools | Add `ReadWebsiteUrlTool` to onboarding tools. |
-| Database | No new website-ingestion table in MVP. Final output still writes `companies.description`. |
-| HTTP network | Node `fetch` with manual redirect validation, timeout, max bytes, and DNS/IP checks. |
-| LLM | Use `LangchainService.chat(...)` for constrained summarization after deterministic text extraction. |
-| Chat state | Extend existing `ChatStateService` typing state with contextual activity for tool execution. |
+| `OnboardingAssistantAgent` | `src/modules/ai/agents/onboarding-assistant.agent.ts` | Add `readWebsiteUrl` to onboarding tools only. |
+| `FinishOnboardingTool` | `src/modules/ai/tools/finish-onboarding.tool.ts` | Include successful `readWebsiteUrl` ToolMessages in final prompt. |
+| `LangchainService` | `src/modules/ai/services/langchain.service.ts` | Summarize cleaned page text using helper model path. |
+| LangGraph ToolMessages | `OnboardingAssistantAgent` graph state | Carry website summaries in active conversation. |
+| `Memory` | `src/modules/chat/entities/memory.entity.ts` | Continue using persisted user/assistant transcript as conversation evidence. |
+| `ChatStateService` | `src/modules/message-queue/services/chat-state.service.ts` | Extend existing typing state to expose tool activity labels. |
+| Existing `StructuredTool` pattern | `src/modules/ai/tools/*.tool.ts` | Implement `ReadWebsiteUrlTool` consistently with existing tools. |
 
 ---
 
 ## Components
 
-### WebsiteUrlPolicyService
+### WebUrlPolicyService
 
 - **Purpose**: Normalize and validate user-provided URLs before any network
   request.
-- **Location**: `src/modules/companies/services/website-url-policy.service.ts`
-- **Interfaces**:
-  - `execute(url: string): Promise<ValidatedWebsiteUrl>` - returns normalized
-    URL and resolved address metadata or throws a recoverable domain error.
-- **Dependencies**: Node DNS APIs, IP range helpers.
-- **Reuses**: Existing single-method service convention.
+- **Location**: `src/modules/web-content/services/web-url-policy.service.ts`
+- **Interface**:
+  - `execute(url: string): Promise<ValidatedWebUrl>`
+- **Rules**:
+  - allow only `http:` and `https:`
+  - resolve DNS before fetch
+  - block localhost, loopback, private, link-local, multicast, unspecified, and
+    invalid IP ranges
 
-### WebsiteFetchService
+### WebPageFetchService
 
 - **Purpose**: Fetch bounded public website content after URL validation.
-- **Location**: `src/modules/companies/services/website-fetch.service.ts`
-- **Interfaces**:
-  - `execute(input: ValidatedWebsiteUrl): Promise<WebsiteFetchResult>` - fetches
-    content with timeout, redirect, byte, and content-type limits.
-- **Dependencies**: `fetch`, `AbortController`, `WebsiteUrlPolicyService` for
-  every redirect target.
-- **Reuses**: Nest injectable service pattern.
+- **Location**: `src/modules/web-content/services/web-page-fetch.service.ts`
+- **Interface**:
+  - `execute(input: ValidatedWebUrl): Promise<WebPageFetchResult>`
+- **Rules**:
+  - manual redirect handling
+  - revalidate every redirect target with `WebUrlPolicyService`
+  - enforce timeout, redirect, byte, and content-type limits
 
-### WebsiteContentExtractorService
+### WebPageContentExtractorService
 
 - **Purpose**: Convert supported HTML/plain text responses into clean readable
   text and metadata.
-- **Location**: `src/modules/companies/services/website-content-extractor.service.ts`
-- **Interfaces**:
-  - `execute(input: WebsiteFetchResult): WebsiteExtractResult`
-- **Dependencies**: `cheerio` or equivalent HTML parser.
-- **Reuses**: No existing parser; add a focused dependency instead of regex HTML
-  parsing.
+- **Location**:
+  `src/modules/web-content/services/web-page-content-extractor.service.ts`
+- **Interface**:
+  - `execute(input: WebPageFetchResult): WebPageContentResult`
+- **Dependencies**: `@mozilla/readability`, `jsdom`.
+- **Rules**:
+  - parse HTML with `jsdom`
+  - extract main readable content with `@mozilla/readability`
+  - fall back to cleaned `body.textContent` when Readability returns no article
+    or too little text
+  - remove script/style/navigation-heavy noise in fallback extraction
+  - return title, cleaned text, character count, and content hash
 
 ### WebsiteSummaryService
 
-- **Purpose**: Summarize extracted text into business-profile Markdown.
-- **Location**: `src/modules/companies/services/website-summary.service.ts`
-- **Interfaces**:
-  - `execute(input: WebsiteExtractResult): Promise<WebsiteSummaryResult>`
-- **Dependencies**: `LangchainService`.
-- **Reuses**: Existing helper LLM service and prompt style used by
-  `FinishOnboardingTool`.
+- **Purpose**: Summarize cleaned page text into business-relevant facts.
+- **Location**: `src/modules/ai/services/website-summary.service.ts`
+- **Interface**:
+  - `execute(input: WebPageContentResult): Promise<WebsiteSummaryResult>`
+- **Rules**:
+  - treat page text as untrusted source content
+  - output concise Portuguese Markdown and key facts
+  - do not invent facts absent from the page
 
 ### ReadWebsiteUrlTool
 
-- **Purpose**: Agent-facing tool that orchestrates validation, fetch,
-  extraction, and summarization.
+- **Purpose**: Agent-facing tool that reads one explicit public URL and returns
+  structured website evidence.
 - **Location**: `src/modules/ai/tools/read-website-url.tool.ts`
-- **Interfaces**:
-  - Tool schema: `{ url: string; reason?: string }`
-  - Returns a compact Portuguese result with status, source URL, title,
-    timestamp, and key facts.
-- **Dependencies**: `WebsiteUrlPolicyService`, `WebsiteFetchService`,
-  `WebsiteContentExtractorService`, `WebsiteSummaryService`.
-- **Reuses**: Existing `StructuredTool` implementation pattern and `AgentState`
-  context.
-
-### ToolMessage Evidence Integration
-
-- **Purpose**: Keep successful website summaries visible to the active graph and
-  available to final onboarding.
-- **Location**: `src/modules/ai/agents/onboarding-assistant.agent.ts`,
-  `src/modules/ai/tools/finish-onboarding.tool.ts`
-- **Interfaces**:
-  - Tool result format should be structured enough for later extraction from
-    graph state or persisted conversation history.
-- **Dependencies**: LangGraph state/checkpointer behavior.
-- **Reuses**: Existing tool-node behavior.
-
-Context rule:
-
-- The agent should receive structured summaries and extracted facts, not raw
-  full-page HTML/text.
-- The context should include source URLs and timestamps so the assistant can say
-  where information came from.
-- The context must be bounded so a company with many pages cannot overflow the
-  prompt.
-- The ToolMessage should include the newly ingested summary for the current
-  assistant turn and for future graph-state turns.
-- `finishOnboarding` must be updated so final description generation includes
-  relevant ToolMessages, not just user/assistant memories.
-
-### Tool Activity State
-
-- **Purpose**: Let the web onboarding chat show what the assistant is doing
-  while long-running tools execute.
-- **Location**:
-  `src/modules/message-queue/services/chat-state.service.ts`,
-  `src/modules/onboarding/use-cases/get-onboarding-messages.use-case.ts`,
-  `src/modules/ai/nodes/tool.node.ts`
-- **Interfaces**:
-  - `setActivity(conversationKey, activity)` - stores a typed activity with TTL.
-  - `clearActivity(conversationKey)` - clears current activity.
-  - `getState(conversationKey)` - returns generic typing or a structured
-    activity.
-- **Dependencies**: Existing Redis-backed chat state.
-- **Reuses**: Current onboarding polling flow that already reads `isTyping`.
-
-Suggested activity contract:
-
-```typescript
-type ChatActivity =
-  | { kind: 'typing'; label: 'Assistente digitando...' }
-  | { kind: 'tool'; toolName: 'readWebsiteUrl'; label: 'Pesquisando na web...' }
-  | {
-      kind: 'tool';
-      toolName: 'finishOnboarding';
-      label: 'Finalizando o onboarding...';
-    };
-```
-
-Rules:
-
-- Store stable activity codes; labels may be rendered by the API or mapped by
-  the web, but the user-facing text must be consistent.
-- Unknown tools should fall back to generic `Assistente trabalhando...` or
-  `Assistente digitando...`.
-- Activity state must have a TTL and must clear in `finally` paths.
-- This should not affect WhatsApp typing/presence behavior.
+- **Tool name**: `readWebsiteUrl`
+- **Schema**: `{ url: string; reason?: string }`
+- **Dependencies**:
+  - `WebUrlPolicyService`
+  - `WebPageFetchService`
+  - `WebPageContentExtractorService`
+  - `WebsiteSummaryService`
+- **Output**: `WebsiteToolResult`
 
 ### Finish Onboarding Integration
 
-- **Purpose**: Include website-derived facts in the final company description.
+- **Purpose**: Keep `finishOnboarding` as the canonical writer of
+  `Company.description` while including website evidence.
 - **Location**: `src/modules/ai/tools/finish-onboarding.tool.ts`
-- **Interfaces**:
-  - Read website tool evidence from `state.messages` and/or the graph state used
-    by the current onboarding run.
-- **Dependencies**: LangGraph state, existing `Memory` repository for persisted
-  transcript.
-- **Reuses**: Existing final Markdown generation flow.
+- **Rules**:
+  - continue reading persisted user/assistant conversation from `Memory`
+  - read successful `readWebsiteUrl` ToolMessages from `state.messages`
+  - include website evidence in the final extraction prompt
+  - explicit owner statements in the conversation override website evidence
+  - raw page text must not be dumped into the final prompt
 
-Integration rule:
+### Tool Activity State
 
-- `Memory` remains the source of the onboarding conversation.
-- Website ToolMessages store source summaries inside the active graph history.
-- `finishOnboarding` merges conversation memory and website ToolMessages into
-  `Company.description`.
-- Explicit owner statements in `Memory` take precedence over website summaries.
-- Website summaries should not directly overwrite `Company.description` before
-  onboarding is finalized.
+- **Purpose**: Let the web onboarding chat show contextual loading labels while
+  long-running tools execute.
+- **Locations**:
+  - `src/modules/message-queue/services/chat-state.service.ts`
+  - `src/modules/onboarding/use-cases/get-onboarding-messages.use-case.ts`
+  - `src/modules/ai/nodes/tool.node.ts`
+- **Response contract**:
+
+```typescript
+type ChatActivity =
+  | { kind: 'typing'; label?: string }
+  | { kind: 'tool'; toolName: string; label?: string };
+```
+
+`GET /onboarding/messages` remains backward compatible:
+
+```typescript
+interface GetOnboardingMessagesResult {
+  isTyping: boolean;
+  activity: ChatActivity | null;
+}
+```
+
+Labels:
+
+| Activity | Label |
+| --- | --- |
+| `readWebsiteUrl` | `Pesquisando na web...` |
+| `finishOnboarding` | `Finalizando o onboarding...` |
+| unknown tool | `Assistente trabalhando...` |
+| generic typing | `Assistente digitando...` |
+
+Rules:
+
+- Activity state has a TTL.
+- Activity clears in `finally` paths.
+- Redis-unavailable behavior remains no-op fallback.
+- This does not affect WhatsApp typing/presence behavior.
 
 ---
 
@@ -237,9 +240,7 @@ interface WebsiteToolResult {
 }
 ```
 
-**Persistence**: Stored as tool output in the LangGraph conversation state for
-the MVP. A dedicated relational table can be added later if audit, refresh, or
-cross-session retrieval requirements become stronger.
+Stored as tool output in the LangGraph conversation state.
 
 ---
 
@@ -261,31 +262,11 @@ cross-session retrieval requirements become stronger.
 
 | Decision | Choice | Rationale |
 | --- | --- | --- |
-| Agent exposure | Tool only on `OnboardingAssistantAgent` | The feature is specifically for setup and avoids client-facing network access. |
-| Fetch implementation | Node `fetch` with manual redirect handling | Keeps dependency surface small and lets every redirect be revalidated. |
-| HTML parsing | Add `cheerio` | Avoids fragile regex parsing and is sufficient for server-side static HTML extraction. |
-| Persistence | No dedicated website ingestion table in MVP | The active graph ToolMessage is enough to support the interviewer and finalization without premature schema. |
-| Final profile merge | Include summaries in `finishOnboarding` prompt | Keeps `finishOnboarding` as the single canonical profile-generation path while preserving owner-confirmation flow. |
-| Interview context | Use structured ToolMessages | Lets the interviewing agent use site content before finalization and keeps the design reusable for owner-agent URL use later. |
-| Crawling | Explicit URLs only | Supports multiple owner-provided URLs while avoiding automatic traversal. |
-| Multiple URLs | Multiple single-URL tool calls in one turn | Keeps the tool simple and lets the agent decide which explicit URLs to read, subject to limits. |
-| Tool loading labels | Extend chat state activity, not transcript messages | Gives live UI feedback without persisting fake assistant messages. |
-
----
-
-## Security Constraints
-
-- Only `http:` and `https:` are allowed.
-- DNS results and redirect targets must reject loopback, private, link-local,
-  multicast, unspecified, and other non-public ranges.
-- Fetch must enforce configurable limits:
-  - timeout, default 8 seconds
-  - redirects, default 3
-  - response bytes, default 1 MB
-  - extracted text characters sent to LLM, default 40k
-  - URLs per assistant turn, MVP default 1; P2 default 3 through repeated
-    single-URL tool calls
-- Do not execute JavaScript.
-- Do not send raw HTML to the LLM; send cleaned text only.
-- Summarization prompt must explicitly classify website text as untrusted source
-  content.
+| Neutral page-reading boundary | `WebContentModule` | Avoids coupling company/domain modules to AI services and keeps URL reading reusable. |
+| Summarization location | `AiModule` | LLM behavior belongs with AI tooling, not domain modules. |
+| HTML extraction | `@mozilla/readability` + `jsdom` | Uses a proven reader-mode extraction library while keeping URL fetch/security in our code. |
+| Tool name | `readWebsiteUrl` | Describes reading an explicit URL without implying persistence. |
+| Initial agent exposure | Onboarding only | Keeps rollout narrow while preserving future owner-agent reuse. |
+| Persistence | LangGraph ToolMessages | Supports interviewer and finalization without another storage path. |
+| Multiple URLs | Repeated single-URL tool calls | Keeps the tool simple and lets the agent decide which explicit URLs to read. |
+| Tool loading labels | Chat activity state | Gives live UI feedback without persisting fake assistant messages. |

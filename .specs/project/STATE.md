@@ -29,8 +29,8 @@ public company information from owner-provided URLs.
 - **Three agent modes:** Client, Owner, Onboarding — selected by ConversationStrategy
 - **Onboarding website URL reading:** expose website access only through
   `readWebsiteUrl`, registered on onboarding initially; use explicit URLs only
-  for MVP; keep website summaries in structured ToolMessages instead of a
-  dedicated table; reject unsafe network targets before fetch.
+  for MVP; keep website summaries in structured ToolMessages; reject unsafe
+  network targets before fetch.
 - **Feature integration for onboarding evidence:** website URL reading must feed
   the existing `finishOnboarding` summary path. `finishOnboarding` remains the
   canonical writer of the finalized `Company.description`, merging conversation

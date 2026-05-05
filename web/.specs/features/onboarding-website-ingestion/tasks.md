@@ -8,7 +8,7 @@
 ## Execution Plan
 
 ```text
-T1 -> T2 -> T3 -> T4
+T1 -> T2 -> T3 -> T4 -> T5 -> T6
 ```
 
 ---
@@ -20,7 +20,7 @@ T1 -> T2 -> T3 -> T4
 **What**: Add optional activity typing to the onboarding conversation API
 contract.
 **Where**: `web/app/modules/onboarding/api/onboarding.api.ts`
-**Depends on**: API activity contract
+**Depends on**: API T12 activity contract
 
 **Done when**:
 - [ ] `OnboardingConversation` includes optional `activity`.
@@ -69,8 +69,8 @@ contract.
 
 ### T4: Add web tests for contextual loading
 
-**What**: Cover generic typing, website reading, finalization, and clear-on-reply
-behavior.
+**What**: Add unit/component tests for generic typing, website reading,
+finalization, and clear-on-reply behavior.
 **Where**:
 `web/app/modules/onboarding/pages/onboarding-page/components/onboarding-chat.test.ts`,
 related transcript tests
@@ -84,3 +84,48 @@ related transcript tests
 
 **Verify**:
 - `cd web && pnpm test -- onboarding-chat`
+
+---
+
+### T5: Code review web changes
+
+**What**: Review web changes for API contract compatibility, UI state
+correctness, accessibility, and missing tests before updating E2E coverage.
+**Where**:
+All web files changed by T1-T4
+**Depends on**: T4
+
+**Done when**:
+- [ ] Review confirms legacy `isTyping` fallback still works.
+- [ ] Review confirms activity labels are temporary UI state, not persisted
+      transcript messages.
+- [ ] Review confirms unknown activity/tool names fall back gracefully.
+- [ ] Review confirms loading text does not break mobile layout.
+- [ ] Review findings are fixed or explicitly tracked before E2E updates.
+
+**Verify**:
+- Code review notes/findings are recorded in the implementation handoff or PR.
+
+---
+
+### T6: Update web integration and E2E tests
+
+**What**: Update route-level and onboarding validation coverage for contextual
+tool loading labels.
+**Where**:
+`web/tests/e2e/onboarding-validation.spec.ts`,
+route/component integration tests following existing conventions
+**Depends on**: T5
+
+**Done when**:
+- [ ] Integration tests cover polling responses with `activity` and legacy
+      `isTyping`.
+- [ ] E2E onboarding validation covers URL reading activity label when the API
+      reports `readWebsiteUrl`.
+- [ ] E2E onboarding validation covers finalization activity label when the API
+      reports `finishOnboarding`.
+- [ ] Existing onboarding validation flow still passes without activity payload.
+
+**Verify**:
+- `cd web && pnpm test`
+- `pnpm onboarding-validation:test`

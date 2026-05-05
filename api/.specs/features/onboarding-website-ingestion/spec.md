@@ -26,15 +26,13 @@ context back into the onboarding conversation.
 - [ ] Keep `finishOnboarding` as the canonical step that merges onboarding
       conversation and website evidence into `Company.description`.
 - [ ] Make successful website-derived facts available to the active agent
-      through ToolMessages, without requiring a dedicated website-ingestion table
-      in the MVP.
+      through ToolMessages.
 - [ ] Expose contextual onboarding assistant activity while long-running tools
       execute so the web chat can show tool-specific loading text.
 
 ## Out of Scope
 
 - Web UI changes for dedicated URL fields.
-- A dedicated website-ingestion database table in the MVP.
 - Browser rendering or JavaScript execution.
 - Crawling links that the owner did not explicitly provide.
 - Background refresh jobs.
@@ -185,3 +183,5 @@ merged facts once.
 - [ ] `finishOnboarding` includes website ToolMessages when generating the final
       company description.
 - [ ] `pnpm test`, `pnpm lint`, and `npx tsc --noEmit` pass in `api/`.
+- [ ] API integration and onboarding validation tests cover URL reading,
+      blocked URLs, final profile generation, and contextual tool activity.

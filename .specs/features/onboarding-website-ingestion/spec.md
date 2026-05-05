@@ -28,7 +28,6 @@ interview from a better baseline.
 - JavaScript browser rendering, login flows, CAPTCHAs, or screenshots.
 - Full-site crawling, sitemap traversal, or continuous website monitoring in the
   MVP.
-- A dedicated website-ingestion database table in the MVP.
 - Automatically trusting scraped content over explicit owner corrections.
 - Client-facing runtime website search after onboarding is complete.
 
@@ -192,3 +191,5 @@ website pages to share so that I know what additional information may help.
       preserving owner corrections.
 - [ ] Unit tests cover URL validation, extraction, summarization, tool result
       formatting, and onboarding tool behavior.
+- [ ] Integration and E2E tests cover the onboarding URL-reading flow and
+      contextual tool loading labels.

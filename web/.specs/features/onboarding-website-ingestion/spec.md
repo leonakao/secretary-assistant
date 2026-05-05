@@ -45,3 +45,13 @@ assistant is doing so that I know the system is still working.
 **Independent Test**: Mock polling responses for generic typing,
 `readWebsiteUrl`, and `finishOnboarding`; verify the loading bubble text changes
 and clears when a new assistant message arrives.
+
+---
+
+## Success Criteria
+
+- [ ] Unit/component tests cover contextual loading labels.
+- [ ] Integration/E2E tests cover activity payloads for URL reading and
+      onboarding finalization.
+- [ ] Existing onboarding validation still passes when no activity payload is
+      present.
