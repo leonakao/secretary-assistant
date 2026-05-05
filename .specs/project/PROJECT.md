@@ -10,6 +10,61 @@
 - Support multiple conversation modes: client-facing support, owner interaction, and business onboarding
 - Allow the agent to manage service requests end-to-end (create, track, update, confirm with client)
 
+## Agent Flows
+
+The system routes each conversation to one of three LangGraph agents based on
+who sent the message and the company's onboarding state:
+
+```mermaid
+flowchart TD
+  inbound[Incoming WhatsApp message] --> webhook[Evolution webhook]
+  webInbound[Web onboarding request] --> sessionGuard[SessionGuard]
+  sessionGuard --> onboardingStrategy
+  webhook --> source{Sender and company state}
+
+  source -->|Client contact| clientStrategy[ClientConversationStrategy]
+  source -->|Company owner, company running| ownerStrategy[OwnerConversationStrategy]
+  source -->|Company owner, company onboarding| onboardingStrategy[OnboardingConversationStrategy]
+
+  clientStrategy --> clientStart[ClientAssistantAgent]
+  clientStart --> detectTransfer{Needs human transfer?}
+  detectTransfer -->|Yes| requestHuman[Request human support]
+  requestHuman --> clientEnd[End]
+  detectTransfer -->|No| clientAssistant[Assistant response]
+  clientAssistant --> clientResponseGuard[ClientScopeResponseGuard]
+  clientResponseGuard --> clientToolCalls{Tool calls?}
+  clientToolCalls -->|No| clientEnd
+  clientToolCalls -->|Yes| clientPolicy[Policy gate]
+  clientPolicy --> clientTools[Service request, confirmation, contact, memory, conversation, user, send-message tools]
+  clientTools --> clientAssistant
+
+  ownerStrategy --> ownerStart[OwnerAssistantAgent]
+  ownerStart --> ownerAssistant[Assistant response]
+  ownerAssistant --> ownerToolCalls{Tool calls?}
+  ownerToolCalls -->|No| ownerEnd[End]
+  ownerToolCalls -->|Yes| ownerPolicy[Policy gate]
+  ownerPolicy --> ownerTools[Service request, confirmation, conversation, user, send-message tools]
+  ownerTools --> ownerAssistant
+
+  onboardingStrategy --> onboardingStart[OnboardingAssistantAgent]
+  onboardingStart --> onboardingAssistant[Assistant response]
+  onboardingAssistant --> onboardingToolCalls{finishOnboarding call?}
+  onboardingToolCalls -->|No| onboardingEnd[End]
+  onboardingToolCalls -->|Yes| onboardingPolicy[Require explicit confirmation]
+  onboardingPolicy --> finishOnboarding[finishOnboarding tool]
+  finishOnboarding --> onboardingAssistant
+```
+
+- **ClientAssistantAgent:** handles customer conversations, can transfer to a
+  human owner, runs `ClientScopeResponseGuard` before returning a final client
+  reply, and uses operational tools only after policy checks.
+- **OwnerAssistantAgent:** helps the business owner inspect conversations,
+  coordinate confirmations, send messages, and manage service requests.
+- **OnboardingAssistantAgent:** guides initial setup and can only complete
+  onboarding through `finishOnboarding` after explicit user confirmation.
+- **SessionGuard:** protects authenticated web onboarding endpoints before the
+  web chat reaches the onboarding conversation service.
+
 ## Tech Stack
 
 **Core:**

@@ -67,23 +67,23 @@ export const createClientScopeResponseGuard =
           span.setOutput('json', {
             decision,
             ...Object.fromEntries(
-              Object.entries(details).filter(([, value]) => value !== undefined),
+              Object.entries(details).filter(
+                ([, value]) => value !== undefined,
+              ),
             ),
           });
         };
 
-        span
-          .setType('guardrail')
-          .setAttributes(
-            buildLangWatchAttributes({
-              companyId: state.context.companyId,
-              contactId: state.context.contactId,
-              instanceName: state.context.instanceName,
-              operation: 'client_scope_response_guard',
-              threadId,
-              userId: state.context.userId,
-            }),
-          );
+        span.setType('guardrail').setAttributes(
+          buildLangWatchAttributes({
+            companyId: state.context.companyId,
+            contactId: state.context.contactId,
+            instanceName: state.context.instanceName,
+            operation: 'client_scope_response_guard',
+            threadId,
+            userId: state.context.userId,
+          }),
+        );
 
         const toolCalls = response.tool_calls ?? [];
 
