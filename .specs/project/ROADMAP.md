@@ -33,6 +33,7 @@ Guided setup experience for new businesses.
 
 - [ ] Onboarding conversation flow via WhatsApp
 - [ ] Company profile setup through OnboardingAssistantAgent
+- [ ] Website ingestion during onboarding from owner-provided public URLs
 - [ ] FinishOnboarding tool integration and step tracking
 - [ ] Dashboard onboarding wizard (web)
 

@@ -1,20 +1,24 @@
 # State
 
-**Last updated:** 2026-03-23
-**Current phase:** Brownfield mapping + project initialization
+**Last updated:** 2026-05-05
+**Current phase:** Feature planning
 
 ## Current Focus
 
-Setting up spec-driven development structure for the secretary-assistant monorepo.
+Planning onboarding website ingestion so the onboarding assistant can load
+public company information from owner-provided URLs.
 
 ## What Was Done This Session
 
-- Converted repository to monorepo: moved all API files into `api/`, created empty `web/`
-- Moved root-level config files to monorepo root: `.gitignore`, `.editorconfig`, `.prettierrc`
-- Moved `docker-compose.yaml` to root, updated build context and volume paths to `./api`
-- Created root `README.md` with project overview
-- Updated all 6 codebase docs in `api/.specs/codebase/` (were stale from a previous project)
-- Created `api/.specs/project/PROJECT.md`, `ROADMAP.md`, `STATE.md`
+- Created root feature spec:
+  `.specs/features/onboarding-website-ingestion/spec.md`
+- Created API feature spec/design/tasks:
+  `api/.specs/features/onboarding-website-ingestion/`
+- Scoped MVP to explicit owner-provided public HTTP/HTTPS URLs pasted in the
+  onboarding conversation.
+- Planned API implementation around an onboarding-only `readWebsiteUrl`
+  tool with safe URL validation, bounded fetch, text extraction, LLM summary,
+  and structured ToolMessage output.
 
 ## Architecture Decisions
 
@@ -23,6 +27,25 @@ Setting up spec-driven development structure for the secretary-assistant monorep
 - **LLM:** OpenAI GPT models via LangChain/LangGraph, with OpenAI embeddings for semantic memory
 - **Agent persistence:** PostgresSaver (checkpointer schema) + PostgresStore (vector schema)
 - **Three agent modes:** Client, Owner, Onboarding — selected by ConversationStrategy
+- **Onboarding website URL reading:** expose website access only through
+  `readWebsiteUrl`, registered on onboarding initially; use explicit URLs only
+  for MVP; keep website summaries in structured ToolMessages instead of a
+  dedicated table; reject unsafe network targets before fetch.
+- **Feature integration for onboarding evidence:** website URL reading must feed
+  the existing `finishOnboarding` summary path. `finishOnboarding` remains the
+  canonical writer of the finalized `Company.description`, merging conversation
+  memory with successful website ToolMessages.
+- **Onboarding interviewer context:** successful website summaries should be
+  visible to the active assistant through graph ToolMessages. Avoid an
+  onboarding-specific evidence context service in the MVP so the URL-reading
+  capability can later be reused by `OwnerAssistantAgent`.
+- **Multiple URLs in one message:** keep `readWebsiteUrl` as a single-URL
+  tool. If the owner sends several explicit URLs in one message, the agent may
+  call the same tool multiple times in that turn, within configured limits.
+- **Contextual onboarding loading:** extend the existing onboarding typing state
+  into a structured activity state so the web chat can show tool-specific
+  loading labels such as `Pesquisando na web...` and
+  `Finalizando o onboarding...`.
 
 ## Active Blockers
 
@@ -30,8 +53,7 @@ None.
 
 ## Pending Decisions
 
-- pnpm workspace setup at monorepo root (not yet configured — `web/` is empty)
-- Web tech stack details for the React SPA (framework choices, UI library, auth approach)
+- (none)
 
 ## Preferences
 
